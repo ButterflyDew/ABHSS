@@ -1,0 +1,7 @@
+# SCIP-Jack 7.0.3 secondary standard-instance baseline.
+# The external watchdog allows 30 seconds for clean shutdown, but SCIP's own
+# solver limit is the paper-wide per-instance limit below.
+limits/time = 10000
+parallel/maxnthreads = 1
+display/verblevel = 4
+display/freq = 1000

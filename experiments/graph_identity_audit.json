@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "audited_at": "2026-07-21",
+  "policy": {
+    "identity_definition": "equal vertex count, edge count, undirected endpoint multiset, and exact edge weights; SHA-256 is the frozen-file identity",
+    "query_rule": "different query protocols may share a graph only after graph identity has passed; a query is never moved between non-identical graphs",
+    "paper_naming": "source-qualified names are mandatory when a raw display name is ambiguous"
+  },
+  "comparisons": [
+    {
+      "left": {
+        "paper_id": "DBLP-VEW21",
+        "path": "data/DBLP/graph.txt",
+        "sha256": "f3f60f5b3ed6689ac573b15946254cf3421fa9d76be4b0e70dcd6aed99e5e0e9"
+      },
+      "right": {
+        "paper_id": "DBLP-GPU25",
+        "path": "data/GPU4GST_DBLP/graph.txt",
+        "sha256": "841ddb99c7be2d65c9a629cd7c014883e8f24ca177e996e1efa221266629a82e"
+      },
+      "tool": "build/Release/compare_graphs.exe",
+      "vertices_left": 2497782,
+      "vertices_right": 2497782,
+      "edges_left": 12786329,
+      "edges_right": 12786329,
+      "header_equal": true,
+      "topology_multiset_equal": false,
+      "weights_equal": false,
+      "weights_constant_scale": false,
+      "first_sorted_topology_mismatch_zero_based": 7,
+      "result": "different weighted graphs; keep both and prohibit cross-source query reuse"
+    }
+  ]
+}

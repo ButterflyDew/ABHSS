@@ -1,0 +1,64 @@
+# Local agent/editor state
+/.agents/
+/.codex/
+/.vs/
+/.vscode/
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Build trees and native artifacts
+/build/
+/build_external/
+/result/
+/results/
+/tmp/
+/.tmp_*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Large graph/query payloads. Keep the tiny smoke inputs, deterministic
+# generator, and per-dataset provenance manifests in Git.
+/data/*
+!/data/example/
+!/data/hack_dpbf_vs_test4/
+!/data/generate_queries_for_noGPU4GST.py
+!/data/*/
+/data/*/*
+!/data/example/**
+!/data/hack_dpbf_vs_test4/**
+!/data/*/dataset_manifest.json
+
+# Downloaded source graphs and CSR payloads. The README, manifests, hashes,
+# small author-query CSV files, and download/verification scripts remain.
+/data_origin/*.g
+/data_origin/*.in
+/data_origin/*.bin
+/data_origin/*.pdf
+
+# The related-query panel is deterministically regenerable from the frozen
+# selection JSON; its expanded text files account for roughly 239 MiB.
+/experiment_data/gpu4gst_panel/**/*.txt
+
+# Vendored dependencies include unlicensed author repositories, Boost, SCIP,
+# build products, and a nested Git object pack. Publish acquisition metadata
+# instead of redistributing those trees.
+/third_party/*
+!/third_party/README.md
+
+# Local paper copies include copyrighted publications and an unpublished
+# manuscript. Documentation cites them but the public repository must not.
+/docs/papers/

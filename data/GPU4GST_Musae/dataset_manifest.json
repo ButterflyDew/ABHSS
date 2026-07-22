@@ -1,0 +1,27 @@
+{
+  "dataset": "GPU4GST_Musae",
+  "source_prefix": "Musae",
+  "vertices": 19109,
+  "edges": 400497,
+  "candidate_groups": 13183,
+  "vertex_group_memberships": 1060946,
+  "generated_query_protocol": "related-group-bfs",
+  "base_seed": 2025,
+  "queries_per_g": 300,
+  "generated": [
+    {"g": 4, "seed": 4676898564956859525, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 5, "seed": 9487514580784539159, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 6, "seed": 9069253503039746635, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 7, "seed": 5144082204824182606, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 8, "seed": 13120446030225183153, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 9, "seed": 9813744671051344798, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 10, "seed": 15598334313466015256, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 11, "seed": 12206972788738754342, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 12, "seed": 18421898591971242798, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 13, "seed": 2326850385666490603, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 14, "seed": 2803504479459994907, "min_bfs_depth": 1, "max_bfs_depth": 2, "mean_bfs_depth": 1.00667, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 15, "seed": 7246862005949374645, "min_bfs_depth": 1, "max_bfs_depth": 2, "mean_bfs_depth": 1.00333, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0},
+    {"g": 16, "seed": 8609569610155244502, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 0}
+  ],
+  "author_query_files": ["query_author_g3.txt", "query_author_g5.txt", "query_author_g7.txt"]
+}

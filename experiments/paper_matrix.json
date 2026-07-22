@@ -1,0 +1,291 @@
+{
+  "schema_version": 2,
+  "paper_scope": "single-compute-thread exact undirected edge-weighted GST",
+  "primary_baseline": "pruneddp_safe",
+  "method_switching": "ABHSS-Light and ABHSS-Heavy are always reported separately; no per-instance oracle",
+  "timeout_seconds": 10000,
+  "graph_load_timeout_seconds": 1800,
+  "methods": {
+    "abhss_light": {
+      "kind": "native",
+      "executable": "build/Release/abhss_light.exe",
+      "fallback_executables": ["build/abhss_light"],
+      "arguments": []
+    },
+    "abhss_heavy": {
+      "kind": "native",
+      "executable": "build/Release/abhss_heavy.exe",
+      "fallback_executables": ["build/abhss_heavy"],
+      "arguments": []
+    },
+    "abhss_light_no_early": {
+      "kind": "native",
+      "executable": "build/Release/abhss_light_no_early.exe",
+      "fallback_executables": ["build/abhss_light_no_early"],
+      "arguments": []
+    },
+    "abhss_light_no_witness": {
+      "kind": "native",
+      "executable": "build/Release/abhss_light_no_witness.exe",
+      "fallback_executables": ["build/abhss_light_no_witness"],
+      "arguments": []
+    },
+    "abhss_heavy_forward": {
+      "kind": "native",
+      "executable": "build/Release/abhss_heavy_forward.exe",
+      "fallback_executables": ["build/abhss_heavy_forward"],
+      "arguments": []
+    },
+    "pruneddp_strict": {
+      "kind": "native",
+      "exact_claim": false,
+      "executable": "build/Release/pruneddp.exe",
+      "fallback_executables": ["build/pruneddp"],
+      "arguments": [
+        "--state-storage=hash",
+        "--mst-upper=on",
+        "--lb2-pathmax=on"
+      ]
+    },
+    "pruneddp_safe": {
+      "kind": "native",
+      "executable": "build/Release/pruneddp.exe",
+      "fallback_executables": ["build/pruneddp"],
+      "arguments": [
+        "--state-storage=hash",
+        "--mst-upper=on",
+        "--lb2-pathmax=off"
+      ]
+    },
+    "dpbf": {
+      "kind": "native",
+      "executable": "build/Release/dpbf.exe",
+      "fallback_executables": ["build/dpbf"],
+      "arguments": []
+    },
+    "basic_plus_upstream": {
+      "kind": "native",
+      "executable": "build/Release/basic_plus.exe",
+      "fallback_executables": ["build/basic_plus"],
+      "arguments": [],
+      "max_g": 14
+    },
+    "gpu4gst_pruneddp_artifact": {
+      "kind": "native",
+      "executable": "build/Release/gpu4gst_pruneddp_artifact.exe",
+      "fallback_executables": ["build/gpu4gst_pruneddp_artifact"],
+      "arguments": [],
+      "max_g": 14,
+      "integer_edge_weights_only": true
+    },
+    "scip_jack_7_0_3": {
+      "kind": "scip_jack",
+      "executable": "build_external/scip-jack-7.0.3/bin/applications/Release/scipstp.exe",
+      "fallback_executables": [
+        "build_external/scip-jack-7.0.3/bin/applications/scipstp",
+        "build_external/scip-jack-7.0.3/bin/Release/scipstp.exe"
+      ],
+      "settings": "experiments/scip-jack.set",
+      "runtime_path": [
+        "build_external/scip-jack-7.0.3/bin/Release"
+      ],
+      "watchdog_grace_seconds": 30
+    }
+  },
+  "suites": [
+    {
+      "id": "E0_example",
+      "methods": [
+        "abhss_light",
+        "abhss_heavy",
+        "abhss_light_no_early",
+        "abhss_light_no_witness",
+        "abhss_heavy_forward",
+        "pruneddp_strict",
+        "pruneddp_safe",
+        "dpbf",
+        "basic_plus_upstream",
+        "gpu4gst_pruneddp_artifact"
+      ],
+      "cases": [
+        {
+          "id": "E0_example__example",
+          "dataset": "example",
+          "graph": "data/example",
+          "query": "data/example/query.txt"
+        }
+      ]
+    },
+    {
+      "id": "E0_steinlib_wrp",
+      "methods": [
+        "abhss_light",
+        "abhss_heavy",
+        "abhss_light_no_early",
+        "abhss_light_no_witness",
+        "abhss_heavy_forward",
+        "pruneddp_strict",
+        "pruneddp_safe",
+        "dpbf",
+        "basic_plus_upstream",
+        "gpu4gst_pruneddp_artifact",
+        "scip_jack_7_0_3"
+      ],
+      "manifest": "experiment_data/steinlib/index.json",
+      "filter": {"converted": true},
+      "graph_template": "experiment_data/steinlib/{name}",
+      "query_template": "experiment_data/steinlib/{name}/query.txt",
+      "stp_field": "source_file",
+      "id_fields": ["name"]
+    },
+    {
+      "id": "E1_controlled_g_f",
+      "methods": [
+        "abhss_light",
+        "abhss_heavy",
+        "pruneddp_safe"
+      ],
+      "manifest": "experiment_data/controlled/manifest.json",
+      "graph_field": "graph_path",
+      "query_field": "query_path",
+      "id_fields": ["dataset", "g", "f_target"]
+    },
+    {
+      "id": "E2_gpu4gst_related_panel",
+      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
+      "manifest": "experiment_data/gpu4gst_panel/cells.json",
+      "graph_field": "graph_path",
+      "query_field": "panel_query_path",
+      "id_fields": ["dataset", "g"]
+    },
+    {
+      "id": "E3_practical_original",
+      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
+      "manifest": "experiment_data/practical_original/manifest.json",
+      "graph_field": "graph_path",
+      "query_field": "query_path",
+      "id_fields": ["dataset", "g", "f_target"]
+    },
+    {
+      "id": "E3_keyword_natural",
+      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
+      "split_by_g": true,
+      "min_g": 4,
+      "max_g": 10,
+      "cases": [
+        {
+          "id": "E3_keyword_natural__LinkedMDB",
+          "dataset": "LinkedMDB",
+          "graph": "data/LinkedMDB",
+          "query": "data/LinkedMDB/query.txt"
+        },
+        {
+          "id": "E3_keyword_natural__DBpedia",
+          "dataset": "DBpedia",
+          "graph": "data/DBpedia",
+          "query": "data/DBpedia/query.txt"
+        }
+      ]
+    },
+    {
+      "id": "E3_keyword_low_g_appendix",
+      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
+      "split_by_g": true,
+      "min_g": 1,
+      "max_g": 3,
+      "cases": [
+        {
+          "id": "E3_keyword_low_g_appendix__LinkedMDB",
+          "dataset": "LinkedMDB",
+          "graph": "data/LinkedMDB",
+          "query": "data/LinkedMDB/query.txt"
+        },
+        {
+          "id": "E3_keyword_low_g_appendix__DBpedia",
+          "dataset": "DBpedia",
+          "graph": "data/DBpedia",
+          "query": "data/DBpedia/query.txt"
+        }
+      ]
+    },
+    {
+      "id": "E4_gpu4gst_author_panel",
+      "methods": [
+        "abhss_light",
+        "abhss_heavy",
+        "pruneddp_safe",
+        "gpu4gst_pruneddp_artifact"
+      ],
+      "manifest": "experiment_data/gpu4gst_author_panel/cells.json",
+      "graph_field": "graph_path",
+      "query_field": "panel_query_path",
+      "id_fields": ["dataset", "g"]
+    },
+    {
+      "id": "E5_ablation",
+      "methods": [
+        "abhss_light",
+        "abhss_light_no_early",
+        "abhss_light_no_witness",
+        "abhss_heavy",
+        "abhss_heavy_forward"
+      ],
+      "cases": [
+        {
+          "id": "E5_ablation__Toronto_g6_f400",
+          "dataset": "Toronto",
+          "graph": "data/Toronto",
+          "query": "experiment_data/controlled/Toronto/controlled_g6_f400.txt"
+        },
+        {
+          "id": "E5_ablation__Toronto_g10_f400",
+          "dataset": "Toronto",
+          "graph": "data/Toronto",
+          "query": "experiment_data/controlled/Toronto/controlled_g10_f400.txt"
+        },
+        {
+          "id": "E5_ablation__Toronto_g14_f400",
+          "dataset": "Toronto",
+          "graph": "data/Toronto",
+          "query": "experiment_data/controlled/Toronto/controlled_g14_f400.txt"
+        },
+        {
+          "id": "E5_ablation__MovieLens_g6_f400",
+          "dataset": "MovieLens",
+          "graph": "data/MovieLens",
+          "query": "experiment_data/controlled/MovieLens/controlled_g6_f400.txt"
+        },
+        {
+          "id": "E5_ablation__MovieLens_g10_f400",
+          "dataset": "MovieLens",
+          "graph": "data/MovieLens",
+          "query": "experiment_data/controlled/MovieLens/controlled_g10_f400.txt"
+        },
+        {
+          "id": "E5_ablation__MovieLens_g14_f400",
+          "dataset": "MovieLens",
+          "graph": "data/MovieLens",
+          "query": "experiment_data/controlled/MovieLens/controlled_g14_f400.txt"
+        },
+        {
+          "id": "E5_ablation__DBLP_g6_f400",
+          "dataset": "DBLP-VEW21",
+          "graph": "data/DBLP",
+          "query": "experiment_data/controlled/DBLP/controlled_g6_f400.txt"
+        },
+        {
+          "id": "E5_ablation__DBLP_g10_f400",
+          "dataset": "DBLP-VEW21",
+          "graph": "data/DBLP",
+          "query": "experiment_data/controlled/DBLP/controlled_g10_f400.txt"
+        },
+        {
+          "id": "E5_ablation__DBLP_g14_f400",
+          "dataset": "DBLP-VEW21",
+          "graph": "data/DBLP",
+          "query": "experiment_data/controlled/DBLP/controlled_g14_f400.txt"
+        }
+      ]
+    }
+  ]
+}

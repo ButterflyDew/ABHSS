@@ -1,0 +1,455 @@
+{
+  "source": "https://1drv.ms/f/c/683d9dd9f262486b/Ek6Fl_brQzhDnI2cmhGIHxMBQ-L1ApeSqxwZKE4NBsDXSQ?e=3RBc8S",
+  "retrievedAt": "2026-07-17",
+  "folder": "GSTdata",
+  "files": [
+    {
+      "name": "DBLP.g",
+      "size": 548555086,
+      "id": "683D9DD9F262486B!s759545b3831347d89cf22545afafbb45",
+      "lastModifiedDateTime": "2025-02-01T09:06:44Z",
+      "quickXorHash": "KRAJ+4q58zciLl9yTtaHnnTmRUQ="
+    },
+    {
+      "name": "DBLP.in",
+      "size": 234230828,
+      "id": "683D9DD9F262486B!s2574e635317a4eed930e8dd97088970c",
+      "lastModifiedDateTime": "2025-01-29T17:15:42Z",
+      "quickXorHash": "/RAxLjQ/0i9am3PoW1LzLKdOcd4="
+    },
+    {
+      "name": "DBLP_beg_pos.bin",
+      "size": 19982264,
+      "id": "683D9DD9F262486B!s47300692fc65433fae42bc8959801d86",
+      "lastModifiedDateTime": "2025-02-01T08:42:35Z",
+      "quickXorHash": "QiedF2NQEKwVWWxxn8nABsoitOE="
+    },
+    {
+      "name": "DBLP_csr.bin",
+      "size": 204581264,
+      "id": "683D9DD9F262486B!s49a5dc7605594c97aeedb0e7cc23816c",
+      "lastModifiedDateTime": "2025-02-01T08:51:38Z",
+      "quickXorHash": "jPVq+luE2VnQ+whuKmFx0D8jFLQ="
+    },
+    {
+      "name": "DBLP_weight.bin",
+      "size": 204581264,
+      "id": "683D9DD9F262486B!s3676dbdf90054e84a18c6ff1575a0abf",
+      "lastModifiedDateTime": "2025-02-01T08:51:04Z",
+      "quickXorHash": "cRwFMwYiXDlYbCc0x+J9QSVfbzU="
+    },
+    {
+      "name": "DBLP3.csv",
+      "size": 5754,
+      "id": "683D9DD9F262486B!s155840a2c48f4d79a9d2b1e84954ac6a",
+      "lastModifiedDateTime": "2025-02-01T08:41:58Z",
+      "quickXorHash": "BqVrCmK5JqQ2vgUBZfgX3s+z+oU="
+    },
+    {
+      "name": "DBLP5.csv",
+      "size": 9280,
+      "id": "683D9DD9F262486B!s2d33e8be2e6b4b69bd17043c66a4f8a4",
+      "lastModifiedDateTime": "2025-02-01T08:42:02Z",
+      "quickXorHash": "bZezhuFKa+DKs0Q08IERHL5S2kc="
+    },
+    {
+      "name": "DBLP7.csv",
+      "size": 12947,
+      "id": "683D9DD9F262486B!sc70a5117e414447e992df018d572fc56",
+      "lastModifiedDateTime": "2025-03-09T15:54:09Z",
+      "quickXorHash": "sKLPkq4EGbcfJDMRGHEYbBx1Msc="
+    },
+    {
+      "name": "Github.g",
+      "size": 3967292,
+      "id": "683D9DD9F262486B!scb4390c1c51c4549bc544a115fe38591",
+      "lastModifiedDateTime": "2025-02-01T08:42:29Z",
+      "quickXorHash": "sY13rc479dHj1ZIFZcqlF3U5wOE="
+    },
+    {
+      "name": "Github.in",
+      "size": 4246719,
+      "id": "683D9DD9F262486B!s87c2e5cf50534180be6b07641b2f9d8d",
+      "lastModifiedDateTime": "2025-01-29T17:15:16Z",
+      "quickXorHash": "aTKLX7gaHJSd6IbQJxR6XRhMJR0="
+    },
+    {
+      "name": "Github_beg_pos.bin",
+      "size": 301608,
+      "id": "683D9DD9F262486B!s4a5579ca17214c5db7dff9fd283a881f",
+      "lastModifiedDateTime": "2025-02-01T08:41:56Z",
+      "quickXorHash": "S51kURfi5HINd+GJ+oh72j4cFH8="
+    },
+    {
+      "name": "Github_csr.bin",
+      "size": 4624048,
+      "id": "683D9DD9F262486B!s733a9e33a4464a299f79f4be1fb3ecc9",
+      "lastModifiedDateTime": "2025-02-01T08:42:05Z",
+      "quickXorHash": "79j2Nxac5S63jmPteU3nGRr2cvY="
+    },
+    {
+      "name": "Github_weight.bin",
+      "size": 4624048,
+      "id": "683D9DD9F262486B!sfc95327835204b48be71f5ac12ae7369",
+      "lastModifiedDateTime": "2025-02-01T08:42:54Z",
+      "quickXorHash": "NkRYKlFWWz9GRQoPnLFjX08CDE0="
+    },
+    {
+      "name": "Github3.csv",
+      "size": 4464,
+      "id": "683D9DD9F262486B!saaaa5e1f2c624eef8eb325efa082fb0e",
+      "lastModifiedDateTime": "2025-02-01T08:42:36Z",
+      "quickXorHash": "Ng8Lp+pU4OMZUwz/z+D/9NQ93hI="
+    },
+    {
+      "name": "Github5.csv",
+      "size": 7224,
+      "id": "683D9DD9F262486B!sc5f14846e77640ae9ed0da9da7b8c631",
+      "lastModifiedDateTime": "2025-03-09T16:46:14Z",
+      "quickXorHash": "eRHJiQe48i3ydRFDEJn7n7WAAhc="
+    },
+    {
+      "name": "Github7.csv",
+      "size": 10199,
+      "id": "683D9DD9F262486B!s7b022328e3dc4113a7578c7be793f9bd",
+      "lastModifiedDateTime": "2025-03-09T15:56:46Z",
+      "quickXorHash": "6bP8Gk3UCj+pf4Ft0GIwLXSsm18="
+    },
+    {
+      "name": "LiveJournal.g",
+      "size": 56987478,
+      "id": "683D9DD9F262486B!s7ccd9838d39e4662b53ddb71e3278e9e",
+      "lastModifiedDateTime": "2024-11-28T13:07:29Z",
+      "quickXorHash": "CLNz3Prr+2+HisC47Zh599BF8UI="
+    },
+    {
+      "name": "LiveJournal.in",
+      "size": 638123196,
+      "id": "683D9DD9F262486B!s462ad295209b49498400e9edb604b9f4",
+      "lastModifiedDateTime": "2025-02-12T13:15:26Z",
+      "quickXorHash": "2QY+ahCoNYm7fP361T8XX8oy3g0="
+    },
+    {
+      "name": "LiveJournal_beg_pos.bin",
+      "size": 31983704,
+      "id": "683D9DD9F262486B!s21362aa2d3044cb9af029396898b86c3",
+      "lastModifiedDateTime": "2025-03-09T15:37:57Z",
+      "quickXorHash": "FdrpqrXaSN5BONdt+F51vpPm4QE="
+    },
+    {
+      "name": "LiveJournal_csr.bin",
+      "size": 554899024,
+      "id": "683D9DD9F262486B!s1924cfac19c54e759c5cf5c11ae71ecb",
+      "lastModifiedDateTime": "2025-03-09T15:38:35Z",
+      "quickXorHash": "IBWmTKDiatlwaL2kATNhjfIPyyY="
+    },
+    {
+      "name": "LiveJournal_weight.bin",
+      "size": 554899024,
+      "id": "683D9DD9F262486B!s2963b1a4dad5407684a70cbbd33e8532",
+      "lastModifiedDateTime": "2025-03-09T15:38:35Z",
+      "quickXorHash": "S0o5XElsYlcYDS8eTV5VJEM2JhU="
+    },
+    {
+      "name": "LiveJournal3.csv",
+      "size": 43496,
+      "id": "683D9DD9F262486B!sed0398e7bd1245fa80b7e9dc8b2c8794",
+      "lastModifiedDateTime": "2025-02-25T13:25:51Z",
+      "quickXorHash": "RIwMQjDSLqQXemN2cEa+jpmIbyY="
+    },
+    {
+      "name": "LiveJournal5.csv",
+      "size": 71042,
+      "id": "683D9DD9F262486B!s822c369c7ee94c1e958233ff98eaa121",
+      "lastModifiedDateTime": "2025-02-25T13:26:12Z",
+      "quickXorHash": "AhAQtoMtl3YtzErSOvMFdBGXIQQ="
+    },
+    {
+      "name": "LiveJournal7.csv",
+      "size": 98608,
+      "id": "683D9DD9F262486B!sba78e225b6104136acb3a5fbc2f7c618",
+      "lastModifiedDateTime": "2025-02-25T13:26:23Z",
+      "quickXorHash": "NBPiUo5s2C/TAFGDwFGaaTa6aNw="
+    },
+    {
+      "name": "Musae.g",
+      "size": 5878008,
+      "id": "683D9DD9F262486B!s09632ff70f084515a428d202cf20a294",
+      "lastModifiedDateTime": "2025-03-09T16:47:54Z",
+      "quickXorHash": "Ve4enXD3AfLCqyzJ58WzvZLGKLo="
+    },
+    {
+      "name": "Musae.in",
+      "size": 5946134,
+      "id": "683D9DD9F262486B!s9ecdbb50f9034d44905686b809e260d9",
+      "lastModifiedDateTime": "2025-03-09T16:47:52Z",
+      "quickXorHash": "YzH5pr1E6B3FAjx4MsvqU+pfRAY="
+    },
+    {
+      "name": "Musae_beg_pos.bin",
+      "size": 152880,
+      "id": "683D9DD9F262486B!sc5f99b869a334b87a946903224ebd09c",
+      "lastModifiedDateTime": "2025-03-09T15:38:03Z",
+      "quickXorHash": "aXE8UHLj8SK56lOmCczFN59SnFY="
+    },
+    {
+      "name": "Musae_csr.bin",
+      "size": 6407952,
+      "id": "683D9DD9F262486B!s08505bcce50540f2827cca80a6435359",
+      "lastModifiedDateTime": "2025-03-09T15:38:04Z",
+      "quickXorHash": "7SgZwB0Cvn/+CmietpeGTf2WEKs="
+    },
+    {
+      "name": "Musae_weight.bin",
+      "size": 6407952,
+      "id": "683D9DD9F262486B!s673bc5fec4644f9bb8a719caf02d244b",
+      "lastModifiedDateTime": "2025-03-09T15:38:04Z",
+      "quickXorHash": "QF4QZXhrKXl6AWMULtZSODY2cXE="
+    },
+    {
+      "name": "Musae3.csv",
+      "size": 4949,
+      "id": "683D9DD9F262486B!sf4618a72eaee4bfabef91194e5a09590",
+      "lastModifiedDateTime": "2025-03-09T16:44:52Z",
+      "quickXorHash": "gb6e5Asdrw8b00rljAxsyvb6EF8="
+    },
+    {
+      "name": "Musae5.csv",
+      "size": 8021,
+      "id": "683D9DD9F262486B!s18b6f9fee4d4473caa7e3deb131b1720",
+      "lastModifiedDateTime": "2025-03-09T16:44:54Z",
+      "quickXorHash": "I0cbL60sXB5vGlm6034EQ2W0z0k="
+    },
+    {
+      "name": "Musae7.csv",
+      "size": 11119,
+      "id": "683D9DD9F262486B!s5ed9e7a9a95b4ce3ae7b7bc25662bb18",
+      "lastModifiedDateTime": "2025-03-09T15:55:06Z",
+      "quickXorHash": "efzHyOIoz2kzBcy1AJnyqh0ljH8="
+    },
+    {
+      "name": "Orkut.g",
+      "size": 7882097,
+      "id": "683D9DD9F262486B!sd26b23012ca1480aad307e4ab98dcaff",
+      "lastModifiedDateTime": "2025-02-01T08:51:36Z",
+      "quickXorHash": "mfq6oU8j9l51sT95T7D6M6HDGGk="
+    },
+    {
+      "name": "Orkut.in",
+      "size": 2235297267,
+      "id": "683D9DD9F262486B!sbcdc2ebef01c4c9f8479a0a04316bd90",
+      "lastModifiedDateTime": "2025-01-29T17:18:19Z",
+      "quickXorHash": "8msqJDn2b+YN4r/fUE7DweLQfcA="
+    },
+    {
+      "name": "Orkut_beg_pos.bin",
+      "size": 24579536,
+      "id": "683D9DD9F262486B!s0bb317e971be4e69abfe596ff8300fa6",
+      "lastModifiedDateTime": "2025-02-01T08:43:54Z",
+      "quickXorHash": "7LmnxiTT/fs0ib5kY6fcsfsHu3c="
+    },
+    {
+      "name": "Orkut_csr.bin",
+      "size": 745471045,
+      "id": "683D9DD9F262486B!s569eb042c4644fe5ad894fc428cfc7f4",
+      "lastModifiedDateTime": "2025-02-01T09:11:35Z",
+      "quickXorHash": "8RMq17W1vEje/UrNL6HCU0yds/k="
+    },
+    {
+      "name": "Orkut_weight.bin",
+      "size": 718644700,
+      "id": "683D9DD9F262486B!s30c1538a5ce745fd885f442c7f46559a",
+      "lastModifiedDateTime": "2025-02-01T09:11:35Z",
+      "quickXorHash": "cTAcQVlrRklzdwQj3t3QawISaVA="
+    },
+    {
+      "name": "Orkut3.csv",
+      "size": 4593,
+      "id": "683D9DD9F262486B!sa5cfee22a9d949b39f132320d00e1e64",
+      "lastModifiedDateTime": "2025-02-01T08:51:41Z",
+      "quickXorHash": "gmn4Vy4eAuJLLxfRVjuGgR8gOTw="
+    },
+    {
+      "name": "Orkut5.csv",
+      "size": 7438,
+      "id": "683D9DD9F262486B!see81f4615b4d417c8b158ce80e33b97e",
+      "lastModifiedDateTime": "2025-02-01T09:03:08Z",
+      "quickXorHash": "ukVDc1yQdbscvPlZrvimpal4T6M="
+    },
+    {
+      "name": "Orkut7.csv",
+      "size": 10310,
+      "id": "683D9DD9F262486B!s2768f8b04eb64d9695561f9ca5a227da",
+      "lastModifiedDateTime": "2025-03-09T15:55:46Z",
+      "quickXorHash": "HxaLc4ohpSb8HF1H4QLzezVYLis="
+    },
+    {
+      "name": "Reddit.g",
+      "size": 137239846,
+      "id": "683D9DD9F262486B!sd2ef6e72dd55467c8e3f1e0a147bb55a",
+      "lastModifiedDateTime": "2025-02-01T09:07:06Z",
+      "quickXorHash": "rPzk05N+cXjjI9X4glOXWXxuA44="
+    },
+    {
+      "name": "Reddit.in",
+      "size": 235364897,
+      "id": "683D9DD9F262486B!s52dc8fe27f104fbf81c7fea975b1b1c3",
+      "lastModifiedDateTime": "2025-01-29T17:15:27Z",
+      "quickXorHash": "4OD8zRZBSIwICs+kMuSv1Lqed28="
+    },
+    {
+      "name": "Reddit_beg_pos.bin",
+      "size": 34102680,
+      "id": "683D9DD9F262486B!saf89374fe34a4201ba7ae3b1d87db412",
+      "lastModifiedDateTime": "2025-02-01T08:53:26Z",
+      "quickXorHash": "PGzASD024HjUPZ0M+79jXEoM5HQ="
+    },
+    {
+      "name": "Reddit_csr.bin",
+      "size": 200044272,
+      "id": "683D9DD9F262486B!s8649125579124ff1a4f9c72cf0ebc35d",
+      "lastModifiedDateTime": "2025-02-01T09:01:03Z",
+      "quickXorHash": "87VqBllHcNqkWzNLtEoPRdAfMWw="
+    },
+    {
+      "name": "Reddit_weight.bin",
+      "size": 200044272,
+      "id": "683D9DD9F262486B!s1be7083db49244d988942434a1d430c2",
+      "lastModifiedDateTime": "2025-02-01T09:03:01Z",
+      "quickXorHash": "ZGRkZGQAZABkAGRklArsbwBkAGQ="
+    },
+    {
+      "name": "Reddit3.csv",
+      "size": 6592,
+      "id": "683D9DD9F262486B!s716ea3fffc22452487b421517568bfa5",
+      "lastModifiedDateTime": "2025-02-01T08:51:46Z",
+      "quickXorHash": "0EePDXRp+mAk4Cjw5y8GuwYgxDQ="
+    },
+    {
+      "name": "Reddit5.csv",
+      "size": 10804,
+      "id": "683D9DD9F262486B!sdeff6d58415d4032873b2478f2017163",
+      "lastModifiedDateTime": "2025-02-01T09:03:19Z",
+      "quickXorHash": "xQv026Uzm679JwU6zYA3ypvMw5U="
+    },
+    {
+      "name": "Reddit7.csv",
+      "size": 14982,
+      "id": "683D9DD9F262486B!s81e865c569a14403a41b7ca993354fcc",
+      "lastModifiedDateTime": "2025-03-09T15:56:00Z",
+      "quickXorHash": "PGCn4qs+9tnnnpGt0zJHT1+LY10="
+    },
+    {
+      "name": "Twitch.g",
+      "size": 3917419,
+      "id": "683D9DD9F262486B!s7da09d0760dc4c78b97e84245ca1992d",
+      "lastModifiedDateTime": "2025-02-01T09:04:49Z",
+      "quickXorHash": "vFZkIszIeiGBJaaKtLxHCrqFoas="
+    },
+    {
+      "name": "Twitch.in",
+      "size": 6493916,
+      "id": "683D9DD9F262486B!s4ac2f3a2f9a14448aa78814fa0c64079",
+      "lastModifiedDateTime": "2025-01-29T17:15:16Z",
+      "quickXorHash": "6roVFtJl2AQK8oVBGcdEkuw8xUM="
+    },
+    {
+      "name": "Twitch_beg_pos.bin",
+      "size": 272952,
+      "id": "683D9DD9F262486B!s9f86b608b636496c9b9acbd03a83cdd6",
+      "lastModifiedDateTime": "2025-02-01T09:03:29Z",
+      "quickXorHash": "7V0dMt50qpn5vljcVgVt6N1Zyts="
+    },
+    {
+      "name": "Twitch_csr.bin",
+      "size": 6865808,
+      "id": "683D9DD9F262486B!sd0d89ebbcf1b4b9e9c000bda191633f5",
+      "lastModifiedDateTime": "2025-02-01T09:03:58Z",
+      "quickXorHash": "VicoxPjRM0RrU7IcNcdtj/pNmgs="
+    },
+    {
+      "name": "Twitch_weight.bin",
+      "size": 6865808,
+      "id": "683D9DD9F262486B!s8474e90896ff45afb99556c8e5df8848",
+      "lastModifiedDateTime": "2025-02-01T09:04:28Z",
+      "quickXorHash": "M2JzWyp1DCNHW2MZ5fM1JgY7exc="
+    },
+    {
+      "name": "Twitch3.csv",
+      "size": 4484,
+      "id": "683D9DD9F262486B!s0026dc65cca94c5db20a7020f6014674",
+      "lastModifiedDateTime": "2025-02-01T09:04:56Z",
+      "quickXorHash": "GOqBvg1NH2p5a98ueKfBKY1Grq8="
+    },
+    {
+      "name": "Twitch5.csv",
+      "size": 7262,
+      "id": "683D9DD9F262486B!sa082440e1e184c11bfbb31a0f7f49c86",
+      "lastModifiedDateTime": "2025-02-01T09:05:07Z",
+      "quickXorHash": "HW/EiCVLCgD7400+zdFAFtun3OY="
+    },
+    {
+      "name": "Twitch7.csv",
+      "size": 10039,
+      "id": "683D9DD9F262486B!sb93234cc51c8476294c91d9f86604059",
+      "lastModifiedDateTime": "2025-03-09T15:56:19Z",
+      "quickXorHash": "2wzMRmDp2d/oEovYhkYyF1oPavM="
+    },
+    {
+      "name": "Youtube.g",
+      "size": 513633,
+      "id": "683D9DD9F262486B!s4f91d0f773074e42b627854074f12dd5",
+      "lastModifiedDateTime": "2025-02-01T09:07:18Z",
+      "quickXorHash": "WqgFvRx4dBK+tEj4Wwiq5KYaxUs="
+    },
+    {
+      "name": "Youtube.in",
+      "size": 49921669,
+      "id": "683D9DD9F262486B!sf6f42e4be2ac457e8436a4cf56fe8ebb",
+      "lastModifiedDateTime": "2025-01-29T17:15:30Z",
+      "quickXorHash": "E0mNR2iWaCGvCaQrgnYcCO/UZcU="
+    },
+    {
+      "name": "Youtube_beg_pos.bin",
+      "size": 9079128,
+      "id": "683D9DD9F262486B!sffc35c62e43f48828613515fe8a3fcf3",
+      "lastModifiedDateTime": "2025-02-01T09:05:42Z",
+      "quickXorHash": "EUJbW0pmcknfUDeqZRhQjhpDVuA="
+    },
+    {
+      "name": "Youtube_csr.bin",
+      "size": 47801984,
+      "id": "683D9DD9F262486B!s6eb203e20b7046f792ba39a8bb6a518f",
+      "lastModifiedDateTime": "2025-02-01T09:07:52Z",
+      "quickXorHash": "5Vp67P88qIpNBNNA6OeIwhznIWU="
+    },
+    {
+      "name": "Youtube_weight.bin",
+      "size": 47801984,
+      "id": "683D9DD9F262486B!s37aa59447d574779be3939f9fa97b9ec",
+      "lastModifiedDateTime": "2025-02-01T09:08:30Z",
+      "quickXorHash": "ZFtMJHULb1E8XVkjlG3tEiFbG1Y="
+    },
+    {
+      "name": "Youtube3.csv",
+      "size": 4567,
+      "id": "683D9DD9F262486B!sd64fd3054cab4123bdb288c9d06ab921",
+      "lastModifiedDateTime": "2025-02-01T09:07:23Z",
+      "quickXorHash": "tX32ED1d4fFlF90RcKdyPV2PzIQ="
+    },
+    {
+      "name": "Youtube5.csv",
+      "size": 7332,
+      "id": "683D9DD9F262486B!s935ba2a9ac0b4947a28bf0e38afde4c6",
+      "lastModifiedDateTime": "2025-03-09T16:44:20Z",
+      "quickXorHash": "H0L01D5bZEoWwOBXZqSKXy6blS8="
+    },
+    {
+      "name": "Youtube7.csv",
+      "size": 10328,
+      "id": "683D9DD9F262486B!sb2b14aa913684c259221b02b561da169",
+      "lastModifiedDateTime": "2025-03-09T15:56:35Z",
+      "quickXorHash": "ObqXR7RtORfEEbzSlU03t8aJQBU="
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "audited_at": "2026-07-21",
+  "weight_tolerance": 1e-6,
+  "known_optimum_panel": {
+    "suite": "E0_steinlib_wrp",
+    "instances": 11,
+    "range_g": [11, 16],
+    "results": {
+      "abhss_light": "11/11 match",
+      "abhss_heavy": "11/11 match",
+      "pruneddp_safe": "11/11 match",
+      "dpbf": "11/11 match",
+      "scip_jack_7_0_3": "11/11 match",
+      "basic_plus_upstream": "6 solved and matched; 1 eligible instance timed out in the 60-second validation run; g>14 unsupported upstream",
+      "pruneddp_strict": "8/11 match; 3 incorrect values"
+    },
+    "strict_counterexamples": [
+      {"instance": "wrp4-11", "known_optimum": 179, "pruneddp_strict": 180},
+      {"instance": "wrp4-15", "known_optimum": 405, "pruneddp_strict": 407},
+      {"instance": "wrp4-16", "known_optimum": 1190, "pruneddp_strict": 1213}
+    ],
+    "evidence_directories": {
+      "final_five_way_exact_gate": "results/paper_runs/smoke_final_wrp",
+      "paper_pathmax_counterexamples": "results/paper_runs/smoke_wrp_all/summary_pathmax_audit"
+    }
+  },
+  "artifact_checks": [
+    {
+      "method": "gpu4gst_pruneddp_artifact",
+      "case": "wrp4-11",
+      "result": 179,
+      "expected": 179,
+      "evidence_directory": "results/paper_runs/smoke_gpu_artifact_wrp4_11"
+    },
+    {
+      "method": "gpu4gst_pruneddp_artifact",
+      "case": "GPU4GST_Musae author g=5 panel",
+      "queries": 10,
+      "result": "all weights match ABHSS-Light, ABHSS-Heavy, and pruneddp_safe",
+      "evidence_directory": "results/paper_runs/smoke_e4_musae_g5"
+    }
+  ],
+  "decision": "use pruneddp_safe as the primary exact performance baseline; retain pruneddp_strict only as a named paper-pathmax reproduction audit"
+}

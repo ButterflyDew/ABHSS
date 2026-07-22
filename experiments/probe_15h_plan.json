@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "purpose": "SIGMOD/VLDB submission feasibility gate, not final paper evidence",
+  "default_budget_hours": 15,
+  "seed": 20260722,
+  "query_selection": "Within every selected cell, rank eligible queries by SHA-256(seed|suite|case_id|query_index) before any solver runs.",
+  "breadth_timeout_seconds": 180,
+  "depth_timeout_seconds": 600,
+  "graph_load_timeout_seconds": 600,
+  "small_g_probe_guardrail": "contender <= 1.2 * baseline OR contender <= baseline + 0.05 seconds; raw ratios remain reported",
+  "formal_timeout_seconds_unchanged": 10000,
+  "primary_methods": [
+    "abhss_light",
+    "abhss_heavy",
+    "pruneddp_safe"
+  ],
+  "breadth_strata": [
+    "E1: each graph at f=400 and g in {4,10,16}, plus balanced f=200/1600 checks",
+    "E2: all eight graphs at g in {4,12}, representative four at g in {9,16}",
+    "E3 practical-original: each graph at (g=5,f=400) and (g=8,f=1600)",
+    "E3 natural keyword queries: both graphs at g in {4,10}",
+    "E4 author queries: one alternating g=5/7 cell per graph, including the source CPU artifact",
+    "E5: one g=10 ablation cell per graph"
+  ],
+  "fixed_depth_strata": [
+    "E2 all graphs at g=16",
+    "E2 representative graphs at g in {9,14}",
+    "E1 each graph at g in {14,16}, f=400",
+    "E3 natural g=10 and practical-original (g=8,f=1600)"
+  ],
+  "adaptive_policy": "Only after breadth: follow up cells where Safe solves but ABHSS times out, or Safe is at least 2x faster than the best ABHSS. These samples are diagnostic and excluded from unbiased claim estimates.",
+  "probe_only_binaries": [
+    "abhss_light_probe",
+    "abhss_heavy_probe",
+    "pruneddp_probe"
+  ]
+}

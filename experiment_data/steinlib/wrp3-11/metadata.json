@@ -1,0 +1,18 @@
+{
+  "connector_cost_sum": 1100000.0,
+  "conversion": "remove each listed terminal and its incident connector edges; the former neighbors are one GST group; remap remaining IDs in ascending order",
+  "converted": true,
+  "derived_gst_optimum": 361.0,
+  "groups": 11,
+  "gst_edges": 193,
+  "gst_vertices": 117,
+  "mean_group_size": 3.090909090909091,
+  "name": "wrp3-11",
+  "optimum_formula": "published_stp_optimum - connector_cost_sum",
+  "published_stp_optimum": 1100361.0,
+  "reason": "converted",
+  "source_file": "data_sources/steinlib/raw/WRP3/wrp3-11.stp",
+  "source_sha256": "3c5514b3124e7ba973aa84d6b308c5f8d4c967570421659c328bc75fb41c40b7",
+  "stp_edges": 227,
+  "stp_vertices": 128
+}

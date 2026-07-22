@@ -1,0 +1,11 @@
+# Author GitHub repository commit 716a19c240c480cb2d23435bbaca55163a48e174.
+# Twitch.g here is the repository CRLF version; data/Twitch.g is the official
+# OneDrive LF version. Their text is identical after newline normalization.
+982ec6b94d8082d1d0aec98113f3632f5d7ec94b134d8b981b55e35abc046995  Twitch.g
+e4d698809fd7f9a0fef00c8aba06c298ef53c0db5f7bbfcb81e46606a3fb19da  Twitch.in
+531b434b5485eee6f9609a12792f2e8f86644be71925235a5a4916637d27d08d  Twitch_beg_pos.bin
+ea27e8c38792b6d8084967690ab2b7b50bfc84cc5c4b1ba379a0d5885fc0bb96  Twitch_csr.bin
+45dc710c588ec02c29d985bbb5584332d361ca4bde0a97652cdda23707a0dacf  Twitch_weight.bin
+97963571a46543fefedd8c9a8f15d9c6df361368373833af5b983a8fb7c4c364  Twitch3.csv
+9b0340fc3ff93763ba9167043fbed4a12385ae769c63b2217c35fda2565894d2  Twitch5.csv
+6f18d2344c5a231e532f85fd9903e84d1341f1d1a52f3245ef3bd98299156956  Twitch7.csv
