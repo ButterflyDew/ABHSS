@@ -240,6 +240,23 @@ struct Problem
     int nonanchor_original_mask = 0;
     double best = fp::kInf;
 
+    /**
+     * @brief 查询期间首次进入 D/A/H 行工作区的不同 `(mask,v)` 数量。
+     *
+     * 每张逻辑 row 只构造一次，因此在该 row 中某顶点第一次由无穷变为
+     * 有限值时即可一次性计数。计数按 D/A/H 状态族区分；同一 early-A1
+     * row 转交给公共前向内核时不重复计数。组距离、tour、dual、转置候选和
+     * 完整解结算不是主状态表，均不计入。
+     */
+    std::uint64_t mask_vertex_states = 0;
+
+    /** @brief 在一张 row 完成后批量登记其首次发现的顶点数，避免热循环逐项加法。 */
+    void AccountMaskVertexStates(std::size_t discovered_vertices)
+    {
+        mask_vertex_states +=
+            static_cast<std::uint64_t>(discovered_vertices);
+    }
+
     GroupTable group_distance;
     TourLowerBound tour;
     ComponentCover component_cover;

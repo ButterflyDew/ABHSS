@@ -1,12 +1,13 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "audited_at": "2026-07-23",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
     "zero_weight_witness": "PASS: base, directed-cut-only and enhanced all return 1",
-    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10",
+    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10; cumulative discovered-state totals are base=2789, directed-cut-only=972, enhanced=980",
+    "mask_vertex_state_accounting": "PASS: ABHSS Base/Enhanced counts are deterministic across repeated runs, PrunedDP++ Hash/Dense report the same present-entry count, and trivial queries report zero",
     "query_prelude_contracts": "PASS: empty, singleton, overlapping-zero, disconnected-infeasible, out-of-range vertex and g>16 cases have the declared behavior",
     "strict_bound_closure": "PASS: a 5e-10 positive upper/lower gap is not misclassified as exact closure",
     "illegal_adjoint_only": "PASS: public API and command line reject adjoint-completion without directed-cut"

@@ -85,30 +85,27 @@ public:
             if (!entry.present)
             {
                 entry.present = true;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
-                ++size_;
-#endif
+                ++dense_present_count_;
             }
             return entry;
         }
         auto [it, inserted] = sparse_.try_emplace(Key(vertex, mask));
         if (inserted)
-        {
             it->second.present = true;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
-            ++size_;
-#endif
-        }
         return it->second;
     }
 
-    std::size_t Size() const
+    /**
+     * @brief 返回实际插入过的不同 `(mask,v)` 数，而不是后端容量。
+     *
+     * Hash 直接复用容器自身 size，正式主 baseline 不增加逐状态计数指令；
+     * Dense 因为预分配全部容量，只对 present 首次置位维护独立计数。
+     */
+    std::uint64_t Size() const
     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
-        return size_;
-#else
-        return 0;
-#endif
+        return storage_ == StateStorage::Dense
+                   ? dense_present_count_
+                   : static_cast<std::uint64_t>(sparse_.size());
     }
 
 private:
@@ -129,9 +126,7 @@ private:
     int subset_count_ = 0;
     std::vector<StateEntry> dense_;
     std::unordered_map<std::uint64_t, StateEntry> sparse_;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
-    std::size_t size_ = 0;
-#endif
+    std::uint64_t dense_present_count_ = 0;
 };
 
 enum class WitnessKind
@@ -820,10 +815,17 @@ void InitializeContext(SolverContext& ctx,
     ctx.mst_local_index.assign(graph.n + 1, -1);
 }
 
-// 严格按“组距离 -> 组路径表 -> Algorithm 4 搜索”的顺序求得最优权重。
-double SolveWeight(const Graph& graph,
-                   const Query& query,
-                   const PrunedDpOptions& options)
+struct WeightAndStateCount
+{
+    double weight = fp::kInf;
+    std::uint64_t mask_vertex_states = 0;
+};
+
+// 严格按“组距离 -> 组路径表 -> Algorithm 4 搜索”的顺序求解，同时返回
+// StateStore 的实际条目数，使正式二进制无需打开 probe 也能报告状态规模。
+WeightAndStateCount SolveWeight(const Graph& graph,
+                                const Query& query,
+                                const PrunedDpOptions& options)
 {
     SolverContext ctx;
     InitializeContext(ctx, graph, query, options);
@@ -842,7 +844,7 @@ double SolveWeight(const Graph& graph,
     EmitPrunedProbe(ctx, "search_start");
     const double answer = Search(ctx);
     EmitPrunedProbe(ctx, "search_end", ProbeSecondsSince(search_start));
-    return answer;
+    return {answer, ctx.states->Size()};
 }
 }  // namespace
 
@@ -869,10 +871,11 @@ SolveResult SolveOneQuery(const Graph& graph,
     if (!IsQueryFeasible(graph, query))
         return result;
 
-    const double answer = SolveWeight(graph, query, options);
-    if (answer >= fp::kInf / 4)
+    const WeightAndStateCount answer = SolveWeight(graph, query, options);
+    result.mask_vertex_states = answer.mask_vertex_states;
+    if (answer.weight >= fp::kInf / 4)
         return result;
-    result.best_weight = answer;
+    result.best_weight = answer.weight;
     result.feasible = true;
     return result;
 }

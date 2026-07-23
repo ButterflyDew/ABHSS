@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <queue>
@@ -305,6 +306,9 @@ int main()
 
     std::mt19937 random(0xAB455u);
     constexpr int kInstances = 144;
+    std::uint64_t base_state_total = 0;
+    std::uint64_t directed_state_total = 0;
+    std::uint64_t enhanced_state_total = 0;
     for (int instance = 0; instance < kInstances; ++instance)
     {
         const int n = 4 + static_cast<int>(random() % 6);
@@ -312,22 +316,26 @@ int main()
         const gst::Graph graph = RandomConnectedGraph(random, n);
         const gst::Query query = RandomQuery(random, n, g);
         const double expected = ExactSubsetDp(graph, query);
-        Check("ABHSS-Base",
-              gst::methods::abhss::SolveOneQuery(graph, query, base),
-              expected,
-              instance);
-        Check("ABHSS-DirectedCutOnly",
-              gst::methods::abhss::SolveOneQuery(
-                  graph, query, directed_only),
-              expected,
-              instance);
-        Check("ABHSS-Enhanced",
-              gst::methods::abhss::SolveOneQuery(graph, query, enhanced),
-              expected,
-              instance);
+        const auto base_answer =
+            gst::methods::abhss::SolveOneQuery(graph, query, base);
+        Check("ABHSS-Base", base_answer, expected, instance);
+        base_state_total += base_answer.mask_vertex_states;
+        const auto directed_answer =
+            gst::methods::abhss::SolveOneQuery(graph, query, directed_only);
+        Check("ABHSS-DirectedCutOnly", directed_answer, expected, instance);
+        directed_state_total += directed_answer.mask_vertex_states;
+        const auto enhanced_answer =
+            gst::methods::abhss::SolveOneQuery(graph, query, enhanced);
+        Check("ABHSS-Enhanced", enhanced_answer, expected, instance);
+        enhanced_state_total += enhanced_answer.mask_vertex_states;
     }
+    if (!base_state_total || !directed_state_total || !enhanced_state_total)
+        throw std::runtime_error(
+            "an ABHSS configuration never registered a mask-vertex state");
     std::cout << "ABHSS configurations matched exact subset DP on "
               << kInstances
-              << " deterministic random instances with g=2..10\n";
+              << " deterministic random instances with g=2..10; state totals="
+              << base_state_total << '/' << directed_state_total << '/'
+              << enhanced_state_total << '\n';
     return 0;
 }

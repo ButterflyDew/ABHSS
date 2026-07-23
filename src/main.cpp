@@ -297,7 +297,9 @@ int main(int argc, char** argv)
                << " memory_baseline_rss_mb="
                << FormatDouble(gst::BytesToMiB(loaded_memory.current_rss_bytes), 3)
                << " memory_metric=query_processing_peak_rss_overhead_mb"
-               << " rss_sample_interval_ms=" << gst::kQueryRssSampleIntervalMs;
+               << " rss_sample_interval_ms=" << gst::kQueryRssSampleIntervalMs
+               << " result_columns=query_seconds,weight,query_peak_rss_mib,mask_vertex_states"
+               << " unavailable_integer_metric=-1";
 #if defined(ABHSS_BUILD_PRUNEDDP)
         header << " state_storage="
                << gst::methods::pruned_dp::StateStorageName(pruned_options.state_storage)
@@ -356,6 +358,12 @@ int main(int argc, char** argv)
 #endif
             best = answer.best_weight;
             feasible = answer.feasible;
+            // 正式性能方法都提供实际状态数；correctness-only/第三方 adapter
+            // 尚无统一可比口径时写 -1，而不是用 0 冒充“没有生成状态”。
+            std::string mask_vertex_states = "-1";
+#if defined(ABHSS_BUILD_PRUNEDDP) || defined(ABHSS_BUILD_ABHSS)
+            mask_vertex_states = std::to_string(answer.mask_vertex_states);
+#endif
 
             const double seconds = std::chrono::duration<double>(
                                        std::chrono::steady_clock::now() - start)
@@ -368,13 +376,15 @@ int main(int argc, char** argv)
             const std::string weight = feasible ? FormatDouble(best) : "-1";
             output.AppendMainResultLine(
                 FormatDouble(seconds, 6) + " " + weight + " " +
-                FormatDouble(gst::BytesToMiB(query_peak), 3));
+                FormatDouble(gst::BytesToMiB(query_peak), 3) + " " +
+                mask_vertex_states);
 
             std::cout << "[Query " << index + 1 << "] time="
                       << FormatDouble(seconds, 6) << " sec, weight=" << weight
                       << ", query_memory_peak="
                       << FormatDouble(gst::BytesToMiB(query_peak), 3)
-                      << " MiB" << std::endl;
+                      << " MiB, mask_vertex_states=" << mask_vertex_states
+                      << std::endl;
         }
 
         std::cout << "Graph: " << graph_name << ", queries: " << end - begin << '\n';

@@ -33,7 +33,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = ROOT / "experiments" / "paper_matrix.json"
 QUERY_RESULT = re.compile(
     r"^\[Query\s+(\d+)\]\s+time=([0-9.eE+-]+)\s+sec,\s+"
-    r"weight=([^,]+),\s+query_memory_peak=([0-9.eE+-]+)\s+MiB"
+    r"weight=([^,]+),\s+query_memory_peak=([0-9.eE+-]+)\s+MiB,\s+"
+    r"mask_vertex_states=(-?\d+)\s*$"
 )
 
 
@@ -583,6 +584,7 @@ def run_native_range(
                         0, peak_rss_bytes - ready_rss_bytes
                     ) / (1024 * 1024)
                 parsed_weight = float(match.group(3))
+                parsed_states = int(match.group(5))
                 record.update(
                     {
                         "status": "ok",
@@ -592,6 +594,11 @@ def run_native_range(
                             "infeasible" if parsed_weight < 0 else "feasible"
                         ),
                         "query_memory_peak_mib": float(match.group(4)),
+                        # -1 只供尚无统一状态口径的 correctness-only/第三方
+                        # adapter 使用；正式 ABHSS/PrunedDP++ 必须写非负整数。
+                        "mask_vertex_states": (
+                            parsed_states if parsed_states >= 0 else None
+                        ),
                         "watchdog_wall_seconds": time.monotonic() - query_started,
                         "finished_at": utc_now(),
                         "command": command,

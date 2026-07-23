@@ -338,6 +338,10 @@ $$
 
 空间分别为 Base 的 $O(Z_D+Z_A)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn)$。转置终端和 residual 是阶段临时量；residual 在 ordinary 前释放，高层 $H$ 仅保存高层区间中实际生成的稀疏 row，不物化完整的 dense 状态网格。
 
+实现为每条查询额外报告 `mask_vertex_states`。其口径是累计的“首次发现状态数”，不是结束时 payload、队列弹出数或峰值空间：对每张 $D$、$A$、$H$ 逻辑 row，顶点第一次从无穷变为有限候选时计一次，同一 row 内后续改进不重复；Base 的 early-A1 在生成时计入，所有权转交给公共 $A$ 内核后不再计；最后只消费而不保留的 $A$ 层仍计入，因为这些状态已经实际生成。组距离、tour、directed-cut 势、转置前的终端候选、完整解结算及队列过期项均排除。记该累计数为 $C_{\mathrm{ABHSS}}$，则它可用于解释搜索工作量，但通常 $C_{\mathrm{ABHSS}}\ge Z_D+Z_A(+Z_H)$，不能替代峰值内存指标。
+
+PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数：Hash 后端直接读取实际容器大小，Dense 后端只统计 `present` 项而不是 $2^g(n+1)$ 预分配容量；状态 reopen 不重复，组距离和 route DP 同样排除，full-mask 完成候选只更新 incumbent 而不进入表。两边的统计都描述各自算法实际主状态域，不能把它解释成完全相同的单步成本；应与时间、边扫描/合并工作和 RSS 联合分析。
+
 见证树一次 buy 若含 $t$ 个节点，最坏 $O(t3^k)$ 时间、$O(t2^k)$ 工作空间；rent-or-buy 控制调用次数。directed-cut changed-arc 构造最坏 $O(gm+g(n\log n+m))$，空间 $O(gn+m)$。若 primal 含 $q$ 个 facility，facility 上界的保守界包括 $q$ 次支撑图最短路和 $O(2^g q^2+3^g q)$ 的小图 DP；它是 Enhanced 的预处理固定成本，也是小图上可能不占优的原因之一。
 
 ## 15. 实现细节为何存在

@@ -189,15 +189,18 @@ $$
 - 不比较不同完成子集的平均时间。
 - 不把 ABHSS Base/全增强配置的逐查询最小值当作第三种曲线。
 - 若 PrunedDP++ 在某图明显更好，保留该图并从 `n,m`、密度、候选组大小、连通分量、实际 `f`、状态数和上界命中率分析原因。
+- 每条完成查询同时保存 `mask_vertex_states`：ABHSS 为首次进入 $D$、$A$、$H$ 行的不同状态总数，PrunedDP++ 为主 StateStore 的实际项数。两边都排除组距离/route/tour/dual、重复队列项和 full-mask 完成候选；该指标用于解释状态空间削减，不替代时间或内存。
+- cell 级报告完成查询的中位/p90 状态数，并在双方均完成且状态数为正的配对上报告 `PrunedDP++ / ABHSS` 状态倍率。timeout 没有最终状态数，必须单列完成分母，不能以完成子集冒充完整 workload，也不能把 Dense 容量当 PrunedDP++ 实际状态数。
 
 ### 7.1 正确性 gate 与运行准入
 
-每次修改 solver、图/查询 I/O 或编译选项后，先运行四个仓库内 CTest：
+每次修改 solver、图/查询 I/O、状态统计或编译选项后，先运行五个仓库内 CTest：
 
 1. 求解器与可行性审计共用的快速数字读取器保留原边、`edge_id`、双向邻接顺序、自环双邻接项、零/小数/科学计数边权和连通分量缓存，并拒绝尾部 token/非法权重。
 2. 查询读取器保留合法多查询与空查询，并拒绝负查询/组计数、空组、截断 payload 和声明记录之后的多余 token。
 3. Base、DirectedCutOnly 和 Enhanced 都通过历史零权 witness 父指针环反例。
 4. 三个合法配置在 144 个确定性随机连通小图、$2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、$g>16$、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
+5. ABHSS Base/Enhanced 的状态数重复运行稳定；PrunedDP++ Hash 与 Dense 后端报告相同实际状态数；平凡查询报告 0。
 
 然后运行 `S1_steinlib_exactness_gate`。当前冻结证据包含 11 个 $11\le g\le16$ 的 WRP 已知最优实例：ABHSS Base/Enhanced、PrunedDP++-Safe、DPBF 和 SCIP-Jack 已全部匹配；Basic+ 只在其 $g\le14$ 能力范围内参加。当前证据摘要在 [`experiments/correctness_audit.json`](../experiments/correctness_audit.json)。未恢复第三方二进制时可先跑仓库内 gate，但不能因此声称完成了六方 SteinLib 核验。
 
@@ -234,7 +237,8 @@ $$
 - [ ] 三种正式计时项使用同一编译环境、timer 边界和 10,000 秒 timeout。
 - [ ] 两个 ABHSS 配置调用同一 `abhss` 可执行文件，开关在查询前冻结，没有 oracle。
 - [ ] Linux `make release` 和 Ubuntu CI 通过；正式服务器的硬件/系统/编译器/IPO 状态已写入运行记录。
-- [ ] 本地四个 CTest、144 随机精确实例和 SteinLib 已知最优 gate 通过。
+- [ ] 本地五个 CTest、144 随机精确实例、状态计数契约和 SteinLib 已知最优 gate 通过。
+- [ ] 正式 ABHSS/PrunedDP++ 的每任务 JSON 都含非负 `mask_vertex_states`；汇总没有为 timeout 猜测状态数。
 - [ ] 论文将 `pruneddp_safe` 准确标注为 corrected reconstruction；已决定是否添加 GPU4GST CPU artifact 的适用子集校准列。
 - [ ] 正文不声称当前二进制已输出最优树；若问题定义要求树边集，artifact freeze 前已实现并测试回溯。
 - [ ] P1 主表每图一行，不按 `g` 拆分，也不把部分 solved time 写成总时间。

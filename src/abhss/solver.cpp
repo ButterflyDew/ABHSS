@@ -153,7 +153,7 @@ SolveResult SolveOneQuery(const Graph& graph,
     const char* probe_method = ProbeMethodName(options);
     Problem problem(graph, query, options);
     if (PrepareWithProbe(problem, probe_method))
-        return {problem.best, true};
+        return {problem.best, true, problem.mask_vertex_states};
 
     EarlyAnchor early;
     EarlyAnchor* ordinary_early =
@@ -165,7 +165,9 @@ SolveResult SolveOneQuery(const Graph& graph,
     else
         CompleteWithForwardGrid(problem, std::move(early.row), probe_method);
 
-    return {problem.best, problem.best < fp::kInf / 4};
+    return {problem.best,
+            problem.best < fp::kInf / 4,
+            problem.mask_vertex_states};
 }
 
 }  // namespace gst::methods::abhss

@@ -149,6 +149,9 @@ void BuildEarlyAnchorRows(Problem& p, EarlyAnchor& early)
         for (int vertex : settled)
             row.value.push_back(distance[vertex]);
         row.ready = true;
+        // touched 在同一 A(mask) 搜索中去重，故恰好对应首次进入工作区的
+        // `(mask,v)`；稍后把 early row 移交给 forward 时不会再次登记。
+        p.AccountMaskVertexStates(touched.size());
         for (int vertex : touched)
             distance[vertex] = fp::kInf;
     }
@@ -442,6 +445,10 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
             }
             row.ready = true;
             p.ordinary_minimum[mask] = minimum;
+            // 一张 D(mask) 只生成一次。使用 touched 而非 queue pop 数，既
+            // 包含已接纳但因 incumbent 收紧而未 settle 的状态，又不重复
+            // 统计同一顶点的多次改进或过期队列项。
+            p.AccountMaskVertexStates(touched.size());
 
             layer_work += row_work;
             witness.Account(row_work);

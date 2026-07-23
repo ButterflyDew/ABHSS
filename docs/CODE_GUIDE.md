@@ -83,10 +83,10 @@ main
           RunForwardAnchoredStage       [Enhanced low A grid]
             -> BuildForwardAnchoredRows
           -> SolveHighAdjoint            [Enhanced high H grid]
-       -> SolveResult{best_weight, feasible}
+       -> SolveResult{best_weight, feasible, mask_vertex_states}
 ```
 
-`src/main.cpp` 是二进制公共批处理入口。CMake 通过宏将同一入口编译为 `abhss`、`pruneddp`、`dpbf` 及可选的第三方 adapter，使图加载、查询分片、计时和输出格式一致。
+`src/main.cpp` 是二进制公共批处理入口。CMake 通过宏将同一入口编译为 `abhss`、`pruneddp`、`dpbf` 及可选的第三方 adapter，使图加载、查询分片、计时和输出格式一致。每个 `weights.txt` 查询行依次写 time、weight、query peak RSS 和 `mask_vertex_states`；正式 ABHSS/PrunedDP++ 返回非负计数，无统一口径的 adapter 写 `-1`。
 
 `SolveOneQuery` 先拒绝非法开关，再处理空查询、$g>16$、无共同分量、单组等入口情形。进入 `Problem` 后，配置为只读值，所有后续差异只能通过 `UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 三个能力查询产生。
 
@@ -103,7 +103,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/abhss/abhss.h` | 公开 `SolveOptions`、增强位、配置依赖和 `SolveResult` | `none -> directed-cut -> directed-cut+adjoint` 是唯一合法配置链 |
 | `src/abhss/solver.cpp` | 单一 solver 入口与配置调度 | 只在这里选择完整前向或 adjoint 完成；不存在按查询 oracle |
 | `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
-| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness 和热路枚举器的共同定义 | $D/A/H$ 共用一个有序稀疏 `Row`；`ready` 与空 payload 不能混淆 |
+| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、$A$、$H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
 | `src/abhss/preprocess.cpp` | 零权 cover、组距离、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；`best` 只由真实可行子图收紧 |
 | `src/abhss/core.{h,cpp}` | early-A1、ordinary $D$、row 交集、规范 branch、witness rent-or-buy | 只剪掉不可能严格改善 `best` 的状态；交集策略只改常数 |
 | `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、early-A1 交接和新生成 row 都走同一完成函数 |
@@ -123,7 +123,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/common/query_feasibility.{h,cpp}` | 使用加载期分量索引判定查询是否有共同分量 | 算法 timer 内的共同入口检查 |
 | `src/common/memory_usage.{h,cpp}` | Windows/Linux RSS 读取与逐查询采样 | 工程监控，不是第二个计算线程 |
 | `src/common/output_manager.{h,cpp}` | 安全创建结果目录并追加 header/记录 | artifact 输出 |
-| `src/pruneddp` | PrunedDP++ 论文路径的本仓库重建，支持 Safe 与 strict-pathmax 开关 | Safe 是当前主性能 baseline，但不是原作者 2016 代码的 bit-for-bit 镜像 |
+| `src/pruneddp` | PrunedDP++ 论文路径的本仓库重建，支持 Safe、strict-pathmax 与实际 StateStore 项数 | Safe 是当前主性能 baseline；Hash 直接用容器 size，Dense 只数 present，不是原作者 2016 代码的 bit-for-bit 镜像 |
 | `src/dpbf` | 稠密全子集 Dreyfus–Wagner/DPBF | 小图正确性 baseline，80M cell 安全上限 |
 | `src/baselines/basic_plus.*` | PVLDB 2021 作者 header 的输入 adapter | 可选 correctness-only，$g\le14$ |
 | `src/baselines/gpu4gst_pruneddp.*` | GPU4GST artifact 内 CPU PrunedDP++ header 的输入 adapter | 可选 artifact 核验，只接受非负整数边权，不在冻结性能矩阵 |
@@ -138,6 +138,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
 | `abhss_zero_weight_witness` | 历史零权父指针环反例 | witness 重根不终止或误计上界 |
 | `abhss_configuration_exactness` | 144 个确定性随机连通小图，$2\le g\le10$，三个合法配置对照独立全子集 DP；另含平凡、不可行、重叠组、$g>16$、非法开关和 sub-nanogap 闭合 | 配置重构丢解、零权边错误、用 epsilon 把正 gap 当作闭合 |
+| `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、重复计算 early row、误把 Dense 容量或辅助预处理当实际状态 |
 
 本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。
 
@@ -150,8 +151,8 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `tools/data/generate_controlled_queries.py` | 生成 DBLP/IMDb 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
 | `tools/data/build_query_feasibility_audit.py` | 重用图分量扫描并将每个矩阵 case 的可行性与当前矩阵哈希绑定 |
 | `tools/experiments/validate_environment.py` | 在运行前检查矩阵总数、方法配置、路径、哈希和可行性审计 |
-| `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录 |
-| `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成加速比、timeout 方向、目标值和可行性不一致 |
+| `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录，并解析行末状态数 |
+| `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成时间/状态倍率、timeout 方向、目标值和可行性不一致 |
 | `tools/experiments/plot_results.py` | 从冻结 supervisor JSON records 绘制 P2/S2 曲线，不重新挑选查询 |
 
 一次正式运行不直接循环调用二进制，而是由 `run_experiments.py` 展开机器矩阵。runner 用 case/method/query 的稳定 key 分片，为每个任务写独立 JSON；同一 `run-dir` 下已完成 key 不会重跑。Linux 上保留 `PATH` 的大小写并为外部 solver 同步添加 `LD_LIBRARY_PATH`；Windows 上会合并大小写重复的 Path 环境项。

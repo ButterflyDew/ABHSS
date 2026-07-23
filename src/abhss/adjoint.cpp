@@ -370,6 +370,9 @@ void SolveHighAdjoint(Problem& p,
             for (int vertex : settled)
                 row.value.push_back(distance[vertex]);
             row.ready = true;
+            // H(mask) 与 D/A 是不同的状态族；同一 mask 下的 touched 顶点
+            // 已去重，因此这里批量计入实际发现的高层 adjoint 状态。
+            p.AccountMaskVertexStates(touched.size());
             EvaluateBoundary(mask);
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;

@@ -211,4 +211,14 @@ if(BUILD_TESTING)
     add_test(NAME abhss_configuration_exactness
              COMMAND abhss_configuration_regression)
     abhss_enable_project_warnings(abhss_configuration_regression)
+
+    add_executable(mask_vertex_state_regression
+        tests/mask_vertex_state_regression.cpp
+        src/common/query_feasibility.cpp
+        src/pruneddp/pruneddp.cpp
+        ${ABHSS_SOURCES})
+    target_link_libraries(mask_vertex_state_regression PRIVATE Threads::Threads)
+    add_test(NAME mask_vertex_state_accounting
+             COMMAND mask_vertex_state_regression)
+    abhss_enable_project_warnings(mask_vertex_state_regression)
 endif()

@@ -63,7 +63,7 @@ Linux：
 
 Windows Visual Studio 构建将上述路径换为 `build/Release/abhss.exe`。中间 correctness/ablation 配置是 `--enhancements=directed-cut`，不是第三条正式性能曲线。`--adjoint-completion=on` 且 `--directed-cut=off` 是非法配置，会在加载图之前报错。
 
-四个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness，以及 144 个 $2\le g\le10$ 的确定性随机实例与入口/sub-nanogap 契约。
+五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、144 个 $2\le g\le10$ 的确定性随机实例与入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
 
 ## 2. 恢复与转换精确输入
 
@@ -185,6 +185,14 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 
 每条查询有独立 10,000 秒 solver deadline。图加载在 `[Ready]` 前完成，不进入逐查询 timer，另由 1,800 秒 watchdog 保护。加载包含一次连通分量建索引；它是所有本地方法共享的 I/O 成本，只作 artifact usability 指标，不得并入算法 speedup。
 
+每个 native `weights.txt` 查询记录固定为四列：
+
+```text
+query_seconds weight query_peak_rss_mib mask_vertex_states
+```
+
+末列是本次查询首次进入主状态存储的不同 `(mask,v)` 项数。PrunedDP++ 统计 Hash/Dense `StateStore` 中实际 `present` 的项，reopen 不重复；ABHSS 统计 $D$、$A$、$H$ 行中首次接纳的状态，early-A1 转交给公共前向行时不重复。两边均排除组距离、route/tour、dual、队列过期副本、松弛尝试和只更新完整解的 full-mask 候选。平凡/前置闭合查询可为 0；尚无统一口径的 correctness-only adapter 写 `-1`。console 的 `[Query]` 行末同步输出 `mask_vertex_states=<整数>`，supervisor 将正式方法的非负值写入每任务 JSON。
+
 ## 6. 稳定分片与断点续跑
 
 多台同构机器使用相同 `shard-count` 和不同 0-based `shard-index`：
@@ -222,6 +230,8 @@ python3 tools/experiments/plot_results.py --input results/paper_runs/paper --sui
 - `quality_mismatches.csv` 和 `feasibility_mismatches.csv`：使用任何性能 claim 前必须为空。
 
 P1 只在全部查询完成时填写 `observed_total_seconds_if_all_solved`。若有 timeout/error，先报完成数，再报已完成查询时间与将每个未完成查询按 10,000 秒计的 `capped_total_seconds`；不得把部分 solved time 当作整图总时间。
+
+`summary_by_cell.csv` 另给完成查询的平均/中位/p90 `mask_vertex_states`；`summary_by_dataset.csv` 给已完成查询的状态总数，并且仅在全图查询全部完成且计数都可用时填写全 workload 状态总数。`paired_speedups.csv` 的 `baseline_over_contender` 状态倍率只使用双方均完成且状态数都为正的配对；倍率大于 1 表示 ABHSS 发现的主状态更少。timeout 进程没有最终计数，不能以已运行时间或内存反推，也不能把完成子集的状态倍率宣称为全查询倍率。
 
 ## 9. 首次 Linux 正式运行必留信息
 

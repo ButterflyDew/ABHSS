@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "frozen_at": "2026-07-23",
   "data_freeze": "published-workloads-plus-imdb-20260722",
   "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
@@ -45,7 +45,10 @@
     "native_linux_evidence_required_before_formal_run": true
   },
   "solver_output_contract": {
-    "returns": ["exact objective weight", "feasibility"],
+    "returns": ["exact objective weight", "feasibility", "mask_vertex_states"],
+    "native_result_columns": ["query_seconds", "weight", "query_peak_rss_mib", "mask_vertex_states"],
+    "mask_vertex_states": "ABHSS counts distinct D/A/H (mask,v) states when first admitted to a row workspace; PrunedDP++ counts distinct entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
+    "unavailable_integer_metric": -1,
     "does_not_currently_serialize": "optimal tree edge set",
     "paper_guardrail": "do not claim that the current artifact outputs the tree unless decision reconstruction is implemented and tested"
   },
@@ -98,7 +101,8 @@
     "per-query 10000-second timeout and a common graph-load convention",
     "P1: one row per graph with total queries, solved, timeout, error and total time",
     "P1 observed total time is shown only if all queries finish; otherwise show solved time and capped total budget",
-    "P2/S2: solved count, PAR-2, mutually solved speedup, timeout direction, objective agreement and peak RSS",
+    "P2/S2: solved count, PAR-2, mutually solved speedup, timeout direction, objective agreement, peak RSS and completed-query mask_vertex_states",
+    "state-count ratios use mutually solved pairs with positive counts; do not impute counts for timeout/error queries",
     "all available exact methods must agree on objective value before a performance claim is used"
   ]
 }

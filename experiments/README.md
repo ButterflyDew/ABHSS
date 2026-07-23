@@ -20,6 +20,8 @@
 - S2：DBLP-MonoGSTPlus 与 IMDb-latest-20260722 上的 `<g,f>`，共 150 条；
 - 计时项：同一 `abhss` 二进制的 Base、全增强配置，以及 PrunedDP++-Safe，均为单计算线程、每查询 10,000 秒。
 
+两个正式二进制的每条完成查询还报告 `mask_vertex_states`：ABHSS 汇总首次进入 $D$、$A$、$H$ 行的状态，PrunedDP++ 统计实际 StateStore 项；辅助预处理、重复队列项和完整解候选不计入。runner 将该值保存在任务 JSON，timeout 不补造计数。
+
 消融、近似解质量、GPU/异构速度和旧 15 小时探针不属于当前冻结。改变矩阵、图、查询或生成器后，必须重建所有对应 manifest 与 `query_feasibility_audit.json`。Linux 正式性能环境先运行：
 
 ```bash

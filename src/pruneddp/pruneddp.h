@@ -1,6 +1,8 @@
 ﻿#ifndef PRUNEDDP_H
 #define PRUNEDDP_H
 
+#include <cstdint>
+
 #include "../common/graph_io.h"
 #include "../common/query_io.h"
 
@@ -29,6 +31,9 @@ struct SolveResult
 {
     double best_weight = -1.0;
     bool feasible = false;
+    // 首次插入主 StateStore 的不同 `(mask,v)` 数；reopen 不重复计数，
+    // group-distance/route 预处理和 full-mask incumbent 候选不属于该表。
+    std::uint64_t mask_vertex_states = 0;
 };
 
 // 使用默认论文复现口径求解一条 GST 询问。

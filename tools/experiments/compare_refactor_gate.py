@@ -10,31 +10,34 @@ from pathlib import Path
 from typing import Any
 
 
-def parse_weight_file(path: Path) -> list[dict[str, float]]:
-    """读取一个 weights.txt；忽略批次 header，保留查询时间、权重和峰值内存。"""
+def parse_weight_file(path: Path) -> list[dict[str, float | int | None]]:
+    """读取 weights.txt；兼容旧三列，并读取新追加的 `(mask,v)` 状态数。"""
 
-    rows: list[dict[str, float]] = []
+    rows: list[dict[str, float | int | None]] = []
     for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
         fields = line.split()
-        if len(fields) != 3:
-            raise ValueError(f"{path}:{line_number}: expected three fields")
+        if len(fields) not in (3, 4):
+            raise ValueError(f"{path}:{line_number}: expected three or four fields")
         rows.append(
             {
                 "seconds": float(fields[0]),
                 "weight": float(fields[1]),
                 "peak_rss_mib": float(fields[2]),
+                "mask_vertex_states": int(fields[3]) if len(fields) == 4 else None,
             }
         )
     return rows
 
 
-def collect_records(root: Path, method_component: str) -> dict[str, dict[str, float]]:
+def collect_records(
+    root: Path, method_component: str
+) -> dict[str, dict[str, float | int | None]]:
     """收集指定结果目录分量下的全部查询，并生成与方法名称无关的稳定键。"""
 
-    records: dict[str, dict[str, float]] = {}
+    records: dict[str, dict[str, float | int | None]] = {}
     for path in sorted(root.rglob("weights.txt")):
         relative_parts = list(path.relative_to(root).parts)
         matches = [index for index, part in enumerate(relative_parts) if part == method_component]
@@ -55,8 +58,8 @@ def collect_records(root: Path, method_component: str) -> dict[str, dict[str, fl
 
 
 def compare_records(
-    old: dict[str, dict[str, float]],
-    new: dict[str, dict[str, float]],
+    old: dict[str, dict[str, float | int | None]],
+    new: dict[str, dict[str, float | int | None]],
     weight_tolerance: float,
     max_regression: float,
 ) -> dict[str, Any]:

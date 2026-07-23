@@ -229,7 +229,8 @@ std::vector<Row> BuildForwardAnchoredRows(
 
             // early-A1 在证书 cone 内已经完成精确图闭包。这里只按更新后的
             // incumbent 重新过滤，并调用与普通前向 row 相同的完成结算。
-            if (anchored[mask].ready)
+            const bool reuses_early_row = anchored[mask].ready;
+            if (reuses_early_row)
             {
                 Row precomputed = std::move(anchored[mask]);
                 ForEachValue(precomputed, [&](int vertex, double value)
@@ -309,6 +310,11 @@ std::vector<Row> BuildForwardAnchoredRows(
                     std::unique(settled.begin(), settled.end()), settled.end());
                 CompleteAnchoredRow(p, mask, settled, distance, minimum);
             }
+
+            // 新生成的 A(mask) 以 touched 中的不同顶点作为实际发现状态；
+            // early-A1 已在构造时登记，这里只发生所有权转移与再次过滤。
+            if (!reuses_early_row)
+                p.AccountMaskVertexStates(touched.size());
 
             settled.erase(
                 std::remove_if(settled.begin(), settled.end(), [&](int vertex)

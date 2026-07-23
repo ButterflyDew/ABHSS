@@ -14,7 +14,7 @@ public:
 
     // 开始一个新 run：保留旧 run，空两行后追加 header。
     void BeginResultRun(const std::string& filename, const std::string& header) const;
-    // 向主结果文件追加一条询问的 time/weight/memory。
+    // 向主结果文件追加一条询问的 time/weight/memory/mask-vertex-state 数。
     void AppendMainResultLine(const std::string& line) const;
     // 通用追加操作，目前只由上述两个接口调用。
     void AppendResultLine(const std::string& filename, const std::string& line) const;

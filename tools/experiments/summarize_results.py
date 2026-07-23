@@ -111,6 +111,11 @@ def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             for record in solved
             if record.get("query_memory_peak_mib") is not None
         ]
+        state_counts = [
+            int(record["mask_vertex_states"])
+            for record in solved
+            if record.get("mask_vertex_states") is not None
+        ]
         timeout = float(group[0]["timeout_seconds"])
         penalized = [
             float(record["solver_seconds"])
@@ -151,6 +156,12 @@ def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "par2_seconds": statistics.fmean(penalized),
                 "median_peak_mib": percentile(memories, 0.5),
                 "p90_peak_mib": percentile(memories, 0.9),
+                "state_count_records": len(state_counts),
+                "mean_mask_vertex_states": (
+                    statistics.fmean(state_counts) if state_counts else None
+                ),
+                "median_mask_vertex_states": percentile(state_counts, 0.5),
+                "p90_mask_vertex_states": percentile(state_counts, 0.9),
             }
         )
     return rows
@@ -172,6 +183,11 @@ def summarize_datasets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for (suite, dataset, method), group in sorted(grouped.items()):
         solved = [record for record in group if record["status"] == "ok"]
         solved_times = [float(record["solver_seconds"]) for record in solved]
+        solved_state_counts = [
+            int(record["mask_vertex_states"])
+            for record in solved
+            if record.get("mask_vertex_states") is not None
+        ]
         timeout = float(group[0]["timeout_seconds"])
         unfinished = len(group) - len(solved)
         observed_total = sum(solved_times)
@@ -211,6 +227,15 @@ def summarize_datasets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     statistics.fmean(solved_times) if solved_times else None
                 ),
                 "geomean_solved_seconds": geomean(solved_times),
+                "state_count_records": len(solved_state_counts),
+                "solved_query_mask_vertex_states": (
+                    sum(solved_state_counts) if solved_state_counts else None
+                ),
+                "observed_total_mask_vertex_states_if_all_solved": (
+                    sum(solved_state_counts)
+                    if unfinished == 0 and len(solved_state_counts) == len(solved)
+                    else None
+                ),
                 "per_instance_timeout_seconds": timeout,
             }
         )
@@ -260,6 +285,14 @@ def paired_rows(
             for ours, base in both
             if float(ours["solver_seconds"]) > 0 and float(base["solver_seconds"]) > 0
         ]
+        state_ratios = [
+            int(base["mask_vertex_states"]) / int(ours["mask_vertex_states"])
+            for ours, base in both
+            if ours.get("mask_vertex_states") is not None
+            and base.get("mask_vertex_states") is not None
+            and int(ours["mask_vertex_states"]) > 0
+            and int(base["mask_vertex_states"]) > 0
+        ]
         speedup_low, speedup_high = bootstrap_geomean_interval(
             ratios, f"{suite}|{dataset}|{g}|{contender}|{baseline}"
         )
@@ -291,6 +324,13 @@ def paired_rows(
                 "p10_speedup_on_both_solved": percentile(ratios, 0.1),
                 "p90_speedup_on_both_solved": percentile(ratios, 0.9),
                 "contender_faster_on_both_solved": sum(ratio > 1 for ratio in ratios),
+                "paired_positive_state_counts": len(state_ratios),
+                "geomean_baseline_over_contender_mask_vertex_states": geomean(
+                    state_ratios
+                ),
+                "median_baseline_over_contender_mask_vertex_states": percentile(
+                    state_ratios, 0.5
+                ),
             }
         )
     return rows
@@ -454,6 +494,7 @@ def main() -> int:
                 "timeout_handling": "PAR-2; timeout/error contributes 2 * per-instance limit",
                 "dataset_total_handling": "observed total is reported only when all queries finish; capped total charges one per-instance limit to each unfinished query",
                 "speedup_censoring": "geomean uses only mutually solved pairs; timeout directions reported separately",
+                "state_count_handling": "mask_vertex_states counts distinct main-state entries first admitted by a completed query; state ratios use mutually solved pairs with positive counts only; timed-out queries have no final count",
             },
             indent=2,
             sort_keys=True,

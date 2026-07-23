@@ -84,12 +84,15 @@ struct SolveOptions
  * @brief 精确 GST 查询的最小返回结构。
  *
  * 有解时 `feasible=true` 且 `best_weight` 为精确最优值；无解时
- * `feasible=false` 且 `best_weight=-1`。所有合法增强配置共享该契约。
+ * `feasible=false` 且 `best_weight=-1`。`mask_vertex_states` 是本次查询中
+ * 首次进入 D/A/H 状态行的不同 `(mask,v)` 项总数；辅助预处理、重复松弛和
+ * 仅用于更新完整解的候选不计入。所有合法增强配置共享该契约。
  */
 struct SolveResult
 {
     double best_weight = -1.0;
     bool feasible = false;
+    std::uint64_t mask_vertex_states = 0;
 };
 
 /**
