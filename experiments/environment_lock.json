@@ -1,40 +1,23 @@
 {
-  "schema_version": 1,
-  "frozen_at": "2026-07-21",
+  "schema_version": 2,
+  "frozen_at": "2026-07-22",
+  "data_freeze": "official-latest-20260722",
+  "paper_scope": "single-compute-thread exact undirected edge-weighted GST",
   "paper_timeout_seconds_per_instance": 10000,
   "graph_load_watchdog_seconds": 1800,
   "primary_exact_baseline": "pruneddp_safe",
-  "reference_documents": [
-    {
-      "name": "A Practical Sublinear Approximation for Group Steiner Tree",
-      "path": "docs/papers/A Practical Sublinear Approximation for Group Steiner Tree.pdf",
-      "sha256": "1b38cfd9ba336793981bf43cdd97952746e31ce0e76856410a2b6ca8e55fdb87",
-      "publication_status": "accepted by VLDB 2026 but not public in this frozen environment; do not redistribute without authorization"
-    },
-    {
-      "name": "Fast Optimal Group Steiner Tree Search using GPUs",
-      "path": "docs/papers/Li 等 - 2025 - Fast Optimal Group Steiner Tree Search using GPUs.pdf",
-      "sha256": "fb385db9ab446d40807188535193a8e1333d72470a1687194bb4d9af3ed4afd1"
-    },
-    {
-      "name": "Efficient and Progressive Group Steiner Tree Search",
-      "path": "docs/papers/PrunedDP++.pdf",
-      "sha256": "76cd9d2afe3d96f4a7f7273f75eaad594bcf7308f84938c2a180eebbfae15f5e"
-    },
-    {
-      "name": "Finding Group Steiner Trees in Graphs with both Vertex and Edge Weights",
-      "path": "third_party/GroupSteinerTree/Finding Group Steiner Trees in Graphs with both Vertex and Edge Weights_Full.pdf",
-      "sha256": "23afc315c45025511b8760a313833f42137373e7fd566f0f73ccf124ade9a633"
-    }
-  ],
-  "source_archives": [
-    {
-      "name": "Boost 1.85.0",
-      "path": "third_party/_downloads/boost_1_85_0.tar.bz2",
-      "url": "https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.bz2",
-      "sha256": "7009fe1faa1697476bdc7027703a2badb84e849b7b0baad5086b087b971f8617",
-      "license": "Boost Software License 1.0"
-    },
+  "official_catalog": "experiments/official_sources.json",
+  "download_manifest": "data_sources/official/official-latest-20260722/download_manifest.json",
+  "data_snapshot": "experiments/data_snapshot.json",
+  "formal_policy": {
+    "graphs": "only frozen downloads from graph-owner official distribution endpoints",
+    "source_queries": "use the official source collection when available",
+    "synthetic_queries": "rerun the cited protocol with fixed seeds before any solver timing",
+    "query_validity": "retain only queries for which one connected component intersects every group; audit excluded source rows before timing",
+    "author_artifacts": "engineering audit only; excluded from paper timing tables",
+    "same_name_graphs": "never merge snapshots; use source-and-snapshot-qualified dataset names"
+  },
+  "required_source_archives": [
     {
       "name": "SteinLib WRP3",
       "path": "data_sources/steinlib/WRP3.tgz",
@@ -46,44 +29,30 @@
       "path": "data_sources/steinlib/WRP4.tgz",
       "url": "https://steinlib.zib.de/download.php#WRP4",
       "sha256": "aefe27b5403343f40fb40dfb24b09076395b655d09f3654530a40009b6d7313e"
-    },
-    {
-      "name": "YS-Graph-Library bundle",
-      "path": "third_party/GroupSteinerTree/ysgraph_20210203.zip",
-      "sha256": "78a757877ceb204efd2987046370db2c6ce0752628f13d5ee01186832ad80d12"
     }
   ],
-  "git_sources": [
+  "correctness_gate_dependencies": [
     {
-      "name": "GPU4GST artifact",
-      "path": "third_party/GPU4GST-sigmod",
-      "url": "https://github.com/toziki/GPU4GST-sigmod.git",
-      "commit": "716a19c240c480cb2d23435bbaca55163a48e174",
-      "license_status": "no repository-level license file observed; obtain redistribution permission before publishing a bundled artifact"
-    },
-    {
-      "name": "GroupSteinerTree / Basic+ artifact",
+      "name": "GroupSteinerTree / Basic+",
       "path": "third_party/GroupSteinerTree",
       "url": "https://github.com/YahuiSun/GroupSteinerTree.git",
       "commit": "09f3bda70f3afa546fd88d446cdb185aee01b278",
-      "license_status": "no repository-level license file observed; obtain redistribution permission before publishing a bundled artifact"
+      "redistribution_note": "upstream repository has no repository-level license file; acquisition metadata is published instead of vendoring it"
     },
     {
       "name": "SCIP-Jack in SCIP 7.0.3",
       "path": "third_party/scip-jack-7.0.3",
       "url": "https://github.com/scipopt/scip.git",
-      "tag": "v703",
       "commit": "74c11e60cd2d45e02f34b2afbf1fc3079c713e03",
       "license": "ZIB Academic License",
-      "current_upstream_note": "SCIP-Jack 2.2 is current as of May 2026 but request-only; do not mix versions within one paper table"
-    },
-    {
-      "name": "SoPlex 5.0.2",
-      "path": "third_party/soplex-5.0.2",
-      "url": "https://github.com/scipopt/soplex.git",
-      "tag": "release-502",
-      "commit": "e24c304ef21f1f319de0413e14fed8e5414440b8",
-      "license": "ZIB Academic License"
+      "use": "known-optimum gate only, never a large-graph runtime baseline"
     }
+  ],
+  "reporting_requirements": [
+    "CPU model, physical cores, RAM, OS, compiler and build type",
+    "one compute thread per solver process; monitoring thread is measurement-only",
+    "wall-clock time includes solver preprocessing after graph load and excludes one shared graph load only when all methods use the same convention",
+    "per-query 10000-second timeout, timeout counted as timeout rather than imputed runtime",
+    "peak RSS, solved count, timeout count, objective value and optimality agreement"
   ]
 }

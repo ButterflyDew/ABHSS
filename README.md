@@ -1,42 +1,51 @@
-# ABHSS exact GST paper environment
+# ABHSS: single-thread exact Group Steiner Tree experiments
 
-这是面向 SIGMOD/VLDB Research Track 的**纯单线程精确 Group Steiner Tree** 全量实验包。当前冻结矩阵包含 239 个 case、8,587 个逐方法实例任务，统一使用 10,000 秒逐询问上限。
+本仓库实现并评测纯单计算线程、精确、无向边权 Group Steiner Tree 算法，目标是形成可投稿 SIGMOD/VLDB 的完整实验 artifact。正式主 baseline 是 PrunedDP++-Safe；ABHSS-Light 与 ABHSS-Heavy 始终分别报告，不做逐查询 oracle 切换。
 
-环境包括：
+当前正式数据冻结为 `official-latest-20260722`。图只从数据所有者的官方站点下载；有来源查询时使用来源查询，否则按所引用论文的生成方法和固定种子重新生成。旧论文 GitHub 仓库中的已处理图和查询只用于工程审计，不进入正式 timing matrix。
 
-- ABHSS-Light、ABHSS-Heavy 与三个结构消融；
-- 主精确 baseline `PrunedDP++-Safe`；
-- DPBF、Basic+、GPU4GST 作者 CPU PrunedDP++ artifact、SCIP-Jack；
-- Practical 原询问、严格受控 `(g,f)`、GPU4GST 分层面板、自然关键词询问与 SteinLib 已知最优值实例；
-- 可恢复、逐实例 watchdog、稳定分片、结果一致性检查、PAR-2/配对汇总和论文图生成。
-
-首先运行：
+## Quick start
 
 ```powershell
+cmake -S . -B build
+cmake --build build --config Release --parallel
+python tools/data/rebuild_official_freeze.py
+python tools/data/build_query_feasibility_audit.py
 python tools/experiments/validate_environment.py
-python tools/experiments/run_experiments.py --dry-run
 ```
 
-文档入口：
+已知最优值 gate：
 
-- [`docs/FULL_EXPERIMENT_PLAN.md`](docs/FULL_EXPERIMENT_PLAN.md)：最终投稿实验方案、baseline 取舍、统计和 claim 边界；
-- [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md)：每份图/询问的来源、身份、转换和 `g/f` 协议；
-- [`RUN.md`](RUN.md)：构建、运行、恢复、分片、汇总；
-- [`docs/METHOD.md`](docs/METHOD.md)：ABHSS 方法与证明材料；
-- [`docs/BASELINE.md`](docs/BASELINE.md)：PrunedDP++ 复现歧义与正确性审计；
-- [`third_party/README.md`](third_party/README.md)：外部 baseline 版本、构建和许可。
+```powershell
+python tools/experiments/run_experiments.py --run-id correctness --run-dir results/paper_runs/correctness --suite S1_steinlib_exactness_gate
+```
 
-重要边界：两份相同规模的 DBLP 图并不相同，论文 ID 固定为 `DBLP-VEW21` 与 `DBLP-GPU25`；询问不得跨图迁移。论文 pathmax 重实现已在三个 WRP 已知最优值实例上产生错误，只保留为 audit，不能作为精确主 baseline。
+完整构建、分片、恢复运行和汇总命令见 [`RUN.md`](RUN.md)。正式方法逐查询 timeout 为 10,000 秒。
 
-## 公共仓库的数据边界
+## Frozen experiment structure
 
-GitHub 仓库不直接再分发体积约 20 GiB 的原始/转换图、第三方源码与编译产物，也不包含受版权保护或尚未公开的论文 PDF。`experiment_data/gpu4gst_panel` 中约 239 MiB 的展开查询文本同样不入库；固定选择 JSON 和生成脚本仍被保留。
+- A：DBLP-AMiner-V18 与 IMDb-daily-20260722 上的真实标签 `<g,f>` 受控实验；`g=4..16,f=400`，并在 `g=10` 使用 `f={100,200,400,800,1600,3200}`，每个唯一单元 10 条。
+- B：六个官方 SNAP 图、MovieLens-32M 与 Toronto-current 上的 related-group `g=4..16` 实验，每个 `(graph,g)` 固定 10 条。
+- C：DBpedia-2022.12-en 的全部 464 条可行自然查询，以及 LinkedMDB-2012 上固定的 200 条官方 WikiMovies 自然查询；自然低和高 `g` 全部进入主实验。
+- Secondary：tiny smoke、11 个 SteinLib WRP 已知最优值实例和四格固定消融。
 
-克隆后请按以下入口恢复完整内部实验环境：
+机器可读矩阵在 [`experiments/paper_matrix.json`](experiments/paper_matrix.json)。主实验共有 164 个单元、2,064 条查询和 6,192 个逐方法任务。大文件由 `.gitignore` 排除；catalog、下载哈希、转换 manifest、查询选择和生成器保留在 Git。
 
-- [`data_origin/README.md`](data_origin/README.md)：官方数据下载、哈希和转换；
-- [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md)：数据来源与格式映射；
-- [`third_party/README.md`](third_party/README.md)：外部 baseline 的冻结版本、许可与构建；
-- [`tools/data/`](tools/data/)：受控询问及 GPU4GST 面板的确定性生成器。
+## Correctness notes
 
-仓库保留 tiny smoke graph、SteinLib 小实例、受控/原协议查询、数据 manifest 和完整实验配置；恢复被忽略的大图与第三方依赖后，再运行环境校验与正式矩阵。
+零权边合法且原样保留，仓库包含专门的 `abhss_zero_weight_regression`。PrunedDP++ 论文式 pathmax + permanent-closed 语义已在 SteinLib 实例上出现非最优答案，因此只用于审计；正式 `pruneddp_safe` 关闭该 pathmax、保留 admissible lower bound，并允许更优 `g-cost` reopen。详见 [`docs/BASELINE.md`](docs/BASELINE.md)。
+
+每条正式查询在计时前通过共同连通分量 gate。任何精确方法之间的目标值不一致都会冻结相应性能结论，不能把错误的小目标值解释为“更优”。
+
+## Documentation
+
+- [`docs/FULL_EXPERIMENT_PLAN.md`](docs/FULL_EXPERIMENT_PLAN.md)：A/B/C 设计、baseline、统计、timeout 与投稿 claim 边界。
+- [`docs/EXPERIMENT_REVIEW_GUIDE.md`](docs/EXPERIMENT_REVIEW_GUIDE.md)：给人类 review 的逐图、逐实验细节和风险检查。
+- [`docs/OFFICIAL_DATA_BUILD.md`](docs/OFFICIAL_DATA_BUILD.md)：官方来源、转换、哈希、查询生成和全量重建。
+- [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md)：投稿用数据来源契约。
+- [`docs/METHOD.md`](docs/METHOD.md)：ABHSS 公共骨架、Light/Heavy 差异和精确性不变量。
+- [`docs/ABHSS_LIGHT_HEAVY_REFACTOR.md`](docs/ABHSS_LIGHT_HEAVY_REFACTOR.md)：两版本重构审计。
+- [`experiments/README.md`](experiments/README.md)：矩阵及 manifest 文件说明。
+- [`RUN.md`](RUN.md)：可直接执行的命令清单。
+
+第三方源码、论文 PDF、官方原始大文件和 build/result 目录不随仓库提交。公开 artifact 时需遵守各数据与代码许可；IMDb daily 文件尤其受 non-commercial 条款约束，不能假设可变 URL 会永久提供本冻结字节。

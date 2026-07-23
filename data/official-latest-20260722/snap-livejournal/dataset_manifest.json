@@ -1,0 +1,325 @@
+{
+  "auxiliary_hashes": {
+    "source_group_ids.tsv": {
+      "bytes": 61408,
+      "sha256": "ddbc2617c0f29a4e407df5f5a86b8921b783b0ce30f5d391c177c162d2d52665"
+    },
+    "source_normalization.json": {
+      "bytes": 1102,
+      "sha256": "dbb71201ed47d478c21b056f1161edcf7baf2d030904e1d3815ca9124872affe"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 1113028,
+    "candidate_group_memberships": 139012,
+    "candidate_groups": 5000,
+    "maximum_candidate_group_size": 1441,
+    "minimum_candidate_group_size": 3,
+    "path": "data/official-latest-20260722/snap-livejournal/candidate_groups.txt",
+    "sha256": "1fcf283ee6318a18d6e3571ae7253fb0b87784f777699915ec61663846874a64"
+  },
+  "dataset": "SNAP-LiveJournal",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 611754958,
+    "edges": 34681189,
+    "maximum_edge_weight": 100.0,
+    "minimum_edge_weight": 0.0,
+    "path": "data/official-latest-20260722/snap-livejournal/graph.txt",
+    "sha256": "7e9533497a3dde4f36f6fd1741d657733f072bbfcefb1e1d9526e4c8d94efb59",
+    "vertices": 3997962,
+    "zero_weight_edges": 2037
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://snap.stanford.edu/data/com-LiveJournal.html",
+  "query_generation": {
+    "author_query_files": [],
+    "base_seed": 20260722,
+    "candidate_groups": 5000,
+    "dataset": "snap-livejournal",
+    "edges": 34681189,
+    "generated": [
+      {
+        "g": 4,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 581,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.23667,
+        "min_bfs_depth": 1,
+        "seed": 10359939246311056168
+      },
+      {
+        "g": 5,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 695,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.37,
+        "min_bfs_depth": 1,
+        "seed": 1154056526989827262
+      },
+      {
+        "g": 6,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 870,
+        "max_bfs_depth": 4,
+        "mean_bfs_depth": 1.47667,
+        "min_bfs_depth": 1,
+        "seed": 13084563055414179173
+      },
+      {
+        "g": 7,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 861,
+        "max_bfs_depth": 5,
+        "mean_bfs_depth": 1.64,
+        "min_bfs_depth": 1,
+        "seed": 7047940112444537324
+      },
+      {
+        "g": 8,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 969,
+        "max_bfs_depth": 4,
+        "mean_bfs_depth": 1.71667,
+        "min_bfs_depth": 1,
+        "seed": 11667163792079686292
+      },
+      {
+        "g": 9,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1044,
+        "max_bfs_depth": 6,
+        "mean_bfs_depth": 1.96,
+        "min_bfs_depth": 1,
+        "seed": 11898742934070426978
+      },
+      {
+        "g": 10,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1094,
+        "max_bfs_depth": 5,
+        "mean_bfs_depth": 2.06333,
+        "min_bfs_depth": 1,
+        "seed": 8499965637542953570
+      },
+      {
+        "g": 11,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1090,
+        "max_bfs_depth": 5,
+        "mean_bfs_depth": 2.03333,
+        "min_bfs_depth": 1,
+        "seed": 15569722976851603073
+      },
+      {
+        "g": 12,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1187,
+        "max_bfs_depth": 6,
+        "mean_bfs_depth": 1.99667,
+        "min_bfs_depth": 1,
+        "seed": 17146020489613423173
+      },
+      {
+        "g": 13,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1194,
+        "max_bfs_depth": 6,
+        "mean_bfs_depth": 2.21333,
+        "min_bfs_depth": 1,
+        "seed": 8182854810930958962
+      },
+      {
+        "g": 14,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1134,
+        "max_bfs_depth": 5,
+        "mean_bfs_depth": 2.29,
+        "min_bfs_depth": 1,
+        "seed": 16193707736778130447
+      },
+      {
+        "g": 15,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1243,
+        "max_bfs_depth": 6,
+        "mean_bfs_depth": 2.38667,
+        "min_bfs_depth": 1,
+        "seed": 1590731563302347289
+      },
+      {
+        "g": 16,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1191,
+        "max_bfs_depth": 6,
+        "mean_bfs_depth": 2.33333,
+        "min_bfs_depth": 1,
+        "seed": 8220797187638025735
+      }
+    ],
+    "generated_query_protocol": "related-group-bfs",
+    "queries_per_g": 300,
+    "source_prefix": "snap-livejournal",
+    "vertex_group_memberships": 139012,
+    "vertices": 3997962
+  },
+  "query_pools": [
+    {
+      "bytes": 783911,
+      "g": 4,
+      "group_ids_sha256": "47f0389bf86f4f5543432fdd8cf011ea2eff02a7bb1422a4f16939c13d3e2d28",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g4.txt",
+      "queries": 300,
+      "sha256": "ca95d2933d3d6b042719088787eb1427d67800d4fe7483ab5928a10793f40315"
+    },
+    {
+      "bytes": 1113858,
+      "g": 5,
+      "group_ids_sha256": "2c144c18d8436acde6bd4c34530949f47d65f857ffc99abcdc43f8e0df3ed283",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g5.txt",
+      "queries": 300,
+      "sha256": "8f3aa88aff1b637ab3ed87eaad78723fb5827878da7cfdb7d08f964bcf717657"
+    },
+    {
+      "bytes": 1225927,
+      "g": 6,
+      "group_ids_sha256": "e5bfed7d9bad8bf8e5660ecfd35ddc7e5e9f17d61da059b00fe35b509d0d47bb",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g6.txt",
+      "queries": 300,
+      "sha256": "11666342b9d8763e8ea140989731c95979fedfc5f4dab47de689821c5a2d1c87"
+    },
+    {
+      "bytes": 1642558,
+      "g": 7,
+      "group_ids_sha256": "a44c1cfee5a8658e92f8e98e560eba68b8e36a7e6fb0d05e7523add1ca3462fb",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g7.txt",
+      "queries": 300,
+      "sha256": "ba36746d7ab7f8254f375d021c6b157b280819aa3762ad6102a9cf34929bbaca"
+    },
+    {
+      "bytes": 1800474,
+      "g": 8,
+      "group_ids_sha256": "7134dc7b224b1722594ac80ac2dddcc625715894493ac0c1badfe55bc9c449ac",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g8.txt",
+      "queries": 300,
+      "sha256": "e54e04c50df026d4c6790e18c938441b8d12c175ea3a1c065d162767c9446cf3"
+    },
+    {
+      "bytes": 1913418,
+      "g": 9,
+      "group_ids_sha256": "e2b76527ed6abbb101aad72e377fc9432be4c8310d9255ab40561b87624a28db",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g9.txt",
+      "queries": 300,
+      "sha256": "fb63c470b5a46af390e547b0ec05ba5cf4e8413343ca66859b67695fe05ef77a"
+    },
+    {
+      "bytes": 2363527,
+      "g": 10,
+      "group_ids_sha256": "7fd4ad73e6372e958477bc1ad95f0501df0fa676725a59d7d4820f1d9a76071f",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g10.txt",
+      "queries": 300,
+      "sha256": "8d0045ef589accbb40652f5955d0b4500533b52c717e2f821fcaf1f8feb5f284"
+    },
+    {
+      "bytes": 2710101,
+      "g": 11,
+      "group_ids_sha256": "ebdce9f510489012170244ad808fc48e65680ba3dc5e23da4ac3293ba5f4ae3c",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g11.txt",
+      "queries": 300,
+      "sha256": "8295fb46de5773eb497dd822e4e267834f1daa1164aeed27781b11f5366d8d7c"
+    },
+    {
+      "bytes": 2948512,
+      "g": 12,
+      "group_ids_sha256": "35b29466a2f54ac200561e955cc99e5f56ebc2a3cc6befe7a53f978afe7def55",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g12.txt",
+      "queries": 300,
+      "sha256": "bde58d0c536af2a3ebd3e4994de774d9a0a3fe296cee285cc2b61373277197e0"
+    },
+    {
+      "bytes": 2986168,
+      "g": 13,
+      "group_ids_sha256": "585a6e6ad65e60e36671154e7e45bc85627e26cec7759a2af66f81fa27e273ce",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g13.txt",
+      "queries": 300,
+      "sha256": "a70f2730f9069115c6fd2f1872988d23555b83abf894d5f736000318cc42e1df"
+    },
+    {
+      "bytes": 3331224,
+      "g": 14,
+      "group_ids_sha256": "caa788eaa08d57439c7f03eaf9ee7f78754f5fdf7bc48f1e43ec077c8294d0a6",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g14.txt",
+      "queries": 300,
+      "sha256": "4b261cded5ef3ba26e2e4353bcec46f28fc31ad46b91808b32f6d615650de123"
+    },
+    {
+      "bytes": 3814676,
+      "g": 15,
+      "group_ids_sha256": "7f41533b0b527def85340b4cf4b2eb5ffe6cda9adc30d9d034da856c76c7d782",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g15.txt",
+      "queries": 300,
+      "sha256": "112a2e258a9f9184802144c5df0d065a359166348a9353b174b3c78a56c9a8e8"
+    },
+    {
+      "bytes": 4651399,
+      "g": 16,
+      "group_ids_sha256": "10c1e76912d369daab3bb55a5e1eb6e7fd28ff802df17cf08c3ab09b9da77c24",
+      "path": "data/official-latest-20260722/snap-livejournal/query_g16.txt",
+      "queries": 300,
+      "sha256": "e2e717b85fb9bc1fe700fd80021df07183912978a72e7b7d5cb5bca776c1304e"
+    }
+  ],
+  "raw_files": [
+    {
+      "bytes": 283378,
+      "etag": "\"338001c-452f2-4ce573d7e3300\"",
+      "final_url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.top5000.cmty.txt.gz",
+      "last_modified": "Tue, 13 Nov 2012 02:33:16 GMT",
+      "path": "snap-livejournal/com-lj.top5000.cmty.txt.gz",
+      "requested_url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.top5000.cmty.txt.gz",
+      "retrieved_utc": "2026-07-22T11:28:27+00:00",
+      "role": "candidate_groups",
+      "sha256": "e77d54eb6a111f83bc2817c056da2ca8663ae6ace97d882a24c82db4fd55b6ec"
+    },
+    {
+      "bytes": 124262769,
+      "etag": "\"338001e-7681971-4ce573dabf9c0\"",
+      "final_url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.ungraph.txt.gz",
+      "last_modified": "Tue, 13 Nov 2012 02:33:19 GMT",
+      "path": "snap-livejournal/com-lj.ungraph.txt.gz",
+      "requested_url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.ungraph.txt.gz",
+      "retrieved_utc": "2026-07-22T11:28:24+00:00",
+      "role": "graph",
+      "sha256": "e0e8996341b963ecbe0a572c71446c03fd6e93a6c521578eaae7566c68ff608e"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "snap-livejournal",
+  "snapshot": "official SNAP static snapshot available on 2026-07-22",
+  "source_normalization": {
+    "candidate_groups": 5000,
+    "candidate_groups_path": "data/official-latest-20260722/snap-livejournal/candidate_groups.txt",
+    "dataset": "SNAP-LiveJournal",
+    "edges": 34681189,
+    "memberships": 139012,
+    "normalized_edges": "data_sources/official/official-latest-20260722/work/snap-livejournal/edges.txt",
+    "raw_files": [
+      {
+        "path": "snap-livejournal/com-lj.ungraph.txt.gz",
+        "sha256": "e0e8996341b963ecbe0a572c71446c03fd6e93a6c521578eaae7566c68ff608e"
+      },
+      {
+        "path": "snap-livejournal/com-lj.top5000.cmty.txt.gz",
+        "sha256": "e77d54eb6a111f83bc2817c056da2ca8663ae6ace97d882a24c82db4fd55b6ec"
+      }
+    ],
+    "slug": "snap-livejournal",
+    "source_kind": "SNAP largest connected component and official top-5000 communities",
+    "vertex_id_mapping": "dense IDs assigned by first occurrence in the frozen official edge stream",
+    "vertex_id_mapping_path": "data_sources/official/official-latest-20260722/work/snap-livejournal/source_vertex_ids.tsv",
+    "vertex_id_mapping_sha256": "6ebdfebbdfcc46193b6b93e1d66b954fb78a7080cbfdb0f296b8c48d619d4cf2",
+    "vertices": 3997962
+  },
+  "status": "include",
+  "transform": "Use the official largest connected component and official top-5000 community file without author-side filtering; preserve official vertex IDs through an explicit dense mapping; edge weight is floor(100 times Jaccard neighborhood distance)."
+}

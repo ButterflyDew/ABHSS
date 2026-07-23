@@ -28,8 +28,12 @@ constexpr int kDefaultMaxG = 16;
 
 struct Options
 {
+    bool generic = false;
     fs::path source_root;
     fs::path data_root;
+    fs::path graph_path;
+    fs::path groups_path;
+    fs::path output_dir;
     std::string dataset = "all";
     std::uint64_t seed = kDefaultSeed;
     int query_count = kDefaultQueries;
@@ -327,20 +331,39 @@ int ParseInt(const std::string& text, const std::string& option)
 
 Options ParseOptions(int argc, char** argv)
 {
-    if (argc < 3)
-    {
-        throw std::runtime_error(
-            "Usage: prepare_gpu4gst <source_root> <data_root> [dataset|all] "
-            "[--seed N] [--queries N] [--min-g N] [--max-g N] [--force-graph]");
-    }
-
     Options options;
-    options.source_root = argv[1];
-    options.data_root = argv[2];
-    int i = 3;
-    if (i < argc && std::string(argv[i]).rfind("--", 0) != 0)
+    int i = 0;
+    if (argc >= 2 && std::string(argv[1]) == "--generic")
     {
-        options.dataset = argv[i++];
+        if (argc < 6)
+        {
+            throw std::runtime_error(
+                "Usage: prepare_gpu4gst --generic <dataset-id> <graph.txt> "
+                "<candidate_groups.txt> <output-dir> [--seed N] [--queries N] "
+                "[--min-g N] [--max-g N]");
+        }
+        options.generic = true;
+        options.dataset = argv[2];
+        options.graph_path = argv[3];
+        options.groups_path = argv[4];
+        options.output_dir = argv[5];
+        i = 6;
+    }
+    else
+    {
+        if (argc < 3)
+        {
+            throw std::runtime_error(
+                "Usage: prepare_gpu4gst <source_root> <data_root> [dataset|all] "
+                "[--seed N] [--queries N] [--min-g N] [--max-g N] [--force-graph]");
+        }
+        options.source_root = argv[1];
+        options.data_root = argv[2];
+        i = 3;
+        if (i < argc && std::string(argv[i]).rfind("--", 0) != 0)
+        {
+            options.dataset = argv[i++];
+        }
     }
     while (i < argc)
     {
@@ -386,7 +409,8 @@ Options ParseOptions(int argc, char** argv)
 GraphInfo ReadGraphAndBuildComponents(const fs::path& source_path,
                                       const fs::path& destination_path,
                                       bool force_graph,
-                                      DisjointSet*& components)
+                                      DisjointSet*& components,
+                                      bool input_is_one_based = false)
 {
     FastInput input(source_path);
     std::uint64_t n64 = 0;
@@ -420,11 +444,14 @@ GraphInfo ReadGraphAndBuildComponents(const fs::path& source_path,
         {
             throw std::runtime_error("Graph ended at edge " + std::to_string(edge));
         }
-        if (u >= n || v >= n)
+        if ((!input_is_one_based && (u >= n || v >= n)) ||
+            (input_is_one_based && (u < 1 || u > n || v < 1 || v > n)))
         {
             throw std::runtime_error("Graph endpoint is out of range at edge " + std::to_string(edge));
         }
-        dsu->Unite(static_cast<std::uint32_t>(u), static_cast<std::uint32_t>(v));
+        const std::uint32_t dense_u = static_cast<std::uint32_t>(input_is_one_based ? u - 1 : u);
+        const std::uint32_t dense_v = static_cast<std::uint32_t>(input_is_one_based ? v - 1 : v);
+        dsu->Unite(dense_u, dense_v);
         if (output)
         {
             output->WriteUInt64(u + 1);
@@ -469,7 +496,8 @@ bool ParseGroupLine(const std::string& line,
                     std::uint32_t vertex_count,
                     std::vector<std::uint32_t>& vertices,
                     std::vector<std::uint32_t>& vertex_group_counts,
-                    std::vector<std::uint32_t>& vertex_seen_in_group)
+                    std::vector<std::uint32_t>& vertex_seen_in_group,
+                    bool input_is_one_based)
 {
     if (line.empty())
     {
@@ -507,9 +535,15 @@ bool ParseGroupLine(const std::string& line,
         }
         std::uint32_t vertex = 0;
         const auto result = std::from_chars(current, end, vertex);
-        if (result.ec != std::errc() || result.ptr == current || vertex >= vertex_count)
+        if (result.ec != std::errc() || result.ptr == current ||
+            (!input_is_one_based && vertex >= vertex_count) ||
+            (input_is_one_based && (vertex < 1 || vertex > vertex_count)))
         {
             throw std::runtime_error("Invalid vertex in group g" + std::to_string(group_id));
+        }
+        if (input_is_one_based)
+        {
+            --vertex;
         }
         if (vertex_seen_in_group[vertex] == group_id)
         {
@@ -528,7 +562,7 @@ bool ParseGroupLine(const std::string& line,
     return true;
 }
 
-GroupIndex LoadGroups(const fs::path& path, std::uint32_t vertex_count)
+GroupIndex LoadGroups(const fs::path& path, std::uint32_t vertex_count, bool input_is_one_based = false)
 {
     std::ifstream input(path);
     if (!input)
@@ -545,7 +579,8 @@ GroupIndex LoadGroups(const fs::path& path, std::uint32_t vertex_count)
     while (std::getline(input, line))
     {
         if (!ParseGroupLine(line, expected_group_id, vertex_count,
-                            index.group_vertices, vertex_group_counts, vertex_seen_in_group))
+                            index.group_vertices, vertex_group_counts, vertex_seen_in_group,
+                            input_is_one_based))
         {
             continue;
         }
@@ -920,7 +955,7 @@ void WriteManifest(const fs::path& path,
         throw std::runtime_error("Failed to open manifest: " + temporary.string());
     }
     output << "{\n";
-    output << "  \"dataset\": \"GPU4GST_" << dataset << "\",\n";
+    output << "  \"dataset\": \"" << (options.generic ? dataset : "GPU4GST_" + dataset) << "\",\n";
     output << "  \"source_prefix\": \"" << dataset << "\",\n";
     output << "  \"vertices\": " << graph.n << ",\n";
     output << "  \"edges\": " << graph.m << ",\n";
@@ -945,7 +980,14 @@ void WriteManifest(const fs::path& path,
         output << (i + 1 == generated.size() ? "\n" : ",\n");
     }
     output << "  ],\n";
-    output << "  \"author_query_files\": [\"query_author_g3.txt\", \"query_author_g5.txt\", \"query_author_g7.txt\"]\n";
+    if (options.generic)
+    {
+        output << "  \"author_query_files\": []\n";
+    }
+    else
+    {
+        output << "  \"author_query_files\": [\"query_author_g3.txt\", \"query_author_g5.txt\", \"query_author_g7.txt\"]\n";
+    }
     output << "}\n";
     output.close();
     ReplaceFile(temporary, path);
@@ -1010,6 +1052,44 @@ void PrepareDataset(const std::string& dataset, const Options& options)
               << std::endl;
 }
 
+void PrepareGenericDataset(const Options& options)
+{
+    if (!fs::is_regular_file(options.graph_path) || !fs::is_regular_file(options.groups_path))
+    {
+        throw std::runtime_error("Generic graph or candidate-group file is missing");
+    }
+    fs::create_directories(options.output_dir);
+    std::cout << "[" << options.dataset << "] graph and connected components" << std::endl;
+    DisjointSet* raw_components = nullptr;
+    const GraphInfo graph = ReadGraphAndBuildComponents(
+        options.graph_path, options.graph_path, false, raw_components, true);
+    std::unique_ptr<DisjointSet> components(raw_components);
+
+    std::cout << "[" << options.dataset << "] candidate-group index" << std::endl;
+    const GroupIndex groups = LoadGroups(options.groups_path, graph.n, true);
+    if (groups.GroupCount() < static_cast<std::size_t>(options.max_g))
+    {
+        throw std::runtime_error("Dataset has fewer candidate groups than max-g");
+    }
+    ComponentCache component_cache(groups, *components);
+    std::vector<std::pair<int, GenerationStats>> generated;
+    for (int g = options.min_g; g <= options.max_g; ++g)
+    {
+        std::cout << "[" << options.dataset << "] generate g=" << g << std::endl;
+        GenerationStats stats;
+        const auto queries = GenerateQueries(options.dataset, g, options.query_count, options.seed,
+                                             groups, component_cache, stats);
+        WriteQueryFile(options.output_dir / ("query_g" + std::to_string(g) + ".txt"), queries, groups);
+        WriteGroupIds(options.output_dir / ("query_g" + std::to_string(g) + ".group_ids.txt"),
+                      "related-group-bfs", options.seed, stats.derived_seed, queries);
+        generated.push_back({g, stats});
+    }
+    WriteManifest(options.output_dir / "dataset_manifest.json", options.dataset, graph, groups, options, generated);
+    std::cout << "[" << options.dataset << "] done: n=" << graph.n << " m=" << graph.m
+              << " groups=" << groups.GroupCount() << " memberships=" << groups.group_vertices.size()
+              << std::endl;
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
@@ -1017,6 +1097,11 @@ int main(int argc, char** argv)
     try
     {
         const Options options = ParseOptions(argc, argv);
+        if (options.generic)
+        {
+            PrepareGenericDataset(options);
+            return 0;
+        }
         const std::vector<std::string> datasets = {
             "Musae", "Twitch", "Github", "Youtube", "DBLP", "Orkut", "LiveJournal", "Reddit"};
         if (options.dataset == "all")

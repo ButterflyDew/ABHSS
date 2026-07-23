@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "rdf_rows": 6148121,
+  "vertices": 1326784,
+  "edges": 2132796,
+  "predicate_types": 69,
+  "rdf_type_rows_discarded": 740469,
+  "literal_or_blank_object_rows_discarded": 3274856,
+  "self_loops_removed": 0,
+  "label_rows": 665434,
+  "labels_on_graph_vertices": 665284,
+  "candidate_groups": 292816,
+  "candidate_group_memberships": 1672764,
+  "memberships_before_deduplication": 1672764,
+  "vocabulary_mode": "all label tokens",
+  "tokenization": "lower-case maximal ASCII alphanumeric runs; per-label and per-group deduplication; frozen stopword list",
+  "vertex_mapping": "first occurrence among retained URI-URI non-rdf:type triples",
+  "edge_weight": "ln(1 + retained frequency of predicate)",
+  "parallel_edges": "retained"
+}

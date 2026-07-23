@@ -1,0 +1,47 @@
+{
+  "candidate_groups": {
+    "count": 59,
+    "path": "data/official-latest-20260722/toronto-current/candidate_groups.txt",
+    "sha256": "9bcb885716d7819d111ccafa61c5d62edbf0cd158a7923ac4f3452cb1847836b"
+  },
+  "centreline_source": {
+    "path": "data_sources/official/official-latest-20260722/raw/toronto-current/centreline-version-2-2952.csv",
+    "sha256": "4ef600c3c5243bd0e59f6e717a0ec8bccabbaafce6bdf33324a3ca5003b20489"
+  },
+  "dataset": "Toronto-current",
+  "edge_weight_unit": "millimetres",
+  "graph": {
+    "edges": 63400,
+    "path": "data/official-latest-20260722/toronto-current/graph.txt",
+    "sha256": "d48ba8a358682dc5f18974c6537fb0807899152d5b40d409426083da642a5c59",
+    "vertices": 44184
+  },
+  "poi_source": {
+    "path": "data_sources/official/official-latest-20260722/raw/toronto-current/points-of-interest-2952.csv",
+    "sha256": "3d6ae9aa11b19d6c0e96c403bebb993cfb639e085699986dde18e9024a6ff39e"
+  },
+  "poi_stats": {
+    "candidate_groups_with_at_least_two_distinct_vertices": 59,
+    "discarded_rows": 0,
+    "mapped_rows": 895,
+    "nearest_distance_metres": {
+      "maximum": 1082.603625727315,
+      "median": 36.635531403163405,
+      "minimum": 0.570436090887167,
+      "p95": 159.98359644710112
+    },
+    "source_rows": 895
+  },
+  "poi_transform": "each POI maps to its exact nearest retained intersection; groups are prefixed Interests and Neighbourhood source fields; no distance cutoff",
+  "projection": "EPSG:2952",
+  "road_stats": {
+    "discarded_rows": 93,
+    "duplicate_endpoint_rows": 907,
+    "retained_rows": 64307,
+    "source_intersections": 44184,
+    "source_rows": 64400,
+    "unique_edges": 63400
+  },
+  "road_transform": "valid FROM/TO intersections; metric polyline length rounded to the nearest positive millimetre; duplicate endpoint pair keeps minimum positive length",
+  "schema_version": 1
+}

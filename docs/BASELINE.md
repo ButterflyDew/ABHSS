@@ -1,8 +1,10 @@
-﻿# PrunedDP++ baseline 复现说明
+# PrunedDP++ baseline 复现说明
 
 本文说明仓库对 SIGMOD 2016 论文 [Efficient and Progressive Group Steiner Tree Search](papers/PrunedDP++.pdf) 中 PrunedDP++ 的复现。论文给出了伪代码和复杂度声明，但没有公开本文可获得的源码，也没有规定状态容器、树 witness 的表示或优先队列更新细节。因此，仓库把三个会实质影响时间、空间或正确性的复现选择显式暴露为开关，并在输出中记录实际配置。
 
 默认配置现按“主 baseline 必须精确”的口径设置为：**Hash 状态、启用逐状态 MST 上界、关闭 pathmax 并允许更小 `g` 的状态 reopen**。Algorithm 4 第 31 行的 paper-pathmax 行为仍可显式开启以复现论文口径，但它已在三个 SteinLib 已知最优值实例上返回非最优值，不能再作为主精确 baseline。
+
+> 范围说明：本文档中的随机小图、旧 MovieLens q1 和 GPU4GST artifact 数字只用于复现/正确性审计。当前投稿性能矩阵仅使用 `official-latest-20260722`，以 `docs/FULL_EXPERIMENT_PLAN.md` 和 `experiments/paper_matrix.json` 为准。
 
 ## 1. 论文中的 PrunedDP++ 主线
 

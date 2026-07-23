@@ -47,6 +47,14 @@ def stable_seed(*parts: object) -> int:
     return int.from_bytes(hashlib.sha256(text).digest()[:8], "big")
 
 
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while block := source.read(4 * 1024 * 1024):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def balanced_sizes(rng: random.Random, g: int, target: int, n: int) -> list[int]:
     if target > n:
         raise ValueError(f"Requested mean group size f={target} exceeds n={n}")
@@ -86,13 +94,37 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=ROOT / "data")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--dataset",
+        action="append",
+        default=[],
+        metavar="ID=GRAPH_DIR",
+        help="override the legacy dataset list; GRAPH_DIR is relative to the repository or absolute",
+    )
     parser.add_argument("--queries-per-cell", type=int, default=QUERIES_PER_CELL)
     parser.add_argument("--seed", type=int, default=BASE_SEED)
     args = parser.parse_args()
+    args.output = args.output.resolve()
+    args.data_root = args.data_root.resolve()
+
+    if args.dataset:
+        datasets: list[tuple[str, str, Path]] = []
+        for declaration in args.dataset:
+            dataset, separator, graph_text = declaration.partition("=")
+            if not separator or not dataset or not graph_text:
+                parser.error(f"invalid --dataset {declaration!r}; expected ID=GRAPH_DIR")
+            graph_dir = Path(graph_text)
+            if not graph_dir.is_absolute():
+                graph_dir = ROOT / graph_dir
+            datasets.append((dataset, dataset, graph_dir / "graph.txt" if graph_dir.is_dir() else graph_dir))
+    else:
+        datasets = [
+            (source_dataset, dataset, args.data_root / source_dataset / "graph.txt")
+            for source_dataset, dataset in DATASETS
+        ]
 
     metadata: list[dict[str, object]] = []
-    for source_dataset, dataset in DATASETS:
-        graph_path = args.data_root / source_dataset / "graph.txt"
+    for source_dataset, dataset, graph_path in datasets:
         n = node_count(graph_path)
         output_dir = args.output / source_dataset
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +150,7 @@ def main() -> int:
                     "dataset": dataset,
                     "graph_path": str(graph_path.parent.relative_to(ROOT)).replace("\\", "/"),
                     "query_path": str(output_path.relative_to(ROOT)).replace("\\", "/"),
+                    "query_sha256": sha256(output_path),
                     "g": g,
                     "f_target": f,
                     "f_realized_per_query": f,

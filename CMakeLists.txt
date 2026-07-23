@@ -35,6 +35,8 @@ set(COMMON_SOURCES
 set(ABHSS_SOURCES
     src/abhss/preprocess.cpp
     src/abhss/core.cpp
+    src/abhss/pipeline.cpp
+    src/abhss/forward.cpp
     src/abhss/light.cpp
     src/abhss/heavy.cpp)
 
@@ -120,6 +122,11 @@ foreach(target pruneddp pruneddp_probe dpbf abhss_light abhss_light_probe
         abhss_light_no_early abhss_light_no_witness abhss_heavy
         abhss_heavy_probe abhss_heavy_forward)
     target_link_libraries(${target} PRIVATE Threads::Threads)
+    # Shared Light/Heavy modules expose useful cross-translation-unit inlining.
+    # Apply the same Release IPO rule to every timed in-repository method so the
+    # paper comparison keeps one compiler policy rather than favoring ABHSS.
+    set_property(TARGET ${target}
+                 PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
     if(WIN32)
         target_link_libraries(${target} PRIVATE psapi)
     endif()
@@ -141,6 +148,13 @@ endif()
 
 add_executable(prepare_gpu4gst tools/gpu4gst_data/prepare_gpu4gst.cpp)
 add_executable(compare_graphs tools/data/compare_graphs.cpp)
+add_executable(build_jaccard_graph tools/data/build_jaccard_graph.cpp)
+add_executable(build_movielens_graph tools/data/build_movielens_graph.cpp)
+add_executable(build_rdf_graph tools/data/build_rdf_graph.cpp)
+add_executable(build_imdb_graph tools/data/build_imdb_graph.cpp)
+add_executable(build_aminer_dblp_graph tools/data/build_aminer_dblp_graph.cpp)
+target_include_directories(build_aminer_dblp_graph PRIVATE "${VENDORED_BOOST_HEADERS}")
+add_executable(audit_query_feasibility tools/data/audit_query_feasibility.cpp)
 
 include(CTest)
 if(BUILD_TESTING)
@@ -151,4 +165,12 @@ if(BUILD_TESTING)
     target_link_libraries(abhss_zero_weight_regression PRIVATE Threads::Threads)
     add_test(NAME abhss_zero_weight_witness
              COMMAND abhss_zero_weight_regression)
+
+    add_executable(abhss_variant_regression
+        tests/abhss_variant_regression.cpp
+        src/common/query_feasibility.cpp
+        ${ABHSS_SOURCES})
+    target_link_libraries(abhss_variant_regression PRIVATE Threads::Threads)
+    add_test(NAME abhss_variant_exactness
+             COMMAND abhss_variant_regression)
 endif()

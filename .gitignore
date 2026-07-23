@@ -62,3 +62,41 @@ __pycache__/
 # Local paper copies include copyrighted publications and an unpublished
 # manuscript. Documentation cites them but the public repository must not.
 /docs/papers/
+
+# Official-upstream benchmark freeze.  Raw archives, extracted dumps and
+# conversion scratch space are reproducible but far too large for Git.  Keep
+# the catalog, download manifest, build manifests and documentation tracked.
+/data_sources/official/**/raw/
+/data_sources/official/**/extracted/
+/data_sources/official/**/work/
+/data_sources/official/**/*.part
+/data_sources/official/**/*.tmp
+
+# The converted official interface data is regenerated from the frozen raw
+# hashes.  Per-dataset manifests remain tracked through the general exception
+# above; the multi-gigabyte graph/query payloads do not.
+/data/official-*/**/graph.txt
+/data/official-*/**/query*.txt
+/data/official-*/**/candidate_groups.txt
+
+# Keep only compact identity/normalization manifests for the nested official
+# interface directories.  Graphs, groups, URI maps and expanded query payloads
+# are rebuilt from the frozen official hashes.
+!/data/official-*/
+!/data/official-*/*/
+/data/official-*/*/*
+!/data/official-*/*/dataset_manifest.json
+!/data/official-*/*/source_normalization.json
+!/data/official-*/*/source_query_manifest.json
+!/data/official-*/*/build_manifest.json
+!/data/official-*/*/build_stats.json
+
+# Official paper panels are deterministic expansions of the tracked JSON/CSV
+# selection manifests and generators; do not publish their large text payloads.
+/experiment_data/official_latest/**/*.txt
+
+# Retired draft panels are intentionally outside the A/B/C paper matrix. Keep
+# them locally for engineering archaeology without publishing contradictory
+# manifests alongside the frozen formal panels.
+/experiment_data/official_latest/controlled/
+/experiment_data/official_latest/imdb_label_frequency/

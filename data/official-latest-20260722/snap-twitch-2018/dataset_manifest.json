@@ -1,0 +1,341 @@
+{
+  "auxiliary_hashes": {
+    "source_group_ids.tsv": {
+      "bytes": 38740,
+      "sha256": "f1b00287cdc717c2224d5e5ffe5a459533eed7d9af9676e8d9846ab567895d76"
+    },
+    "source_normalization.json": {
+      "bytes": 1157,
+      "sha256": "d8b045a0b1d429f7f842e40624405335e04122efb869034ecffe8c212d9c2b24"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 3922072,
+    "candidate_group_memberships": 687900,
+    "candidate_groups": 3163,
+    "maximum_candidate_group_size": 31579,
+    "minimum_candidate_group_size": 1,
+    "path": "data/official-latest-20260722/snap-twitch-2018/candidate_groups.txt",
+    "sha256": "6f617aca331ed6c306692eed13163628dd5027c5627e1fd6cac600015d4d278d"
+  },
+  "dataset": "SNAP-Twitch-2018",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 6144335,
+    "edges": 429113,
+    "maximum_edge_weight": 100.0,
+    "minimum_edge_weight": 30.0,
+    "path": "data/official-latest-20260722/snap-twitch-2018/graph.txt",
+    "sha256": "8dc8ea9e8e3d6ec4176089b0075b1a3c27e9222982d8cc5964228dc263f85fc5",
+    "vertices": 34118,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://snap.stanford.edu/data/twitch-social-networks.html",
+  "query_generation": {
+    "author_query_files": [],
+    "base_seed": 20260722,
+    "candidate_groups": 3163,
+    "dataset": "snap-twitch-2018",
+    "edges": 429113,
+    "generated": [
+      {
+        "g": 4,
+        "infeasible_query_rejections": 1,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 17396431616092989690
+      },
+      {
+        "g": 5,
+        "infeasible_query_rejections": 2,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 13082721846416988449
+      },
+      {
+        "g": 6,
+        "infeasible_query_rejections": 5,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 848463338533584949
+      },
+      {
+        "g": 7,
+        "infeasible_query_rejections": 19,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 15202871425849540597
+      },
+      {
+        "g": 8,
+        "infeasible_query_rejections": 6,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 4545315348550696687
+      },
+      {
+        "g": 9,
+        "infeasible_query_rejections": 15,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 18078207715963150798
+      },
+      {
+        "g": 10,
+        "infeasible_query_rejections": 23,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 13812784365248913749
+      },
+      {
+        "g": 11,
+        "infeasible_query_rejections": 18,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 17927376833493100306
+      },
+      {
+        "g": 12,
+        "infeasible_query_rejections": 21,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 10619848803543753965
+      },
+      {
+        "g": 13,
+        "infeasible_query_rejections": 22,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 7575803464067318557
+      },
+      {
+        "g": 14,
+        "infeasible_query_rejections": 25,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 6628410122255236144
+      },
+      {
+        "g": 15,
+        "infeasible_query_rejections": 44,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 13338061061943813068
+      },
+      {
+        "g": 16,
+        "infeasible_query_rejections": 47,
+        "insufficient_root_rejections": 0,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 4027452998705506113
+      }
+    ],
+    "generated_query_protocol": "related-group-bfs",
+    "queries_per_g": 300,
+    "source_prefix": "snap-twitch-2018",
+    "vertex_group_memberships": 687900,
+    "vertices": 34118
+  },
+  "query_pools": [
+    {
+      "bytes": 13066839,
+      "g": 4,
+      "group_ids_sha256": "fc2ada72eb5bb3d287e6f1dc45aec9318c566c3959cda5fe7597d66312692225",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g4.txt",
+      "queries": 300,
+      "sha256": "0d2c6da0c4d482cd0b1653008de81915a3faf4f8c9a6a4b9a2d18d6505e5591d"
+    },
+    {
+      "bytes": 18279357,
+      "g": 5,
+      "group_ids_sha256": "fea4dd13541c39f9cefd0785f0b029655c83a9541ae23a103efc9c9c22959c0a",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g5.txt",
+      "queries": 300,
+      "sha256": "d9a32a1bbc77e3dd5deb64e9dfd2b22b6de08d76eef1f8e5b25590e7d1b7c94e"
+    },
+    {
+      "bytes": 20998751,
+      "g": 6,
+      "group_ids_sha256": "4328fc5e7ba5ef5e81a4cd7ac7904f40dd05208bc727407d16b5bbd83d9159fb",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g6.txt",
+      "queries": 300,
+      "sha256": "af929e978476af5fad530cdc13c7f2fc32fa9b7d03d517a68f5e2e19d1b62b68"
+    },
+    {
+      "bytes": 24989313,
+      "g": 7,
+      "group_ids_sha256": "f4dc26abce1e252ace9f040ee223cb7c22d77c81b1b4903da5dbc0a3e9f8aa04",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g7.txt",
+      "queries": 300,
+      "sha256": "2a6c36c4a22fcf5143e176e8c2b6685e8dacec372296e6f86247e485b3b4a60c"
+    },
+    {
+      "bytes": 30163511,
+      "g": 8,
+      "group_ids_sha256": "6d7aaaac51f09a091c58ea58ae63c4dda536a376238a40ae66c9813e6e7fe8c3",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g8.txt",
+      "queries": 300,
+      "sha256": "a2f11c2e13ca135cb9258b21d03d599b3192da562567aee3d34d1d2d4d14e5fb"
+    },
+    {
+      "bytes": 31880595,
+      "g": 9,
+      "group_ids_sha256": "3e1afea35cbeb95164d97fefdfc3535d06bdc96e124b1c65170651ba20023a5f",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g9.txt",
+      "queries": 300,
+      "sha256": "7cac2fe4d6d8073d2f34d8d5131cad76b91e1876837a285ae61f06ebc65f44c8"
+    },
+    {
+      "bytes": 35711227,
+      "g": 10,
+      "group_ids_sha256": "bf4723c60565983833151ceae22c873ae8b33465ecf9278e328d9db069bf342d",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g10.txt",
+      "queries": 300,
+      "sha256": "35e5fe28a235aa0b72d6cfffaecba6070919e8164907ec9d0263b5d6244097c4"
+    },
+    {
+      "bytes": 41098345,
+      "g": 11,
+      "group_ids_sha256": "c672322c9e1c0dee38f49f3c75342ccdc25c8e27a4454364c7eae5709753949c",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g11.txt",
+      "queries": 300,
+      "sha256": "dd2dc49638059d326be9493c21f0f30904d177eaa7250812afea1c482172f132"
+    },
+    {
+      "bytes": 49574280,
+      "g": 12,
+      "group_ids_sha256": "56524361d93c92de91d1509d08bbab4ec141795a61f08a1c24901e6118e03f07",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g12.txt",
+      "queries": 300,
+      "sha256": "0960e8df07ed30f74a61466b686bf9ca3d1914be7e76dc6bc56eed380365ca9e"
+    },
+    {
+      "bytes": 50769402,
+      "g": 13,
+      "group_ids_sha256": "cf59b9a7c43d00a75cf50799c4b9a1c75845f058704be923bac9288d51c868e0",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g13.txt",
+      "queries": 300,
+      "sha256": "e35db29e3873abdd9febf79c3158b93fd77c5fdb8ae35d1214c367e6e58edfcf"
+    },
+    {
+      "bytes": 55264243,
+      "g": 14,
+      "group_ids_sha256": "49328a27759a6a7d1658f928c06f94a57813a7643dabe2fcab366ef04540e206",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g14.txt",
+      "queries": 300,
+      "sha256": "c07a4384a1f80195de8cfaf22f0ae5822dc200ac291185549e25b82c19e84b7a"
+    },
+    {
+      "bytes": 63905165,
+      "g": 15,
+      "group_ids_sha256": "a25125d393de91985b10f110cf02efc1a5dde8baadb47bfd4294a6f83ca15892",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g15.txt",
+      "queries": 300,
+      "sha256": "c0d4e50a6712869dd4b5fc57f78e3d13dc7317d6a375ecf903a46e3b020c9a44"
+    },
+    {
+      "bytes": 68341460,
+      "g": 16,
+      "group_ids_sha256": "4754ae4f92de1487c39290731e71895b1e37105dd743d780ee268a014b47efa5",
+      "path": "data/official-latest-20260722/snap-twitch-2018/query_g16.txt",
+      "queries": 300,
+      "sha256": "56469c2431e8bf66c9d758d8a9787f38b2eda589d698d3663854a5b119416d98"
+    }
+  ],
+  "raw_files": [
+    {
+      "bytes": 2842994,
+      "etag": "\"2aa8afc-2b6172-594e49041bd14\"",
+      "final_url": "https://snap.stanford.edu/data/twitch.zip",
+      "last_modified": "Mon, 14 Oct 2019 20:17:57 GMT",
+      "path": "snap-twitch/twitch.zip",
+      "requested_url": "https://snap.stanford.edu/data/twitch.zip",
+      "retrieved_utc": "2026-07-22T11:00:34+00:00",
+      "role": "graph_and_vertex_features",
+      "sha256": "65a6c4c23da23889517734a8c947e522b2f0c7db179559a3904aeb8793d004dc"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "snap-twitch-2018",
+  "snapshot": "May 2018",
+  "source_normalization": {
+    "candidate_groups": 3163,
+    "candidate_groups_path": "data/official-latest-20260722/snap-twitch-2018/candidate_groups.txt",
+    "dataset": "SNAP-Twitch-2018",
+    "edges": 429113,
+    "input_edge_rows": 429113,
+    "memberships": 687900,
+    "normalized_edges": "data_sources/official/official-latest-20260722/work/snap-twitch-2018/edges.txt",
+    "parts": [
+      {
+        "edge_rows": 153138,
+        "name": "DE",
+        "vertices": 9498
+      },
+      {
+        "edge_rows": 35324,
+        "name": "ENGB",
+        "vertices": 7126
+      },
+      {
+        "edge_rows": 59382,
+        "name": "ES",
+        "vertices": 4648
+      },
+      {
+        "edge_rows": 112666,
+        "name": "FR",
+        "vertices": 6549
+      },
+      {
+        "edge_rows": 31299,
+        "name": "PTBR",
+        "vertices": 1912
+      },
+      {
+        "edge_rows": 37304,
+        "name": "RU",
+        "vertices": 4385
+      }
+    ],
+    "raw_files": [
+      {
+        "path": "snap-twitch/twitch.zip",
+        "sha256": "65a6c4c23da23889517734a8c947e522b2f0c7db179559a3904aeb8793d004dc"
+      }
+    ],
+    "self_loops_or_duplicate_orientations_removed": 0,
+    "slug": "snap-twitch-2018",
+    "source_kind": "SNAP feature archives",
+    "vertices": 34118
+  },
+  "status": "include",
+  "transform": "Disjoint union of DE, ENGB, ES, FR, PTBR and RU; canonicalize undirected edges; each observed shared feature ID is a candidate group; edge weight is floor(100 times Jaccard neighborhood distance)."
+}

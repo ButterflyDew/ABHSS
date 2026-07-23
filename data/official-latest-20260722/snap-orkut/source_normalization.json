@@ -1,0 +1,24 @@
+{
+  "candidate_groups": 5000,
+  "candidate_groups_path": "data/official-latest-20260722/snap-orkut/candidate_groups.txt",
+  "dataset": "SNAP-Orkut",
+  "edges": 117185083,
+  "memberships": 1078576,
+  "normalized_edges": "data_sources/official/official-latest-20260722/work/snap-orkut/edges.txt",
+  "raw_files": [
+    {
+      "path": "snap-orkut/com-orkut.ungraph.txt.gz",
+      "sha256": "f73e33fb685f411a10c952f2ba3ea788380b91a17bc636e38da1a23f6c6b2bc6"
+    },
+    {
+      "path": "snap-orkut/com-orkut.top5000.cmty.txt.gz",
+      "sha256": "cbebaf6b36efdbaa5f918b7300719099385f3afb07eb08bf07ae994a28e21904"
+    }
+  ],
+  "slug": "snap-orkut",
+  "source_kind": "SNAP largest connected component and official top-5000 communities",
+  "vertex_id_mapping": "dense IDs assigned by first occurrence in the frozen official edge stream",
+  "vertex_id_mapping_path": "data_sources/official/official-latest-20260722/work/snap-orkut/source_vertex_ids.tsv",
+  "vertex_id_mapping_sha256": "b8b74750c5134998dab48ec583085b70d89d1438d194579a7102b067117de5f8",
+  "vertices": 3072441
+}

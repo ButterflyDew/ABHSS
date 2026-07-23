@@ -1,0 +1,94 @@
+{
+  "auxiliary_hashes": {
+    "relation_frequencies.tsv": {
+      "bytes": 5409,
+      "sha256": "26df3a8f64e5601a1274aaafd89020891b573bbc45830fa709191a696e440b79"
+    },
+    "source_group_ids.tsv": {
+      "bytes": 4839880,
+      "sha256": "cbf4626c76e49f4119839de8a9cad0d5eeb2a22a70633829d7e8a3322ab020ad"
+    },
+    "source_normalization.json": {
+      "bytes": 777,
+      "sha256": "77511b4e0292ece2236d4c8fa4f4548fd863df99a3eb1eb34ead124c14f929ba"
+    },
+    "source_vertex_ids.tsv": {
+      "bytes": 87278551,
+      "sha256": "9fe4dc35ffa6e6026a7ac37395c96b34542949a8958c273cf8442bb81b27e756"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 14419101,
+    "candidate_group_memberships": 1672764,
+    "candidate_groups": 292816,
+    "maximum_candidate_group_size": 197410,
+    "minimum_candidate_group_size": 1,
+    "path": "data/official-latest-20260722/linkedmdb/candidate_groups.txt",
+    "sha256": "5ccd6bbc1230406ebfb8d29a8d901397ae5ade42b1cc29deb6a8b440a8657f84"
+  },
+  "dataset": "LinkedMDB-2012",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 59050001,
+    "edges": 2132796,
+    "maximum_edge_weight": 13.147927805,
+    "minimum_edge_weight": 0.6931471806,
+    "path": "data/official-latest-20260722/linkedmdb/graph.txt",
+    "sha256": "3750cdde71dd032fb267646e0a9eb69ea3321740134ae9a29f9a8a87b3d89b8a",
+    "vertices": 1326784,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://www.cs.toronto.edu/~oktie/linkedmdb/",
+  "query_generation": null,
+  "query_pools": [],
+  "raw_files": [
+    {
+      "bytes": 43181892,
+      "etag": "\"292e744-4b8a3d1898340\"",
+      "final_url": "https://www.cs.toronto.edu/~oktie/linkedmdb/linkedmdb-latest-dump.zip",
+      "last_modified": "Fri, 10 Feb 2012 22:40:41 GMT",
+      "path": "linkedmdb/linkedmdb-latest-dump.zip",
+      "requested_url": "https://www.cs.toronto.edu/~oktie/linkedmdb/linkedmdb-latest-dump.zip",
+      "retrieved_utc": "2026-07-22T11:41:31+00:00",
+      "role": "rdf_graph",
+      "sha256": "eb919134eab14fd1136b3e45b37ff6c6c77dfb8f57e7d771539da0b38a51e114"
+    },
+    {
+      "bytes": 57070041,
+      "etag": "\"3d70b04d15fa9ddb64502509b52f42de-7\"",
+      "final_url": "https://dl.fbaipublicfiles.com/parlai/wikimovies/wikimovies.tar.gz",
+      "last_modified": "Thu, 17 Jan 2019 18:48:18 GMT",
+      "path": "wikimovies/wikimovies.tar.gz",
+      "requested_url": "https://parl.ai/downloads/wikimovies/wikimovies.tar.gz",
+      "retrieved_utc": "2026-07-22T17:26:08+00:00",
+      "role": "source_queries",
+      "sha256": "ed062b49922b602ebee6073f58951bf38c4772a8b53d46682f3ff80ed57de948"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "linkedmdb",
+  "snapshot": "linkedmdb-latest-dump.zip served by the official project; upstream file dated 2012-02-10",
+  "source_normalization": {
+    "candidate_group_memberships": 1672764,
+    "candidate_groups": 292816,
+    "edge_weight": "ln(1 + retained frequency of predicate)",
+    "edges": 2132796,
+    "label_rows": 665434,
+    "labels_on_graph_vertices": 665284,
+    "literal_or_blank_object_rows_discarded": 3274856,
+    "memberships_before_deduplication": 1672764,
+    "parallel_edges": "retained",
+    "predicate_types": 69,
+    "rdf_rows": 6148121,
+    "rdf_type_rows_discarded": 740469,
+    "schema_version": 1,
+    "self_loops_removed": 0,
+    "tokenization": "lower-case maximal ASCII alphanumeric runs; per-label and per-group deduplication; frozen stopword list",
+    "vertex_mapping": "first occurrence among retained URI-URI non-rdf:type triples",
+    "vertices": 1326784,
+    "vocabulary_mode": "all label tokens"
+  },
+  "status": "include",
+  "transform": "Discard rdf:type and every triple whose object is not a URI. Preserve every remaining URI-URI triple as one undirected edge (parallel edges are retained). Its weight is ln(1 + freq(predicate)), where frequency is counted over the frozen dump. This exactly reconstructs all 69 non-type relation weights in the prior LinkedMDB interface graph. Candidate groups are lower-cased tokens from rdfs:label literals."
+}

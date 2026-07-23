@@ -1,0 +1,302 @@
+{
+  "auxiliary_hashes": {
+    "source_group_ids.tsv": {
+      "bytes": 362,
+      "sha256": "10ac2cfc1eb13a7b0619b160ee375ea4af00159fae20497ab19f6adf18644b4c"
+    },
+    "source_vertex_ids.tsv": {
+      "bytes": 1186494,
+      "sha256": "cb8ea70c1fbdfbc18d216cace84e1e1c198f5e1ef62e0791409625395f0ab106"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 902454,
+    "candidate_group_memberships": 154170,
+    "candidate_groups": 20,
+    "maximum_candidate_group_size": 34175,
+    "minimum_candidate_group_size": 195,
+    "path": "data/official-latest-20260722/movielens-32m/candidate_groups.txt",
+    "sha256": "0b4481b59f63b861c9983ade6bf9b61157a70572b47034ab98abb32021d9313b"
+  },
+  "dataset": "MovieLens-32M",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 577963499,
+    "edges": 44143611,
+    "maximum_edge_weight": 1.0,
+    "minimum_edge_weight": 1.0,
+    "path": "data/official-latest-20260722/movielens-32m/graph.txt",
+    "sha256": "b38676df69067bfc78b2dd17dd152973e80e87732aeb6146ad2978930d5b229c",
+    "vertices": 87585,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://grouplens.org/datasets/movielens/",
+  "query_generation": {
+    "author_query_files": [],
+    "base_seed": 20260722,
+    "candidate_groups": 20,
+    "dataset": "movielens-32m",
+    "edges": 44143611,
+    "generated": [
+      {
+        "g": 4,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 2455376953776150605
+      },
+      {
+        "g": 5,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 4172587173277303740
+      },
+      {
+        "g": 6,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 12289606764980830833
+      },
+      {
+        "g": 7,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 1728757755792019985
+      },
+      {
+        "g": 8,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 56858762330564572
+      },
+      {
+        "g": 9,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 9987754822113245815
+      },
+      {
+        "g": 10,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 15820555865530837655
+      },
+      {
+        "g": 11,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 2415084635016479424
+      },
+      {
+        "g": 12,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 7314618440773266790
+      },
+      {
+        "g": 13,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 6767422395718842041
+      },
+      {
+        "g": 14,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 8188904897870088384
+      },
+      {
+        "g": 15,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 15698559131061678534
+      },
+      {
+        "g": 16,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 1,
+        "max_bfs_depth": 1,
+        "mean_bfs_depth": 1,
+        "min_bfs_depth": 1,
+        "seed": 5338434293609705626
+      }
+    ],
+    "generated_query_protocol": "related-group-bfs",
+    "queries_per_g": 300,
+    "source_prefix": "movielens-32m",
+    "vertex_group_memberships": 154170,
+    "vertices": 87585
+  },
+  "query_pools": [
+    {
+      "bytes": 56075390,
+      "g": 4,
+      "group_ids_sha256": "1f9ced8ec575366e66a9f4c9f069a7763b421fc33b5d651bd93bfa5f7501c987",
+      "path": "data/official-latest-20260722/movielens-32m/query_g4.txt",
+      "queries": 300,
+      "sha256": "d9228cc75e5958600d52df7c6ce40f8c83eb8d9964732b31981d8eb4f09ca0ec"
+    },
+    {
+      "bytes": 71778761,
+      "g": 5,
+      "group_ids_sha256": "ef5a968e4115762e22e86ce2f417c4415db3f9fa0a8040b464ce446527909188",
+      "path": "data/official-latest-20260722/movielens-32m/query_g5.txt",
+      "queries": 300,
+      "sha256": "b3181871412a7f99b2ed38fbca8e8285f1fb1f2551187987f10c6e93de3015f7"
+    },
+    {
+      "bytes": 82838931,
+      "g": 6,
+      "group_ids_sha256": "6837355a1ca9475b5121020d31e0903d25575523cbc8e50779eeabdd92f14180",
+      "path": "data/official-latest-20260722/movielens-32m/query_g6.txt",
+      "queries": 300,
+      "sha256": "1d02f5fadf299adc0be5e68ab3ea886a707a029ce63bbb6d00a971348e8ecbf0"
+    },
+    {
+      "bytes": 93170219,
+      "g": 7,
+      "group_ids_sha256": "dcd7cbc646be33fffa206b46917925a51fe58df0cf7ba603aceb23da786684b9",
+      "path": "data/official-latest-20260722/movielens-32m/query_g7.txt",
+      "queries": 300,
+      "sha256": "626f3fcc3361142fce8dfb62215260b396b1c68118e102cf78d24f700c50e875"
+    },
+    {
+      "bytes": 110380830,
+      "g": 8,
+      "group_ids_sha256": "c3f8cd71b3242589064ffa2079775be6d29ac295c14db21d64d22cfb996858a5",
+      "path": "data/official-latest-20260722/movielens-32m/query_g8.txt",
+      "queries": 300,
+      "sha256": "23f0498be43608baa4acd7cd10114f931673dadb36f0d4bcf331526af1ff3ef5"
+    },
+    {
+      "bytes": 123240797,
+      "g": 9,
+      "group_ids_sha256": "6cef4778aff0aefbfc597473b2532dcf4826fd5482bb86cdf5e075886e6c07f3",
+      "path": "data/official-latest-20260722/movielens-32m/query_g9.txt",
+      "queries": 300,
+      "sha256": "53e788f526b0c6d6c28e8b1d7c5628e4710cf133c57a4120c47fa2c82ac6b636"
+    },
+    {
+      "bytes": 136940306,
+      "g": 10,
+      "group_ids_sha256": "33f787ef39dccca3cd616baaad55af52144b91901e20fed8927ea7d1268bd37b",
+      "path": "data/official-latest-20260722/movielens-32m/query_g10.txt",
+      "queries": 300,
+      "sha256": "6775c4fea6e3528692ecaec9bc4a767ee787b0918a29f8023b3453591befd205"
+    },
+    {
+      "bytes": 153482440,
+      "g": 11,
+      "group_ids_sha256": "6d53a5c785bd1060bdc96c7e418c9c2e8d198837b223e92d020452eb99f7daf9",
+      "path": "data/official-latest-20260722/movielens-32m/query_g11.txt",
+      "queries": 300,
+      "sha256": "378427a2b137e99b6e4ab5d5e549fb4c29e454cc0df0c0105d16b1fdd938d39b"
+    },
+    {
+      "bytes": 166427695,
+      "g": 12,
+      "group_ids_sha256": "3bf91ad429c56c2249d065e0203ac2783ed926cd2e32307f449fc835d98e230c",
+      "path": "data/official-latest-20260722/movielens-32m/query_g12.txt",
+      "queries": 300,
+      "sha256": "58fb501e4e219a5a89c303a794eece1547ba3d43d8e41dd2bbe2d03212527e76"
+    },
+    {
+      "bytes": 175815592,
+      "g": 13,
+      "group_ids_sha256": "7f0b4658952729fa3a7cb2caad3af03af69d94594a5e1ce958df5012057dcfc1",
+      "path": "data/official-latest-20260722/movielens-32m/query_g13.txt",
+      "queries": 300,
+      "sha256": "054f9638b946004b400096ba84ad2718022d698ce5407b86446cc0177fb1966f"
+    },
+    {
+      "bytes": 189556378,
+      "g": 14,
+      "group_ids_sha256": "d41ffa50680a40d3cbb6ef204a45d0c38833f96fbb6e131bf1c5260c018ae3ee",
+      "path": "data/official-latest-20260722/movielens-32m/query_g14.txt",
+      "queries": 300,
+      "sha256": "e0a1ec370c5f34ecabba5f34c9e1aa9a2d9be69d2a14add0129a40c667d529ac"
+    },
+    {
+      "bytes": 205976151,
+      "g": 15,
+      "group_ids_sha256": "f4b025042a6c911be29d623148bd4d69f784d10359e1d983777fc3d67501985e",
+      "path": "data/official-latest-20260722/movielens-32m/query_g15.txt",
+      "queries": 300,
+      "sha256": "310389a8143ae77987ec282a326c31cadd76433d66473eb2cee34cee87b996d9"
+    },
+    {
+      "bytes": 220618467,
+      "g": 16,
+      "group_ids_sha256": "bbf390ad75d3f521ba1bacc0e2cdaac641e4d61c961e0d57c18cceb63423d266",
+      "path": "data/official-latest-20260722/movielens-32m/query_g16.txt",
+      "queries": 300,
+      "sha256": "8ee0619a62830f1b6ecfa69638e4da40f986c981596acf6263bd2fc54e01c130"
+    }
+  ],
+  "raw_files": [
+    {
+      "bytes": 238950008,
+      "etag": "\"e3e1678-6079c1f365e0c\"",
+      "final_url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip",
+      "last_modified": "Fri, 13 Oct 2023 17:09:40 GMT",
+      "path": "movielens-32m/ml-32m.zip",
+      "requested_url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip",
+      "retrieved_utc": "2026-07-22T11:06:26+00:00",
+      "role": "ratings_movies_and_tags",
+      "sha256": "e4a68655d7386b8f95f2f2424b2ff975dfdd15ffd59e0d864a14dca43e99d6ee"
+    },
+    {
+      "bytes": 45,
+      "etag": "\"2d-6079c1f0aba1c\"",
+      "final_url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip.md5",
+      "last_modified": "Fri, 13 Oct 2023 17:09:37 GMT",
+      "path": "movielens-32m/ml-32m.zip.md5",
+      "requested_url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip.md5",
+      "retrieved_utc": "2026-07-22T11:06:27+00:00",
+      "role": "upstream_md5",
+      "sha256": "fb215876177f3b85639133315657852689725f30e8c67d618190da996ca7cb1a"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "movielens-32m",
+  "snapshot": "MovieLens 32M, generated 2023-10-13 and released May 2024",
+  "source_normalization": null,
+  "status": "include",
+  "transform": "A vertex is a movie; connect two movies iff at least one user rated both 5.0, deduplicate the undirected pair and assign unit edge weight; each genre is a source candidate group."
+}

@@ -141,7 +141,6 @@ def build_schedule(
         indexed[(case.suite, case.dataset, case_g(case, queries), case_f(case))] = case
 
     central = ["abhss_light", "abhss_heavy", "pruneddp_safe"]
-    author = central + ["gpu4gst_pruneddp_artifact"]
     ablation = [
         "abhss_light",
         "abhss_light_no_early",
@@ -190,95 +189,87 @@ def build_schedule(
             raise KeyError(f"Missing planned probe cell {key}")
         return indexed[key]
 
-    e1_datasets = ["Toronto", "MovieLens", "DBLP-VEW21"]
-    e2_datasets = [
-        "GPU4GST_Musae",
-        "GPU4GST_Twitch",
-        "GPU4GST_Github",
-        "GPU4GST_Youtube",
-        "DBLP-GPU25",
-        "GPU4GST_Orkut",
-        "GPU4GST_LiveJournal",
-        "GPU4GST_Reddit",
+    controlled_cells: list[tuple[Any, str]] = []
+    for suite, dataset in (
+        ("A_controlled_dblp", "DBLP-AMiner-V18"),
+        ("A_controlled_imdb", "IMDb-daily-20260722"),
+    ):
+        for g in (4, 8, 12, 16):
+            controlled_cells.append(
+                (lookup(suite, dataset, g, 400), f"A-g{g}-f400")
+            )
+        for f in (100, 3200):
+            controlled_cells.append(
+                (lookup(suite, dataset, 10, f), f"A-g10-f{f}")
+            )
+
+    related_datasets = [
+        "snap-wikipedia-2018",
+        "snap-twitch-2018",
+        "snap-github-2019",
+        "snap-youtube",
+        "snap-orkut",
+        "snap-livejournal",
+        "movielens-32m",
+        "toronto-current",
     ]
     representative = [
-        "GPU4GST_Musae",
-        "GPU4GST_Youtube",
-        "DBLP-GPU25",
-        "GPU4GST_Orkut",
+        "snap-wikipedia-2018",
+        "snap-orkut",
+        "movielens-32m",
+        "toronto-current",
     ]
-
-    e1_cells = []
-    for g in (4, 10, 16):
-        for dataset in e1_datasets:
-            e1_cells.append(
-                (lookup("E1_controlled_g_f", dataset, g, 400), f"controlled-g{g}")
-            )
-    for dataset, g, f in [
-        ("Toronto", 10, 200),
-        ("Toronto", 10, 1600),
-        ("MovieLens", 6, 200),
-        ("MovieLens", 14, 1600),
-        ("DBLP-VEW21", 14, 200),
-        ("DBLP-VEW21", 6, 1600),
-    ]:
-        e1_cells.append(
-            (lookup("E1_controlled_g_f", dataset, g, f), f"controlled-f{f}")
-        )
-
-    e2_cells = []
+    related_cells: list[tuple[Any, str]] = []
     for g in (4, 12):
-        for dataset in e2_datasets:
-            e2_cells.append(
-                (lookup("E2_gpu4gst_related_panel", dataset, g), f"gpu-panel-g{g}")
+        for dataset in related_datasets:
+            related_cells.append(
+                (lookup("B_related_cross_g", dataset, g), f"B-related-g{g}")
             )
-    for g in (9, 16):
-        for dataset in representative:
-            e2_cells.append(
-                (lookup("E2_gpu4gst_related_panel", dataset, g), f"gpu-representative-g{g}")
+    for dataset in representative:
+        related_cells.append(
+            (
+                lookup("B_related_cross_g", dataset, 16),
+                "B-related-high-g16",
             )
-
-    e3_cells = []
-    for dataset in e1_datasets:
-        e3_cells.extend(
-            [
-                (
-                    lookup("E3_practical_original", dataset, 5, 400),
-                    "practical-original-low-g",
-                ),
-                (
-                    lookup("E3_practical_original", dataset, 8, 1600),
-                    "practical-original-large-f",
-                ),
-            ]
-        )
-    for dataset in ("LinkedMDB", "DBpedia"):
-        e3_cells.extend(
-            [
-                (lookup("E3_keyword_natural", dataset, 4), "natural-keyword-low-g"),
-                (lookup("E3_keyword_natural", dataset, 10), "natural-keyword-high-g"),
-            ]
         )
 
-    e4_cells = []
-    for index, dataset in enumerate(e2_datasets):
-        g = 5 if index % 2 == 0 else 7
-        e4_cells.append(
-            (lookup("E4_gpu4gst_author_panel", dataset, g), "author-query-audit")
+    natural_cells: list[tuple[Any, str]] = []
+    for g in (1, 4, 8, 10, 11, 12):
+        natural_cells.append(
+            (
+                lookup("C_dbpedia_natural", "DBpedia-2022.12-en", g),
+                f"C-DBpedia-g{g}",
+            )
+        )
+    for g in (1, 4, 8, 9, 12):
+        natural_cells.append(
+            (
+                lookup("C_linkedmdb_natural", "LinkedMDB-2012", g),
+                f"C-LinkedMDB-g{g}",
+            )
         )
 
-    e5_cells = []
-    for case in by_suite.get("E5_ablation", []):
-        if "_g10_" in case.case_id:
-            e5_cells.append((case, "representative-ablation"))
+    ablation_cells = [
+        (
+            lookup("S2_ablation", "IMDb-daily-20260722", 10),
+            "A-IMDb-ablation",
+        ),
+        (
+            lookup("S2_ablation", "snap-wikipedia-2018", 12),
+            "B-Wikipedia-ablation",
+        ),
+        (
+            lookup("S2_ablation", "LinkedMDB-2012", 8),
+            "C-LinkedMDB-ablation",
+        ),
+    ]
 
     breadth_buckets: list[list[ProbeEntry]] = []
     for cells, methods in [
-        (e1_cells, central),
-        (e2_cells, central),
-        (e3_cells, central),
-        (e4_cells, author),
-        (e5_cells, ablation),
+        (controlled_cells, central),
+        (related_cells, central),
+        (natural_cells, central),
+        (ablation_cells, ablation),
     ]:
         bucket = []
         for case, reason in cells:
@@ -289,39 +280,37 @@ def build_schedule(
     breadth = round_robin(breadth_buckets)
 
     fixed_depth_cells: list[tuple[Any, str]] = []
-    for dataset in e2_datasets:
+    for dataset in related_datasets:
         fixed_depth_cells.append(
-            (lookup("E2_gpu4gst_related_panel", dataset, 16), "all-graph-g16-depth")
+            (lookup("B_related_cross_g", dataset, 16), "B-all-datasets-g16-depth")
         )
-    for dataset in representative:
-        fixed_depth_cells.extend(
-            [
-                (
-                    lookup("E2_gpu4gst_related_panel", dataset, 14),
-                    "transition-g14-depth",
-                ),
-                (
-                    lookup("E2_gpu4gst_related_panel", dataset, 9),
-                    "historical-risk-g9-depth",
-                ),
-            ]
-        )
-    for dataset in e1_datasets:
-        for g in (14, 16):
-            fixed_depth_cells.append(
-                (lookup("E1_controlled_g_f", dataset, g, 400), "controlled-high-g-depth")
-            )
-    for dataset in ("LinkedMDB", "DBpedia"):
+    for suite, dataset in (
+        ("A_controlled_dblp", "DBLP-AMiner-V18"),
+        ("A_controlled_imdb", "IMDb-daily-20260722"),
+    ):
         fixed_depth_cells.append(
-            (lookup("E3_keyword_natural", dataset, 10), "natural-keyword-depth")
+            (lookup(suite, dataset, 16, 400), "A-controlled-g16-depth")
         )
-    for dataset in e1_datasets:
-        fixed_depth_cells.append(
+    fixed_depth_cells.extend(
+        [
             (
-                lookup("E3_practical_original", dataset, 8, 1600),
-                "practical-original-depth",
-            )
-        )
+                lookup("C_dbpedia_natural", "DBpedia-2022.12-en", 10),
+                "C-DBpedia-g10-depth",
+            ),
+            (
+                lookup("C_dbpedia_natural", "DBpedia-2022.12-en", 12),
+                "C-DBpedia-g12-depth",
+            ),
+            (
+                lookup("C_linkedmdb_natural", "LinkedMDB-2012", 9),
+                "C-LinkedMDB-g9-depth",
+            ),
+            (
+                lookup("C_linkedmdb_natural", "LinkedMDB-2012", 12),
+                "C-LinkedMDB-g12-depth",
+            ),
+        ]
+    )
 
     depth: list[ProbeEntry] = []
     for case, reason in fixed_depth_cells:
@@ -334,13 +323,7 @@ def build_schedule(
     filler_candidates = [
         case
         for case in cases
-        if case.suite
-        in {
-            "E1_controlled_g_f",
-            "E2_gpu4gst_related_panel",
-            "E3_practical_original",
-            "E3_keyword_natural",
-        }
+        if case.suite.startswith(("A_", "B_", "C_"))
     ]
     filler_candidates.sort(
         key=lambda case: hashlib.sha256(

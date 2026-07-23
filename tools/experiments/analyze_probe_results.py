@@ -430,7 +430,7 @@ def ablation_signal(
 def build_ablation_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, int], dict[str, dict[str, Any]]] = defaultdict(dict)
     for record in records:
-        if record.get("suite") == "E5_ablation":
+        if record.get("suite") == "S2_ablation":
             grouped[(record["case_id"], int(record["query_index"]))][
                 record["method"]
             ] = record
@@ -470,59 +470,6 @@ def build_ablation_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
         rows.append(row)
-    return rows
-
-
-def build_author_audit_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    grouped: dict[tuple[str, int], dict[str, dict[str, Any]]] = defaultdict(dict)
-    for record in records:
-        if record.get("suite") == "E4_gpu4gst_author_panel":
-            grouped[(record["case_id"], int(record["query_index"]))][
-                record["method"]
-            ] = record
-    rows = []
-    for (case_id, query_index), methods in sorted(grouped.items()):
-        safe = methods.get("pruneddp_safe")
-        artifact = methods.get("gpu4gst_pruneddp_artifact")
-        representative = safe or artifact or next(iter(methods.values()))
-        both_ok = (
-            safe is not None
-            and artifact is not None
-            and safe.get("status") == "ok"
-            and artifact.get("status") == "ok"
-        )
-        weight_agrees = None
-        time_ratio = None
-        if both_ok:
-            left = float(safe["weight"])
-            right = float(artifact["weight"])
-            weight_agrees = abs(left - right) <= 1e-7 * max(
-                1.0, abs(left), abs(right)
-            )
-            time_ratio = float(artifact["solver_seconds"]) / max(
-                float(safe["solver_seconds"]), 1e-12
-            )
-        rows.append(
-            {
-                "case_id": case_id,
-                "dataset": representative["dataset"],
-                "query_index": query_index,
-                "g": representative["g"],
-                "mean_f": representative["mean_f"],
-                "safe_status": safe.get("status") if safe else "missing",
-                "safe_seconds": safe.get("solver_seconds") if safe else None,
-                "safe_weight": safe.get("weight") if safe else None,
-                "author_artifact_status": (
-                    artifact.get("status") if artifact else "missing"
-                ),
-                "author_artifact_seconds": (
-                    artifact.get("solver_seconds") if artifact else None
-                ),
-                "author_artifact_weight": artifact.get("weight") if artifact else None,
-                "author_artifact_over_safe_time": time_ratio,
-                "weight_agrees": weight_agrees,
-            }
-        )
     return rows
 
 
@@ -1110,7 +1057,6 @@ def main() -> int:
     anomalies = build_anomalies(records, feature_rows)
     annotate_anomaly_context(anomalies, feature_rows, pair_rows)
     ablation_rows = build_ablation_rows(records)
-    author_audit_rows = build_author_audit_rows(records)
     coverage_rows = build_coverage_rows(records, wave_map)
     incident_rows = build_incident_rows(records, feature_rows)
     planned_counts = planned_pair_counts(manifest)
@@ -1144,7 +1090,6 @@ def main() -> int:
     write_csv(run_dir / "probe_query_features.csv", feature_rows)
     write_csv(run_dir / "probe_pairs.csv", pair_rows)
     write_csv(run_dir / "probe_ablations.csv", ablation_rows)
-    write_csv(run_dir / "probe_author_artifact_audit.csv", author_audit_rows)
     write_csv(run_dir / "probe_coverage.csv", coverage_rows)
     write_csv(
         run_dir / "probe_incidents.csv",
@@ -1204,7 +1149,6 @@ def main() -> int:
         "manifest_execution": manifest_execution,
         "anomaly_count": len(anomalies),
         "ablation_cell_count": len(ablation_rows),
-        "author_artifact_audit_cell_count": len(author_audit_rows),
         "coverage_cell_count": len(coverage_rows),
         "execution_incident_count": len(incident_rows),
         "weight_disagreements": len(all_exact_disagreements),
@@ -1296,7 +1240,7 @@ def main() -> int:
         ]
     )
     if not ablation_rows:
-        lines.append("预算内尚未完成任何 E5 消融记录。")
+        lines.append("预算内尚未完成任何 S2 消融记录。")
     else:
         lines.extend(
             [
@@ -1329,42 +1273,12 @@ def main() -> int:
         )
     lines.extend(
         [
-            "## 4. GPU4GST 作者 CPU artifact 审计",
+            "## 4. 排除边界确认",
+            "",
+            "GPU4GST 作者 CPU/GPU artifact、旧作者图和近似算法均按预注册边界排除；探针不产生这些方法的性能记录。",
             "",
         ]
     )
-    if not author_audit_rows:
-        lines.append("预算内尚未完成任何 E4 作者询问记录。")
-    else:
-        lines.extend(
-            [
-                "| dataset / q | g | Safe | 作者 artifact | artifact/Safe | 权重一致 |",
-                "|---|---:|---:|---:|---:|---:|",
-            ]
-        )
-        for row in author_audit_rows:
-            safe_cell = (
-                f"ok:{fmt(row['safe_seconds'])}"
-                if row["safe_status"] == "ok"
-                else str(row["safe_status"])
-            )
-            artifact_cell = (
-                f"ok:{fmt(row['author_artifact_seconds'])}"
-                if row["author_artifact_status"] == "ok"
-                else str(row["author_artifact_status"])
-            )
-            lines.append(
-                f"| {row['dataset']} / q{row['query_index']} | {row['g']} | "
-                f"{safe_cell} | {artifact_cell} | "
-                f"{fmt(row['author_artifact_over_safe_time'])} | {row['weight_agrees']} |"
-            )
-        lines.extend(
-            [
-                "",
-                "该表只审计统一 Safe 实现没有依靠削弱 baseline 获利；作者 artifact 的适用边权/`g` 范围有限，不进入全矩阵主倍率。",
-                "",
-            ]
-        )
     lines.extend(
         [
             "## 5. 执行可靠性事件",
@@ -1449,9 +1363,9 @@ def main() -> int:
             "1. 若小 g 守门失败，先按异常报告中占主导的 phase 修复；不要直接扩大正式矩阵。",
             "2. 若 g≥9 只有完成率优势但没有双方完成的 ≥10x 样本，正式 10,000 秒实验仍可主打 time-to-solution/completion，但措辞不能写成全域数量级加速。",
             "3. adaptive 单元只用于机制解释；论文表格的随机样本与置信区间继续使用 `FULL_EXPERIMENT_PLAN.md` 的预注册矩阵。",
-        "4. 图权重统计是确定性随机字节偏移样本，适合诊断，不替代完整数据描述。",
+            "4. 图权重统计是确定性随机字节偏移样本，适合诊断，不替代完整数据描述。",
         "",
-        "机器可读文件：`probe_summary.json`、`probe_coverage.csv`、`probe_pairs.csv`、`probe_ablations.csv`、`probe_author_artifact_audit.csv`、`probe_incidents.json/csv`、`probe_query_features.csv`、`probe_anomalies.json`。",
+        "机器可读文件：`probe_summary.json`、`probe_coverage.csv`、`probe_pairs.csv`、`probe_ablations.csv`、`probe_incidents.json/csv`、`probe_query_features.csv`、`probe_anomalies.json`。",
         "精确二进制、源码/配置及 canonical record/log 集合哈希见 `probe_reproducibility.json`；它不依赖工作区 Git commit。",
         "独立重算排程、记录键、二进制哈希、预算和精确权重的最终验收见 `probe_audit.json`（由 `audit_probe_run.py` 在控制器完成后生成）。",
         "运行中发生的纯分析/审计口径修订见 `ANALYSIS_AMENDMENTS.md`；其中逐次记录修改时间、理由和当时的结果可见性。",

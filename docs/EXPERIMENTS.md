@@ -1,135 +1,31 @@
-# ABHSS 历史探针证据与冻结边界
+# Experiment status and historical boundary
 
-更新时间：2026-07-21。本文保存 ABHSS-Light/Heavy 冻结前的有效探针、最终发行抽取验证与明确负结果，**不再是正式全量实验设计**。投稿矩阵、主 baseline、10,000 秒口径和运行命令以 [`FULL_EXPERIMENT_PLAN.md`](FULL_EXPERIMENT_PLAN.md) 为准；本页的少量 Strict-paper 历史倍率只能说明开发轨迹，不能复制到论文主表。
+The current submission matrix is `experiments/paper_matrix.json` and is organized as primary experiments A/B/C plus secondary correctness and ablation. Older result directories and draft E0/E1/E2/E3/E5 names are historical development evidence only.
 
-## 1. 当前结论
+## Current formal scope
 
-1. **Light 与 Heavy 必须分别报告。** Heavy 不完全包含 Light，两者也没有运行时自动切换。
-2. **Light 是当前小/中 `g` 与弱数据的默认研究对象**，但在四个弱库 g9/g10 的历史聚合收益只约 `3x--5x`，不能宣称统一十倍。
-3. **Heavy 在真实高状态压力下可明显减少工作**，但 DBLP g9 和 Reddit g10 有时间/空间反例，不能根据数据集名或固定 `g` 在内部硬切换。
-4. **多数弱项并没有状态数量优势。** 实际速度主要来自有序行批处理、离线合并和更便宜的图闭包，不应统一解释为“状态少一个数量级”。
-5. 当前发行包为人类审查移除了 `D/A/H` 的三类 row 布局。这一选择简化代码，但已观测到 `8%--20%` 的代表点时间损失，后续论文实现必须做正式多询问消融。
+- A: controlled real-label `<g,f>` experiments on DBLP-AMiner-V18 and IMDb-daily-20260722;
+- B: related-group `g=4..16` experiments on six SNAP graphs, MovieLens-32M and Toronto-current;
+- C: natural DBpedia and LinkedMDB queries, including every represented low/high `g` stratum;
+- secondary: tiny smoke, SteinLib known-optimum gate and a four-cell fixed ablation.
 
-## 2. 统一口径
+All performance claims compare ABHSS-Light and ABHSS-Heavy separately with PrunedDP++-Safe under one compute thread and a 10,000-second deadline.
 
-所有时间均使用 Release/O2。`weights.txt` 第三列为逐询问的 query-processing peak RSS overhead：图和全部询问加载后记录固定 RSS 基线，再从该条询问期间的绝对 peak 中减去基线。因此空间不包含所有询问共用的原图，也不是进程生存期前缀最大值。
+## Historical results that remain useful
 
-PrunedDP++ 对照有两个口径：
+Past probes may be used to diagnose zero-weight handling, unsafe pathmax semantics, parser behavior, memory peaks and Light/Heavy refactoring. They may not be combined with the current freeze because graph identities, query panels, binaries or timeouts differ.
 
-- **Paper-pathmax audit**：`hash + MST + lb2_pathmax=on`。历史探针曾使用；新增 WRP 已知最优值校验发现 `179->180`、`405->407`、`1190->1213` 三个反例，因此不能作为精确 baseline。
-- **PrunedDP++-Safe（正式主 baseline）**：`hash + MST + lb2_pathmax=off`，使用 admissible 原始下界并允许 reopen。
+## Retired designs
 
-下表中的 Strict PrunedDP++ 指第一种，仅为历史记录。任何正式 speedup 必须由冻结矩阵重新对 Safe 计算。
+The following are explicitly retired from paper aggregation:
 
-## 3. Light 主线证据
+- author-repository graphs or queries used merely because their display name matches an official graph;
+- synthetic uniform-vertex MovieLens `<g,f>` control;
+- separate main/appendix treatment that hides natural low or high `g` queries;
+- old DBLP comparisons based only on matching `n/m`;
+- GPU/heterogeneous timing without comparable hardware and preprocessing boundaries;
+- approximate-algorithm quality-only tables.
 
-### 3.1 根路径见证树
+## Results hygiene
 
-Light 的根路径见证树来自方法已经构造的真实可行边并集，不是对输入图或询问的通用压缩。历史 Light 探针以普通行实际 pop/relax 工作摊还购买树 subset DP，在四个弱数据上得到：
-
-| 数据集与询问 | 旧 Light | 见证树 Light | Strict PrunedDP++ | Strict / Light |
-| --- | ---: | ---: | ---: | ---: |
-| DBLP g9 q4--q12 | `364.41s` | `220.80s` | `762.98s` | `3.46x` |
-| LiveJournal g9 q4--q12 | `233.55s` | `154.69s` | `557.71s` | `3.61x` |
-| Reddit g10 q4--q12 | `76.40s` | `77.10s` | `283.90s` | `3.68x` |
-| Youtube g9 q4--q12 | `33.93s` | `26.12s` | `114.58s` | `4.39x` |
-
-DBLP g9 q7 是明显收益项：`168.47s / 625.3MiB -> 63.55s / 339.9MiB`，普通值约从 `57.55M` 降到 `24.70M`。四弱库 q1--q3 的 g6/g7/g8 聚合倍率为 `3.56/1.96/3.25x`；g7 不足主要来自 LiveJournal 的规范 SPT 与组距离前端。
-
-### 3.2 有界提前 A1
-
-提前 `A({i},v)` 将 ordinary future 变为真正 anchor-aware，后续正式 A 格复用同一批精确值。最终探针如下：
-
-| 单元 | 见证树 Light | 提前 A1 Light | ordinary pops | 提前 A1 值/构造 | wall 变化 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Youtube g9 q1 | `4.531s / 72.54MiB` | `4.394s / 75.31MiB` | `394,174 -> 217,252` | `168,134 / 0.352s` | `-3.0%` |
-| Youtube g9 q3 | `1.449s / 50.29MiB` | `1.363s / 51.75MiB` | `20,374 -> 14,412` | `487 / 0.013s` | `-6.0%` |
-| DBLP g9 q2 | `25.198s / 270.98MiB` | `22.095s / 274.88MiB` | `543,448 -> 253,945` | `142,771 / 1.642s` | `-12.3%` |
-| DBLP g9 q3 | `14.552s / 218.78MiB` | `14.542s / 222.79MiB` | `16,807 -> 16,606` | `32 / 0.199s` | `-0.1%` |
-| LiveJournal g9 q3 | `13.408s / 252.75MiB` | `13.187s / 275.08MiB` | `170,779 -> 148,671` | `11,442 / 0.153s` | `-1.6%` |
-| Reddit g10 q4 | `69.523s / 473.20MiB` | `69.667s / 481.24MiB` | `7,990 -> 7,822` | `842 / 2.587s` | `+0.2%` |
-
-DBLP q2 证明 A1 可真实减少 ordinary 工作，但其余单元 wall 只改善 `0%--7%`，部分 peak 上升。这是冻结 Light 但不声称统一数量级收益的直接依据。
-
-## 4. Heavy 主线证据
-
-Heavy 复用 eager directed-cut 已恢复的 primal 真实树做逐层 subset DP，使共享路径前缀只付一次，不枚举额外 junction、SSSP 或 triple root。
-
-| 单元 | 旧设施版 | 删除树上界 | dual-primal 树 Heavy | 结论 |
-| --- | ---: | ---: | ---: | --- |
-| Youtube g12 q2--q5 | `95.16s` | `88.05s` | `89.18s` | 静态上界已紧，树 DP 基本不再减状态 |
-| LiveJournal g12 q1 | 约 `223s` | `335.00s` | `233.51s` | 树上界恢复逐层收紧，并得到最少确定性状态工作 |
-
-LiveJournal g12 q1 的普通/锚定值约降到 `52.66M/4.81M`，best 序列为 `84,84,83,83,83`，query peak 约 `1394.8MiB`。但 Heavy 不适合普遍用于 g9/g10：DBLP g9 q4--q12 合计约 `337.75s`，相对轻量旧版只快 `7.3%`；Reddit g10 q4 为 `60.70s / 1011MiB`，只有小幅时间收益却空间翻倍。
-
-## 5. 状态数量解释
-
-公平比较排除两边共有的 dense `g*n` 组距离。PrunedDP++ 记录 Hash 表中实际发现的 `(mask,v)`；Light 记录非 singleton `D` 与 `A` 中实际物化的标量。
-
-| 单元 | PrunedDP++ 状态 | Light DP 标量 | Light/Pruned | 主要解释 |
-| --- | ---: | ---: | ---: | --- |
-| DBLP g9 q2 | `1.325M` | `2.636M` | `1.99x` | 双方组距离约 `15s`，端到端十倍不可达 |
-| DBLP g9 q3 | `0.573M` | `1.234M` | `2.15x` | Light 中共同组距离约占 `84%` |
-| DBLP g9 q7 | `25.157M` | `9.372M` | `0.37x` | 少数明确的状态数量优势项 |
-| LiveJournal g9 q3 | `0.033M` | `1.210M` | `36.5x` | PrunedDP++ 几乎只付共同 SSSP |
-| LiveJournal g9 q6 | `1.625M` | `7.925M` | `4.88x` | 两边均有真实搜索压力 |
-| Reddit g10 q4 | `0.054M` | `4.206M` | `78.2x` | PrunedDP++ 标签少，但 Hash/MST 单状态很重 |
-| Youtube g9 q1 | `0.250M` | `0.555M` | `2.22x` | Light 的上界长期比最优值大 1 |
-| Youtube g9 q10 | `0.470M` | `1.415M` | `3.01x` | 离线行状态更多，但单状态更便宜 |
-
-因此论文必须同时报告共同组距离时间、DP 状态数、核心阶段时间和 query peak RSS，不能只用端到端倍率倒推状态收益。
-
-## 6. 冻结发行版验证
-
-冻结前 ABHSS 发行源码不调用任何历史 Test/Release，也不包含研究开关或调试输出。
-
-| 门 | ABHSS-Light | ABHSS-Heavy |
-| --- | ---: | ---: |
-| DPBF 随机小图，`n=4..12,g=2..10` | `1000/1000`, seed `72170105` | `1000/1000`, seed `72170205` |
-| Toronto 默认 160 问 | `160/160`, max error `0` | `160/160`, max error `1.01e-10` |
-| Toronto solver 总时间 | `22.472s` | `31.892s` |
-| Toronto 平均/最大 query peak | `4.617/6.480MiB` | `8.258/10.668MiB` |
-
-移除三类 DP row 后的同机单点消融：
-
-| 询问 | 历史三布局来源版 | 单一 row 发行版 | 解读 |
-| --- | ---: | ---: | --- |
-| DBLP g9 q2, Light | `23.380s / 274.922MiB` | `25.383s / 253.336MiB` | 慢 `8.6%`，查询内存低 `7.9%` |
-| Youtube g12 q2, Heavy | `23.504s / 293.004MiB` | `28.280s / 290.824MiB` | 慢 `20.3%`，空间基本持平 |
-
-### 6.1 本次独立迁移验收
-
-最终代码在独立目标目录重新配置并以 MSVC Release/O2 编译；目标目录没有引用原仓库源码。随机图每例都同时运行迁移二进制和 DPBF，容差为 `1e-6`：
-
-| 求解器 | 范围 | seed | 结果 |
-| --- | --- | ---: | ---: |
-| ABHSS-Light | `n=4..12,g=2..10` | `72172202` | `300/300` |
-| ABHSS-Heavy | `n=4..12,g=2..10` | `72172205` | `300/300` |
-| PrunedDP++ Strict | `n=4..10,g=2..8` | `72172203` | `300/300` |
-| PrunedDP++ Safe | `n=4..10,g=2..8` | `72172204` | `300/300` |
-
-抽取目录在最终复制前另完成 Light `500/500`（seed `72172102`）与 Heavy `800/800`（seed `72172101`）。Toronto 默认 160 问由三个迁移求解器各完整运行一次，三个 `weights.txt` 的 160 个答案逐条一致。MovieLens 含零权边的默认 q1 也全部返回 `0.0032922542`，未再出现 RE。`data` 的 `346` 个文件、`14,080,144,212` 字节和 `data_origin` 的 `71` 个文件、`7,816,655,890` 字节均与源目录相对路径及长度完全一致。
-
-性能验收比较冻结前二进制与迁移二进制；它只证明重构未发生实质退化，不作为论文主实验。Toronto Light 和 PrunedDP++ 使用同机相邻运行；Heavy 因桌面环境负载波动明显，额外把两边固定到相同两个逻辑处理器并使用相同高优先级。求解器仍为单线程，RSS 采样线程不变。
-
-| 方法与 panel | 冻结前 | 迁移后 | 变化 | 答案 |
-| --- | ---: | ---: | ---: | ---: |
-| Light, Toronto 160 问 | `21.071s / 6.520MiB` | `21.337s / 6.484MiB` | `+1.26%` | 全一致 |
-| Heavy, Toronto 160 问，受控 | `30.690s / 10.840MiB` | `31.035s / 10.781MiB` | `+1.12%` | 全一致 |
-| PrunedDP++ Strict, Toronto 160 问 | `25.089s / 26.949MiB` | `24.252s / 26.410MiB` | `-3.34%` | 全一致 |
-| Light, DBLP g9 q2 | `23.945s / 252.812MiB` | `23.344s / 253.258MiB` | `-2.51%` | `285` |
-| Heavy, Youtube g12 q2--q5，受控 | `113.195s / 292.789MiB` | `115.129s / 294.895MiB` | `+1.71%` | 全一致 |
-
-因此迁移的时间差落在 `-3.34%..+1.71%`，空间差也没有结构性增加，可视为**无实质性能退化**。受控优先级和 affinity 只用于迁移验收；正式论文实验仍按第 8 节统一、无人工干预的批处理口径执行。本次没有重跑 full DBLP g13。
-
-## 7. 已否决路线
-
-- 将上界下降后的旧行整体重压紧：DBLP g9 q7 仅删除 `4,193/10,738,664` 个重审值，重审本身成为额外成本。
-- 用永久锚提前截断非锚 singleton：虽降低组距离弧扫描，缺失距离又使 ordinary pops 膨胀，DBLP q2/q3 反而退化。
-- 提前物化完整 A2：仅用 `A1+D1` 会漏掉 `A0+D2` 拓扑并出现 `43 -> 44` 反例；补齐后正确，但 Youtube/DBLP 分别退化约 `7%/13%`。
-- 重复增加规范 SPT、逐行 MST 或两份旁挂 dual：都未在弱项上用收益覆盖预处理。
-- `double -> float`、量化、低位打包和 baseline 也可使用的普通图/询问压缩不作为研究方向。
-
-## 8. 正式全量实验
-
-正式方案已冻结到 [`FULL_EXPERIMENT_PLAN.md`](FULL_EXPERIMENT_PLAN.md) 和 [`../experiments/paper_matrix.json`](../experiments/paper_matrix.json)：严格区分受控 `g/f` 与自然 `f_real`，逐实例 timeout 为 10,000 秒，Safe 是主 baseline，GPU/异构方法不进入同一性能图。所有后续数字必须由统一 supervisor 的 JSON records 和汇总工具产生；本页历史 q1、局部 query 或 Strict 倍率不构成论文结果。
+Every result record must identify the matrix, graph, query, executable, commit, timeout and machine. Formal summaries retain timeout/OOM/error denominators, check objective agreement before timing comparisons, and never create a per-query Light/Heavy oracle. Any selective diagnostic rerun remains labelled diagnostic; paper-value reruns cover all methods in the complete predeclared cell.

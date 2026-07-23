@@ -8,6 +8,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 #include "../common/float_compare.h"
 #include "../common/graph_io.h"
 #include "../common/query_io.h"
@@ -19,10 +23,26 @@ namespace gst::methods::abhss::internal
 using HeapItem = std::pair<double, int>;
 using Heap = std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>>;
 
-// 返回 mask 最低位 1 的位编号；调用者保证 mask!=0。
-int FirstBit(int mask);
-// 返回 mask 中 1 的个数。g<=16，简单循环比引入平台封装更直接。
-int CountBits(int mask);
+// Light/Heavy 只在这里声明算法策略。公共 D/A row、闭包与完成逻辑不再
+// 通过散落的 bool 分支区分两个发行入口。
+enum class SolverVariant : unsigned char
+{
+    Light,
+    Heavy,
+};
+
+// 返回 mask 最低位 1 的位编号；调用者保证 mask!=0。该操作位于所有
+// subset 热循环中，统一使用编译器位扫描而不是跨翻译单元逐位循环。
+inline int FirstBit(int mask)
+{
+#if defined(_MSC_VER)
+    unsigned long index = 0;
+    _BitScanForward(&index, static_cast<unsigned long>(mask));
+    return static_cast<int>(index);
+#else
+    return __builtin_ctz(static_cast<unsigned int>(mask));
+#endif
+}
 
 // D/A/H 统一使用这一种物理格式。branch_bits 说明普通值是否可作为
 // 不可继续同根拆分的分支；A/H 行不携带 branch。
@@ -140,14 +160,26 @@ private:
 
 struct Problem
 {
-    Problem(const Graph& input_graph, const Query& input_query, bool light_mode)
-        : graph(input_graph), query(input_query), light(light_mode)
+    Problem(const Graph& input_graph,
+            const Query& input_query,
+            SolverVariant solver_variant)
+        : graph(input_graph), query(input_query), variant(solver_variant)
     {
+    }
+
+    bool UsesBoundedGroupDistances() const
+    {
+        return variant == SolverVariant::Light;
+    }
+
+    bool UsesDirectedCut() const
+    {
+        return variant == SolverVariant::Heavy;
     }
 
     const Graph& graph;
     const Query& query;
-    bool light = false;
+    SolverVariant variant = SolverVariant::Light;
     int g = 0;
     int half = 0;
     int anchor_group = 0;
@@ -233,6 +265,11 @@ bool PrepareProblem(Problem& problem);
 double FarthestRemaining(const Problem& problem, int vertex, int original_mask);
 // 统一 future 下界：max(farthest,tour)，Heavy 再取 directed-cut 势的最大值。
 double FutureBound(const Problem& problem, int vertex, int original_mask);
+// 调用者已完成便宜的 farthest 检查时复用该值，避免在热路径重复扫描组。
+double FutureBound(const Problem& problem,
+                   int vertex,
+                   int original_mask,
+                   double farthest);
 
 template <class Use>
 void ForEachGroupValue(const Problem& p, int mask, Use&& use)

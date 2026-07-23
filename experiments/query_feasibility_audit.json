@@ -1,0 +1,2065 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-22T19:25:13.154300+00:00",
+  "scope": "all unique graph/query-file pairs referenced by paper_matrix.json plus official held graph interfaces",
+  "matrix_path": "experiments/paper_matrix.json",
+  "matrix_sha256": "54cf543c5a79cad4824136bbc6c41472d65290de666a95e91e76b87095671e16",
+  "audit_executable": "build/Release/audit_query_feasibility.exe",
+  "totals": {
+    "graphs": 24,
+    "query_files": 176,
+    "unique_query_records": 2076,
+    "feasible": 2076,
+    "infeasible": 0
+  },
+  "graphs": [
+    {
+      "schema_version": 1,
+      "graph_path": "data/example/graph.txt",
+      "vertices": 11,
+      "edges": 13,
+      "connected_components": 1,
+      "largest_component_vertices": 11,
+      "query_files": [
+        {
+          "path": "data/example/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "242c8f61f89a9ad9bdf324f4bb300824bd817e30cc3e6af2faa025c5ddc5f3d8"
+        }
+      ],
+      "graph_sha256": "82b9f764523e4eadaa1edb57c8a147b07d10df8dabb59571f7dd8310e57d363d",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/dblp-aminer-v18/graph.txt",
+      "vertices": 12177749,
+      "edges": 96628159,
+      "connected_components": 125643,
+      "largest_component_vertices": 11803412,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f100.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "8e849ba47fd4552ec4474c34b7a92636cce53c4d90560751c4df117d44d30bf9"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "b413c54b93ef283160d1243368d02e510f9957a8708e91153c6671431b665d08"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "9e2c5d3178cc6b6bdb839cf87e3fb2586c95b3a1de43158c9835c3d6ca45dd0b"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "b9c799e645513fa4fd9c9a316dccea8268f6cfa8c4811223331e4ce0bc22197e"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "40dade4855464f8f6d808b8a0061dbbc2d1dee6c666418ff8ca46042c93e6ff0"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "79c891a793d5906e4674dc1d313dd36c6fd89e16de78af2e939dec63b6a5e17f"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g11_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "2a35a6572b8e22c7122d9c2546e0088058f2d74f6c41763c9d75c3c3d00c0dc7"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g12_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "bef92894f7fb7f6de4c847e4a49526d42d728f657be129400b2c7d71cc9f3691"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g13_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "ab1b896207ab35981d2a335ba4490db00fab0d32ff7391d528c4c7aa85b61f29"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g14_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "7b0f621b04f356a4266cd3958fdd5f3ac93392499985600adcd0d06070b0d3ad"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g15_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "3690583c3c17932922167a555cdd656120fbebe2633d5119c2fc0a05651417f6"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g16_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "1c10cf70f0b60b8e7fc89fc462b073cbd2868b4ca68a04a26130fe64e8bca492"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g4_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "ac4bb488bfb170c1b643f29aa2c948682ef8e288af920ed4a530d5d01a263220"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g5_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "ea134ccf269682bcfc8cbfa4bb3193c000a973b4a2ef38f5bbe718cf78816c78"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g6_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "a39fb17223d85b41d5278fa10be630e1947d9f50283db625d9a9901a5bf68e96"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g7_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "ff8a1d4b594f786c5e758a27e50c4a00d842fdf6fa06ba56a14a151e3ae275e4"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g8_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "1575e8acd6ce61e68191e017bef88ed1498993199879fd4a51774421376f7c28"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g9_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "5ca4f0c54a707b6d9f69dfd64ff73bb933cac79316ff9b4ee411f42dab659608"
+        }
+      ],
+      "graph_sha256": "f54e80c27cbe9888c1adbeeaff1ec393b0ce99848db83418a26d6e747d405f0c",
+      "largest_component_fraction": 0.969260575169
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/dbpedia-2022.12-en/graph.txt",
+      "vertices": 7958883,
+      "edges": 22787803,
+      "connected_components": 81185,
+      "largest_component_vertices": 7760416,
+      "query_files": [
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g1.txt",
+          "queries": 5,
+          "feasible": 5,
+          "infeasible": 0,
+          "minimum_g": 1,
+          "maximum_g": 1,
+          "infeasible_query_indices": [],
+          "sha256": "69626b226be185be81b5110347fdc8e10e2154d71167e417639d93e9cf126671"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g10.txt",
+          "queries": 13,
+          "feasible": 13,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "7782cb589d0c8015d2814fc0b72a838c83e69209d60c196172449645c425e3c2"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g11.txt",
+          "queries": 2,
+          "feasible": 2,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "26550fd8f100d5e890759b58255874f61bb624435dd2c5b4a661779fd755a990"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g12.txt",
+          "queries": 3,
+          "feasible": 3,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "3daab6801b408a098d85684c645b7d31217e0c778bef98e63164835533d53e63"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g2.txt",
+          "queries": 76,
+          "feasible": 76,
+          "infeasible": 0,
+          "minimum_g": 2,
+          "maximum_g": 2,
+          "infeasible_query_indices": [],
+          "sha256": "1cacee5028b0d14584bac3d3044f50cee2666affc580026144c01414f5d73998"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g3.txt",
+          "queries": 80,
+          "feasible": 80,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "1f846415cf141f780beef4f3ea9639fb98d8675a370f9a4fcd1ed65b9aad1650"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g4.txt",
+          "queries": 59,
+          "feasible": 59,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "48a83da5e6fb007f4add6228bacdabd1e3201541d942ea038c92270384251ce8"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g5.txt",
+          "queries": 60,
+          "feasible": 60,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "246000cf02cc9744b7a661f32d71a315db14270074b5c1d7f73f72e0e6a6b213"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g6.txt",
+          "queries": 71,
+          "feasible": 71,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "95ec1bc0d5ff4216ce39b89d3aa8763025303123d058770b55cc0b89fe6108e9"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g7.txt",
+          "queries": 54,
+          "feasible": 54,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "475ef2b5da2ab94ca2c66538e0fe93af77e397442df4ae3c2c88cbd83228b2d2"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g8.txt",
+          "queries": 27,
+          "feasible": 27,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "856ef6934ac67e9ab89a184eafe5d27f9fac017c26ec96995bd9d22331612e87"
+        },
+        {
+          "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g9.txt",
+          "queries": 14,
+          "feasible": 14,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "6526c1c5818a493ba6ba385fce9e4559aee5b9a62b80ed0a2df6c5f7a6e81325"
+        }
+      ],
+      "graph_sha256": "e71d474ae51329f9723456fbce638372681fefa234a8017cd179db63df475d7d",
+      "largest_component_fraction": 0.975063460538
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/imdb-20260722/graph.txt",
+      "vertices": 18588661,
+      "edges": 100556350,
+      "connected_components": 107160,
+      "largest_component_vertices": 18083600,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f100.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "aedc1e71a1911bccf5fa3228abc083fba219492af1e971864c2aea7b5c05670e"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "b8644abc13d0ccc6e0a1f72c5ba7f549158d68a58121f6622d3f9984a235dbb9"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "153c207a4c4aa43200997a0fb3dd23e77ec2bf78eba47d9626a8b96a812815ec"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "5840a43647b802b98a2c3d2c9d913df779dd4266b760911d35ca9338a438e3fe"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "0a8ac39df628c7ba598d7f5296e7545ee58d83ec16ea9a827af007dda2e5cf17"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "acc895daa093bb3262ca0db07a553ad35ad5bfaf15e12353a5ae9dbcec1f0e56"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g11_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "443738e64cf393f19a9db1b2b6a35511a737fe7e81afa6c70b4f3c74cf1bca76"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g12_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "90bb16f6172281093b85d99bb3587ca4b7b90bc2319ee49f464012ba35debb46"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g13_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "931dc83cc5c1e4d2cb84542bbd55740f2cf469b076481c1a7e8281f6c6dbb969"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g14_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "123deac4fad416c65a36849b64702edace97632d6a54a744454a5abfbfe62a22"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g15_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "44a0292b2ced6457ea02f14a73aec014b437a05a5cd1574a7fb0348b52c2fec7"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g16_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "8aa419f0213b21e967a0584ac07d156575ad441f267c36ae0e6ed30c68e86544"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g4_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "06254e82f5fbc91c3844506d9489b8dd771caa7e644d30f563bb767603e2611b"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g5_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "5bed06044710f0c72d720fa572e3e44dbf7bb23a189f385265c2b132f8ec3410"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g6_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "3c9d91fd746ddbd92a500e3cbf0233584c254377cf58aa7b2d9c4550cef1c57d"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g7_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "c73f69e9b998bce4e0532f1c3889b7d173beec8aec9d85e34510b53606ef991f"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g8_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "3f68eb5901dc07fc8c4cfa88e719177451a8dd46b90280151e0fc2956a57a97d"
+        },
+        {
+          "path": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g9_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "126a67acf7c3ea26cb0d9748311a910cd192e45fe1aea51deab3dfc8a9ea0535"
+        }
+      ],
+      "graph_sha256": "83f41038f6543c18ed4319006bedea58d780d7863f271f877117f678b784f90b",
+      "largest_component_fraction": 0.972829619089
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/linkedmdb/graph.txt",
+      "vertices": 1326784,
+      "edges": 2132796,
+      "connected_components": 64770,
+      "largest_component_vertices": 1166496,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g1.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 1,
+          "maximum_g": 1,
+          "infeasible_query_indices": [],
+          "sha256": "3aad1ce4d375aa365db0cd25e38cf5f193acef29c25b062794967d4be532e77d"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g10.txt",
+          "queries": 6,
+          "feasible": 6,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "681377cedde3da521f9352ddf402b4f6f469c7af277f070b7cf314c7f4268a36"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g11.txt",
+          "queries": 2,
+          "feasible": 2,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "5ca3e4ce0b9d934cf56c557361db561810ae89cbf759941c6aff870a01780676"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g12.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "5746945a221d997abde78115dd9c7b2d7728d8b169e033db3843235b86dfbf09"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g2.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 2,
+          "maximum_g": 2,
+          "infeasible_query_indices": [],
+          "sha256": "1c6604321fb92763f984e83cd59564bbfd807731f6b079795f9ec59cd53ebdc9"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g3.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "bcf13e9b547bcf2f58c61a7fd70fb31c58e2b5bb12e3c8c98b7b3f39d9f19f7e"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g4.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "cfaf48a11e9a1d94dcfe108a0ade447f0a211fc0585bee5e6b29855c153cc0f6"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g5.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "8f23c9085aa2da280f55bdb816e06518ab20e8f8783c209f630c9576fc27e7d2"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g6.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "0ddb2189c368e2f7795475dd6f0b7bd4d87cb26967c54d6c88138933867f6b88"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g7.txt",
+          "queries": 20,
+          "feasible": 20,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "4957a334287e27667c1302b3b4e063462699215775217a0f7bca0f5dca8bb6ac"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g8.txt",
+          "queries": 25,
+          "feasible": 25,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "6066e00597b0c9da57301c0c1651cebfb7a854f8760ffdd34e8a2d45aba4a8b6"
+        },
+        {
+          "path": "experiment_data/official_latest/natural/linkedmdb/query_g9.txt",
+          "queries": 26,
+          "feasible": 26,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "9e1aa8a08d1fe8844651a023a072ee7b532dd397c4c12b560ee3d9002bca1147"
+        }
+      ],
+      "graph_sha256": "3750cdde71dd032fb267646e0a9eb69ea3321740134ae9a29f9a8a87b3d89b8a",
+      "largest_component_fraction": 0.879190584149
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/movielens-32m/graph.txt",
+      "vertices": 87585,
+      "edges": 44143611,
+      "connected_components": 52526,
+      "largest_component_vertices": 35060,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "ae54fd3f7a7cc77202143981c987233d87502fd56d3b79d7bca68b42de0cc00b"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "f48e0498b20ba61850dbce6309e45a8be0cc74c5e6410001cf20d70bc3bdac3a"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "ca272093410caaaa828a2ec24f7445ccef328a3cd0184bbb4b4d4cfa08f1e3bd"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "932fc6694ebae69db28715957259c6653836ccadefd8a192a3eeddc2d7c7a5ff"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "f5449c197184ead0c98a09b9d08009b4fcf1ae2a0e1a7fbb4fa3eb203f2b04b4"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "fae068bd5d31edff9fb98ab64b06d654dc2e3839cf3b3408834f16c26cc7b8d1"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "280f464d83a3961c0bfed0e55a9860fc08c5fdb246623c2eec17fd3fca193eb4"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "b7ba8977d60778d5d6a92a4d1106a2f2362b357a35c2d1757ba51920b92010d8"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "4dd4ff9281ac5e906c456ab472e51d81895c63614e391513f3aecc6da1caf648"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "7cf9430405c14098204b21954ab1f58ddb049a2b189b658a23fd7e4aeaaf028b"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "39dac79f270ded54d7251b745f3599c9bfb87e8492e67470b59346fa2db29bab"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "b5c983e72af7182966c301feca30abeba3ee614a28f5d0a493c5ad469da1b441"
+        },
+        {
+          "path": "experiment_data/official_latest/related/movielens-32m/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "3efd37c76241d8079e9cfd796b8a9e00590b7d7a8e14d9e1899bfb7b13aba793"
+        }
+      ],
+      "graph_sha256": "b38676df69067bfc78b2dd17dd152973e80e87732aeb6146ad2978930d5b229c",
+      "largest_component_fraction": 0.400296854484
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-github-2019/graph.txt",
+      "vertices": 37700,
+      "edges": 289003,
+      "connected_components": 1,
+      "largest_component_vertices": 37700,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "a866a8fa508066fd2b993b18dbc6101696e347bce19ef79fb3232b158259ce74"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "d0445334d3a92ddcf7bd59b83c5f0b8ee0353c3812d5f9a9c3252e56943ac287"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "326bf5eae6c081763f1b641c5a2dc43ab45a4c36dda4bc3d877f59d6133ca24b"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "d2467a5c2d4ad8eebe8bb8154aa03a151958c5558fcf77a8e962e862f2ac43ec"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "b05d8ab715f6b27ee6ee8b49f988847fd2fa03b4d85009000474c2d05a72a756"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "e127f2543f2600e07d34970fa30b6cc865ace5c81ab6ac7cc2510f3154651af7"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "e24dbe73779880c12ea215a85415785874ccd23ff7ce0e02cdc44449f572af8e"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "eb710eff6b312044af57bdc6847896eda4fb9f7fe2aa154ae87840e0bf5e4513"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "39a5e671e8c72b3aab173d2497d6d03f45848e6400d8329c10fe2f3275c1bea8"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "01c9926afc10e77462cde245a31ef847dde270850c18c9998b9ede1279009cf0"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "78e889bc1c89d18ed1ffa7456645a59686ccf0f77933a9f2484e140b26c06128"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "aade3c9c6d8d15c8ede4bc6e16f49c281fef2c4e2044179dee6f84c3ed607663"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-github-2019/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "df0a3b006e6ff1fb51292c22a2ffd8068eafd866fc44f6a4dc990bdf41c00481"
+        }
+      ],
+      "graph_sha256": "6eb4f94ba9223e2d158f47b581e8206d62ec835878fe283cc839b7f12996cc73",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-livejournal/graph.txt",
+      "vertices": 3997962,
+      "edges": 34681189,
+      "connected_components": 1,
+      "largest_component_vertices": 3997962,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "a9e97f8b63c04318b01546a7ef4ecc95fe9c8aa1ee6c09586fdbd35d071b4de2"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "5d748e4f224077c904c296a1e36e8839ba254e0da5b904df8218afe980540c66"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "9e205ae28ff0a08add469fd2067c8b58b699498effa5fa30ada7d89a77187b01"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "d1a33f1631bf55a3e850b515d4f02568664a53627b87c5ca8be730e97dab81ca"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "e799719d2724f4734a3904e76d090a84c95d0aba42592bf81962512babd26705"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "4130e443c1fb1e5b6cda552e9f34e649c7368de1f01b5d3915417ce52e92fa18"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "3bc564bb6f9fb488d43f4415e5a3b0fe006077811864506575c3f0bcfad7f479"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "7d046b75a77a0956a4039eba634e160867e543ed48ea2ce4951effd976bc7cc3"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "07844cc3fe35ae1e521279ef758619e8b8fd48161a2d811aab827f3033691d0d"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "d9c297e4f3e0a9b76364a5386eec321cd3efb4e7f57183b84badbcc379b8458b"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "44b4b90c8a4455593c08e9f400de549cdee18609d7d218ad62963ee0296586a3"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "4a6d4205c63797d8b3a6ac6a921791900afb2d90c64888c8f5fd67bb8722a34c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-livejournal/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "d92e5b97c6f44741d1caac1ffc1112be3a42bd3be9ea9df9b9a07065c698112d"
+        }
+      ],
+      "graph_sha256": "7e9533497a3dde4f36f6fd1741d657733f072bbfcefb1e1d9526e4c8d94efb59",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-orkut/graph.txt",
+      "vertices": 3072441,
+      "edges": 117185083,
+      "connected_components": 1,
+      "largest_component_vertices": 3072441,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "3a54f3d9f4bbe88c81c63e5b2ae94d2d504a26c6879dc675b6a751d602bdc5bf"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "bbdc19c5509456138026c18a40b0258e6d198b825db876bf5a7fa7a8ca7fb546"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "c66f57a81cb9f658ea1b2eef7ef27c4e141465acee047d637e7ad64389b3d000"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "2ea86b58b2b415d5225281bee477a44ed8fed17884e5ac294de7175d3cc0c946"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "3400f22c065d6398f1e2eca5a073ad1bfcd111fc5447e0a3e1fe04dffc804770"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "f258b5b3d9c1814deff0cf706cc29a9245836c324ca348bfcebb68d2af2f6fed"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "d50cd21c6e7733bb6b3f58c6dd404e181f7de6d48ce54d8475a41443ce4582ef"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "060a4c08a9544f0c1ea1570562bfdf3d63480f30c9bb9e05c733a7dfab688e40"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "747b403edd99481bcd5fb3d74c95ced3633c3e5136618f706f950b4d54baab65"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "2c35ab3be3698330422a448b1b377c957159843fdb5896e4b72ba1ad38e74ecb"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "3a5e15a7486af1d16c7140ffad76cf58c884c73053da488b292db5d7d6bab7eb"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "7191a774d527ce56778ffe0e7a161902969ebcd0c7edc7b57992844624d09444"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-orkut/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "08e8b1edced580d1d3c7190bf967dc35d717ce20414e784f7522e71abbac5431"
+        }
+      ],
+      "graph_sha256": "c364c7adefbeaab8fc643a6874a195954f2ffbada00b6e822b60725ab05bb113",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-twitch-2018/graph.txt",
+      "vertices": 34118,
+      "edges": 429113,
+      "connected_components": 6,
+      "largest_component_vertices": 9498,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "65837cb5c60ca90def662e60b934f4a89d00ec53141d785ee28bd8199a71c4f9"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "e63d89cec488c5d35ace25b4b389ed963c569a7cad5ab809ec973500a92c2dd0"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "d115d46ea31d0286a4cdc2baf39c598cad2c5e569ee784076212a2483d5a539d"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "2f4fbda8142904d38a3c7865e1c4091138e18d230d511d256373a2ad8a2627ba"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "789599152cf388090fadb32a21896ae5a1982be4817d92a72d2d194493d12661"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "4095019eacb39826e23d56b4b8cd0dc1a8dda09fd7c8ad8b20606fa50635b60b"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "32c1c59a6c1893267a910a3355582042d099757773938fbe5832e648f808ad34"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "e74558c850dbb16bbab0561deff0758ed9a1dd390263c510610106f8f54122f7"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "0e213fa1d6416c569048ead0cc6fdafa0595c72a5a7326d5dc4296c6c2a1d47c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "107e9d8d3145f41faa71527979cc48e94ea7819cd8936d59a55482fc43700884"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "592abe469910da4355795dcbc5dfae39bc57253fb57599803a1f66ce0511aa34"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "0158c51fee7a7f1b2398b4d50d1183c7f0ba299296ff94de046a131385faba6c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-twitch-2018/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "57a23ef1dc447b50ed5acb2550e5ee6332b3988c808448d313db0320dc9bdfb9"
+        }
+      ],
+      "graph_sha256": "8dc8ea9e8e3d6ec4176089b0075b1a3c27e9222982d8cc5964228dc263f85fc5",
+      "largest_component_fraction": 0.278386775309
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-wikipedia-2018/graph.txt",
+      "vertices": 19109,
+      "edges": 400497,
+      "connected_components": 3,
+      "largest_component_vertices": 11631,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "daa1f8186573b0289802762a81b9d8be74c84f6244705e1a43bc138804177672"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "001aa3103092f859a664416e24a4697a5361868515da9104d2f5a4de22df9b71"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "7cbbfb26c598e16d5cd486d3ab5f84261731a07f0e79f85e00df8f6325e4fdf2"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "401ea3061c6fb7c95c05ff3dc486e992aa473d8ed55018183ea253ce27148a3c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "fc41805384e4ece731531b5d45af65be3ed524a55123de622f584fa23d781094"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "d2777bfc6c5c035fdca61e51435c714028a4aa8ab8a99545972d692b8988d78c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "b414114d94eaee444bbda6e09e3e499ec4affb34a7c6860a67ff080f502d92ae"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "1391311da47881b9c99285874e838e88c09bd86e844720622f9d1716e75f0f5c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "03a98f6df8dbb0a159dd4696017e1e4204d24f6a7c1ef59c1d02d72dc65fe425"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "84d55da3fef918f58bbd6105502a7a409e5460c8f909927789dd07791ea447d1"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "08b63f09415713f155260f4ee019cd3534043880bc0ef0b8a4d7afb4c78937e7"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "6e13bebdc4be3c241764609aad4fc478c4a9511812937b4318ea0f2ac7232520"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "d4c93e6b40045b72bd153d4657573a34947cf8c61d111066e0e496e2ab3541b2"
+        }
+      ],
+      "graph_sha256": "f6ada8be428e9d23074b05a1c32feb072e7742fa38b6745811731022a5b9e4c3",
+      "largest_component_fraction": 0.608666073578
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/snap-youtube/graph.txt",
+      "vertices": 1134890,
+      "edges": 2987624,
+      "connected_components": 1,
+      "largest_component_vertices": 1134890,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "71957a605f7012daa0c1ff670341de0e6d1702566cf67aa1804168e77e6390d0"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "f7c5f85a81762eb4277bf5cf3a814adca4abe0c8420f782d4f639bdeb9fa2802"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "1bcbf8d5de11654e3c15f67c792425a63f67a596c538dd230066a14935cf25f5"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "bde1f19e9d7ee22529b2eed542a83121ce8fb32ab9cce37319599e657986a806"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "65c1eeaa719e1a1522cac9b2d7521a2ef0aadf6037bdba3e73cea3cd72ea28f2"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "7f8f85c24b2b863cf32704bb7706e45fa607f0461612db5153cda7e4b4b54f8a"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "fbc3d6b3283459282f629cf0adaf86b1faa98f514527e038791c134887ed06a4"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "65ac0627f2a648b615e11f0cbff05de80fa6b05d80379c95415d193a849485c6"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "1254ec1ebfb555d0a8979e3b18f8766aaf6ce324de330f3e6a0ca1c25f255cf5"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "4d3b6d7ec196381f7530db2324ed80d103b8202f97d504d2bb6eeed6e7609306"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "230111ab8e52f154ad5f6c5e21de70075686e5fc7a41dfe6352c75a3359fd54c"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "58720d09aa653a88be94d6f4b341265f7bb259b46c45c34fe01eb5b607b9eee7"
+        },
+        {
+          "path": "experiment_data/official_latest/related/snap-youtube/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "51296e71a243122fe6d6f6a7d7c236e996da8cf4190703ee59ad141dc030ddcb"
+        }
+      ],
+      "graph_sha256": "4dfc6657ff805e949f01d78c1ad2ee22dbcce8b5fcc975d0a05f7017a24e852d",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "data/official-latest-20260722/toronto-current/graph.txt",
+      "vertices": 44184,
+      "edges": 63400,
+      "connected_components": 5,
+      "largest_component_vertices": 44176,
+      "query_files": [
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g10.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 10,
+          "maximum_g": 10,
+          "infeasible_query_indices": [],
+          "sha256": "c4e80e4745a7dca245c382d9c3ee3a22a9a34ccfa70c12d2cadd0a12667f2eb8"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g11.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "acae7fd2691f4054f4ca0a3a48024e0b93eca85856a97d7ea38eca9c336f86a5"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g12.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "aa780aac2fb687deb706e23beb891e040465d192cd8b6935c5f065b1f947bdda"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g13.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "8532cf5e4c3aee7f721556f022500daa51d5268c18b4e2a90a3f55f18ea35f08"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g14.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "1b25342769afcf770d6d66f5b15b8290d36c2db62c457fedc1a112c806bcb5d3"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g15.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "f7e9019c0f6c02da236af723a5fc143b8977ff5f3fdbb750b7b7d2de8b38ec88"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g16.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "3b9387429edb9f01692fe84089ba77f298c9e7e803b922f6d3546f7f06518f3a"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g4.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 4,
+          "maximum_g": 4,
+          "infeasible_query_indices": [],
+          "sha256": "38062bacba1fe210d966edd64283a494124e0bd0a71863bcdf92cf4a9517e1de"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g5.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 5,
+          "maximum_g": 5,
+          "infeasible_query_indices": [],
+          "sha256": "d215ae9d7809b6380abc5dc4523b5f636c92fed017c45183f7f23a5591d0d9da"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g6.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "462ed07ba7c57d35c0bca615ea5a151f034168d5ea52cfc0ae090c2f88e049d3"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g7.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 7,
+          "maximum_g": 7,
+          "infeasible_query_indices": [],
+          "sha256": "cdbed798cb4455f6be343b277d574e967cb53b9d7817957da4c9ea5f70d941ce"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g8.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 8,
+          "maximum_g": 8,
+          "infeasible_query_indices": [],
+          "sha256": "a322589053ea74e26707fba2b3ef78ccb0f255e84bb3fe04c0a5118032fbbd9d"
+        },
+        {
+          "path": "experiment_data/official_latest/related/toronto-current/paper_related_g9.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "c819260fa7939392cb3c598ce74b8adccdaeca9e0a77b7ce590b68af8c1869db"
+        }
+      ],
+      "graph_sha256": "d48ba8a358682dc5f18974c6537fb0807899152d5b40d409426083da642a5c59",
+      "largest_component_fraction": 0.999818938982
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-11/graph.txt",
+      "vertices": 117,
+      "edges": 193,
+      "connected_components": 1,
+      "largest_component_vertices": 117,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-11/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "e273f347b4ee62e088a30f83dd5157543eb3600384bd91238eca19a74a740cc1"
+        }
+      ],
+      "graph_sha256": "73efab0bbf186fc7f392b5eaca43e4fb517ac6a1f9a3776a8698acf3bb2a327b",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-12/graph.txt",
+      "vertices": 72,
+      "edges": 112,
+      "connected_components": 1,
+      "largest_component_vertices": 72,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-12/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "e99c2578ed08b2075cd86162e030193b442488d965f6f52d4bbf98494d663c7c"
+        }
+      ],
+      "graph_sha256": "7dd36c1ff928b8f62833f186db0a612b79f32881112080e73baa35200677ee5f",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-13/graph.txt",
+      "vertices": 298,
+      "edges": 549,
+      "connected_components": 1,
+      "largest_component_vertices": 298,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-13/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "02e790f9f215789cdbd8bdb57c79a1d48a72097638f6eb370c09c068e5d862f1"
+        }
+      ],
+      "graph_sha256": "77ddf765527b5c20fe79ed6039db50a3c053ff71317e45d915e89bb39e817d8b",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-14/graph.txt",
+      "vertices": 114,
+      "edges": 183,
+      "connected_components": 1,
+      "largest_component_vertices": 114,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-14/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "b92c5219b1f25960ed86cb7ee4d044bafe46fd465e37bebe3d48c81b15586563"
+        }
+      ],
+      "graph_sha256": "fa1917159d5455f3b49f01aa0588d7580d34a4c0084b608d4dd9c3117c143508",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-15/graph.txt",
+      "vertices": 123,
+      "edges": 200,
+      "connected_components": 1,
+      "largest_component_vertices": 123,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-15/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "3e8c3a98a479929a56d253c86db1dbed98ecc8067f99217765083d7f3df373cb"
+        }
+      ],
+      "graph_sha256": "905c73488e8ead3e9452053ed512c75129cdf92514eb91bfb4d471a71b0f98f1",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp3-16/graph.txt",
+      "vertices": 188,
+      "edges": 328,
+      "connected_components": 1,
+      "largest_component_vertices": 188,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp3-16/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "a4fd5231a63d16bdbf8cab7a857fa84799019fa006da10be14810ce8829c74ce"
+        }
+      ],
+      "graph_sha256": "e1554d78c102719119a829b6b15e5eab88793930ccacff0de8edb764a7cdc77b",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp4-11/graph.txt",
+      "vertices": 112,
+      "edges": 192,
+      "connected_components": 1,
+      "largest_component_vertices": 112,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp4-11/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 11,
+          "maximum_g": 11,
+          "infeasible_query_indices": [],
+          "sha256": "1ae07c0602dce46fe4ec3c6c666dabfa73f99d9abaee7e437c219198026525d7"
+        }
+      ],
+      "graph_sha256": "5cbf822f776cd14e98c7b312586786fbbbf0f77270f731e02972ae0ba2305354",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp4-13/graph.txt",
+      "vertices": 97,
+      "edges": 147,
+      "connected_components": 1,
+      "largest_component_vertices": 97,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp4-13/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 13,
+          "maximum_g": 13,
+          "infeasible_query_indices": [],
+          "sha256": "079046fbd47325de7d1f7f6542edd83f8634b635fd9ba196bca51ddce12f7338"
+        }
+      ],
+      "graph_sha256": "3131d061d3204db5e53fb03a0e021affce36f2a8f09218c8e149f88f25f6d0b7",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp4-14/graph.txt",
+      "vertices": 131,
+      "edges": 231,
+      "connected_components": 1,
+      "largest_component_vertices": 131,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp4-14/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 14,
+          "maximum_g": 14,
+          "infeasible_query_indices": [],
+          "sha256": "f6338fd3e0005044879d2dae539a502b723db5f742354935b72768cbd1f2e90c"
+        }
+      ],
+      "graph_sha256": "c489d8ee6bc478a31d4b33cad8392a3ea2299385e14c742a048bee73aa74bc51",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp4-15/graph.txt",
+      "vertices": 178,
+      "edges": 312,
+      "connected_components": 1,
+      "largest_component_vertices": 178,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp4-15/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "f783f0f5ed24a95fa3e09fb174b583e0f9911d00bb762f5929a487475fa580cd"
+        }
+      ],
+      "graph_sha256": "3543245d1ea815aa14114b13ebb6314502a63e9f45cd807ab8c364f80350fc17",
+      "largest_component_fraction": 1.0
+    },
+    {
+      "schema_version": 1,
+      "graph_path": "experiment_data/steinlib/wrp4-16/graph.txt",
+      "vertices": 295,
+      "edges": 532,
+      "connected_components": 1,
+      "largest_component_vertices": 295,
+      "query_files": [
+        {
+          "path": "experiment_data/steinlib/wrp4-16/query.txt",
+          "queries": 1,
+          "feasible": 1,
+          "infeasible": 0,
+          "minimum_g": 16,
+          "maximum_g": 16,
+          "infeasible_query_indices": [],
+          "sha256": "74ef847c6fe2b5f1d4f520e87bbbe3243edb209172861aea5224f422a457d633"
+        }
+      ],
+      "graph_sha256": "ada24fcbbc6576221482917490bbf452b40a9c0c982eb680ff651ab1928cf68b",
+      "largest_component_fraction": 1.0
+    }
+  ]
+}

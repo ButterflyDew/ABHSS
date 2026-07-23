@@ -1,0 +1,51 @@
+{
+  "candidate_groups": 3163,
+  "candidate_groups_path": "data/official-latest-20260722/snap-twitch-2018/candidate_groups.txt",
+  "dataset": "SNAP-Twitch-2018",
+  "edges": 429113,
+  "input_edge_rows": 429113,
+  "memberships": 687900,
+  "normalized_edges": "data_sources/official/official-latest-20260722/work/snap-twitch-2018/edges.txt",
+  "parts": [
+    {
+      "edge_rows": 153138,
+      "name": "DE",
+      "vertices": 9498
+    },
+    {
+      "edge_rows": 35324,
+      "name": "ENGB",
+      "vertices": 7126
+    },
+    {
+      "edge_rows": 59382,
+      "name": "ES",
+      "vertices": 4648
+    },
+    {
+      "edge_rows": 112666,
+      "name": "FR",
+      "vertices": 6549
+    },
+    {
+      "edge_rows": 31299,
+      "name": "PTBR",
+      "vertices": 1912
+    },
+    {
+      "edge_rows": 37304,
+      "name": "RU",
+      "vertices": 4385
+    }
+  ],
+  "raw_files": [
+    {
+      "path": "snap-twitch/twitch.zip",
+      "sha256": "65a6c4c23da23889517734a8c947e522b2f0c7db179559a3904aeb8793d004dc"
+    }
+  ],
+  "self_loops_or_duplicate_orientations_removed": 0,
+  "slug": "snap-twitch-2018",
+  "source_kind": "SNAP feature archives",
+  "vertices": 34118
+}

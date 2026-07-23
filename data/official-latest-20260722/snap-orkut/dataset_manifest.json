@@ -1,0 +1,325 @@
+{
+  "auxiliary_hashes": {
+    "source_group_ids.tsv": {
+      "bytes": 65306,
+      "sha256": "7cc822dcab4c109e738b8f30d0af4063aef1abe45d6be8565564e5ba5f56aa20"
+    },
+    "source_normalization.json": {
+      "bytes": 1068,
+      "sha256": "87b541632b474968094a483b0c13440a9b22eef63deaf22498b8c20bcc2265be"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 7877104,
+    "candidate_group_memberships": 1078576,
+    "candidate_groups": 5000,
+    "maximum_candidate_group_size": 4785,
+    "minimum_candidate_group_size": 3,
+    "path": "data/official-latest-20260722/snap-orkut/candidate_groups.txt",
+    "sha256": "9e37c9e92c4040c4465c509b1725ad7dbf9668caa640aab9ba66b7307b49521c"
+  },
+  "dataset": "SNAP-Orkut",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 2143478657,
+    "edges": 117185083,
+    "maximum_edge_weight": 100.0,
+    "minimum_edge_weight": 1.0,
+    "path": "data/official-latest-20260722/snap-orkut/graph.txt",
+    "sha256": "c364c7adefbeaab8fc643a6874a195954f2ffbada00b6e822b60725ab05bb113",
+    "vertices": 3072441,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://snap.stanford.edu/data/com-Orkut.html",
+  "query_generation": {
+    "author_query_files": [],
+    "base_seed": 20260722,
+    "candidate_groups": 5000,
+    "dataset": "snap-orkut",
+    "edges": 117185083,
+    "generated": [
+      {
+        "g": 4,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 13,
+        "max_bfs_depth": 2,
+        "mean_bfs_depth": 1.02,
+        "min_bfs_depth": 1,
+        "seed": 5612239591907899980
+      },
+      {
+        "g": 5,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 24,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.04333,
+        "min_bfs_depth": 1,
+        "seed": 15620459543362416646
+      },
+      {
+        "g": 6,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 25,
+        "max_bfs_depth": 2,
+        "mean_bfs_depth": 1.05,
+        "min_bfs_depth": 1,
+        "seed": 1863294427010864858
+      },
+      {
+        "g": 7,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 30,
+        "max_bfs_depth": 4,
+        "mean_bfs_depth": 1.10333,
+        "min_bfs_depth": 1,
+        "seed": 15219855844149447017
+      },
+      {
+        "g": 8,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 20,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.09667,
+        "min_bfs_depth": 1,
+        "seed": 9302722265924292775
+      },
+      {
+        "g": 9,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 23,
+        "max_bfs_depth": 4,
+        "mean_bfs_depth": 1.10333,
+        "min_bfs_depth": 1,
+        "seed": 2946463626732979883
+      },
+      {
+        "g": 10,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 27,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.14,
+        "min_bfs_depth": 1,
+        "seed": 8466368642245121103
+      },
+      {
+        "g": 11,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 17,
+        "max_bfs_depth": 5,
+        "mean_bfs_depth": 1.22333,
+        "min_bfs_depth": 1,
+        "seed": 15440465104271672291
+      },
+      {
+        "g": 12,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 31,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.23333,
+        "min_bfs_depth": 1,
+        "seed": 7706052866815469161
+      },
+      {
+        "g": 13,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 32,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.21,
+        "min_bfs_depth": 1,
+        "seed": 13893331976766951690
+      },
+      {
+        "g": 14,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 31,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.22333,
+        "min_bfs_depth": 1,
+        "seed": 13716236849467927150
+      },
+      {
+        "g": 15,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 19,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.24,
+        "min_bfs_depth": 1,
+        "seed": 7813421439091013889
+      },
+      {
+        "g": 16,
+        "infeasible_query_rejections": 0,
+        "insufficient_root_rejections": 31,
+        "max_bfs_depth": 3,
+        "mean_bfs_depth": 1.35667,
+        "min_bfs_depth": 1,
+        "seed": 12238524225400315129
+      }
+    ],
+    "generated_query_protocol": "related-group-bfs",
+    "queries_per_g": 300,
+    "source_prefix": "snap-orkut",
+    "vertex_group_memberships": 1078576,
+    "vertices": 3072441
+  },
+  "query_pools": [
+    {
+      "bytes": 3940741,
+      "g": 4,
+      "group_ids_sha256": "b24bab566e1cca89e3a78d5046cff25194b7bb23d6ed11a86e85001aa8732f2a",
+      "path": "data/official-latest-20260722/snap-orkut/query_g4.txt",
+      "queries": 300,
+      "sha256": "afad434254ab979b0fc298c8d574356b3e139bad90ea880370a0019b203ffe41"
+    },
+    {
+      "bytes": 5120525,
+      "g": 5,
+      "group_ids_sha256": "f94b4606f53b66b6a2a75148ce134ae4391f7ed89fd3c247270b31f3a579081b",
+      "path": "data/official-latest-20260722/snap-orkut/query_g5.txt",
+      "queries": 300,
+      "sha256": "40f9f2245d4d646148a9b8832fb3ae53b986195dd0b8de89ee51f1f52e34e13f"
+    },
+    {
+      "bytes": 6199129,
+      "g": 6,
+      "group_ids_sha256": "e6cd8232de5c2bfe8f8d0574630c43b37224312665515cc9c7ac547d9cdbd1a1",
+      "path": "data/official-latest-20260722/snap-orkut/query_g6.txt",
+      "queries": 300,
+      "sha256": "04148fbce8ec7d45fd71a0540547c438c1aa3ad0ce2796c065705fc2bbfeded5"
+    },
+    {
+      "bytes": 7080946,
+      "g": 7,
+      "group_ids_sha256": "0e6b66ea39f5a50c8e6a8c4be4b9040ec61c868c6e96bed9c3f40eaa9725e6f5",
+      "path": "data/official-latest-20260722/snap-orkut/query_g7.txt",
+      "queries": 300,
+      "sha256": "0e37b9c86af7b973b2ec9fc75d4e76a3be712bbd5a83830d3c701288cd517a0b"
+    },
+    {
+      "bytes": 8789080,
+      "g": 8,
+      "group_ids_sha256": "52c66ff22dc772cc86682a76c29c8954585367b75015f91dc9d62c854adccb70",
+      "path": "data/official-latest-20260722/snap-orkut/query_g8.txt",
+      "queries": 300,
+      "sha256": "480c39924fc3366a36002e536d427aad0f26ac6eb7fe7020d4bb9cd04264c5fd"
+    },
+    {
+      "bytes": 9724181,
+      "g": 9,
+      "group_ids_sha256": "3829ae1d4c004ec2565925760587f4cee3b51c472abc438b4e14418fce13cb3a",
+      "path": "data/official-latest-20260722/snap-orkut/query_g9.txt",
+      "queries": 300,
+      "sha256": "c1f6e2aabc89f143f9506773f05da64eb4842151e6fe4ca23258332e64b8a7c1"
+    },
+    {
+      "bytes": 10588318,
+      "g": 10,
+      "group_ids_sha256": "e314b19320bdbd9b885b0795d9ba9e6873e4ca8f7ea1c2891217777c5def1a19",
+      "path": "data/official-latest-20260722/snap-orkut/query_g10.txt",
+      "queries": 300,
+      "sha256": "7ac243cfb094b0832f586366ffae1431fae5296e1ae2456600319c7b5bffd430"
+    },
+    {
+      "bytes": 12137898,
+      "g": 11,
+      "group_ids_sha256": "ec08acd95a23acbf8d4886ae7e50eb2cf9847f92ef7a2c6d890754f315c693bc",
+      "path": "data/official-latest-20260722/snap-orkut/query_g11.txt",
+      "queries": 300,
+      "sha256": "96abc3b61a8d5cdaf449a17a2dad78a87ea250d9c8dfe26b0a5c68701123b43a"
+    },
+    {
+      "bytes": 13191604,
+      "g": 12,
+      "group_ids_sha256": "78f13b44075f513f8c12c53275f50b60b24033c838c438a49bcc50c6e714f72c",
+      "path": "data/official-latest-20260722/snap-orkut/query_g12.txt",
+      "queries": 300,
+      "sha256": "3ffecb09070d2e3294e2ffbb64ecda848f60fc362baf92b79e086f00c247a3a1"
+    },
+    {
+      "bytes": 14327423,
+      "g": 13,
+      "group_ids_sha256": "9370da86350271a28a6348da82de63e46fe48c3c3f40c46dcb7b7c5194722517",
+      "path": "data/official-latest-20260722/snap-orkut/query_g13.txt",
+      "queries": 300,
+      "sha256": "a4bc5ff20f97be93067c632559511a87646163e8c791bc0de1d814de7dfe2bdf"
+    },
+    {
+      "bytes": 14984609,
+      "g": 14,
+      "group_ids_sha256": "6651342ae14124cadfccc530a1517fc1a3b51d72ddbf231cc57042c3b9f3143e",
+      "path": "data/official-latest-20260722/snap-orkut/query_g14.txt",
+      "queries": 300,
+      "sha256": "fe45fdd3a68acb205e6ee9402abc82aecf6d443a89596c6b5d59c3e13024b15d"
+    },
+    {
+      "bytes": 16152887,
+      "g": 15,
+      "group_ids_sha256": "307402f9af0cec40b5cc89f151dd3e2e568e31a0e5c12a12fe00e238f1401668",
+      "path": "data/official-latest-20260722/snap-orkut/query_g15.txt",
+      "queries": 300,
+      "sha256": "ea6bde10041e4b009bf3428dbbb3a9ddd9138b992732ed49dad9d4f0c8711a14"
+    },
+    {
+      "bytes": 17166731,
+      "g": 16,
+      "group_ids_sha256": "b55b0ec029dd316262c98ad27668226e61038a543ffe3f5883d06423af167aa1",
+      "path": "data/official-latest-20260722/snap-orkut/query_g16.txt",
+      "queries": 300,
+      "sha256": "862ea2bd032c62bff3ad8a985cd0dced9db8c5ba79f2285c927588b1c04ec0ca"
+    }
+  ],
+  "raw_files": [
+    {
+      "bytes": 3124707,
+      "etag": "\"3380024-2fade3-4ce573ebea240\"",
+      "final_url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.top5000.cmty.txt.gz",
+      "last_modified": "Tue, 13 Nov 2012 02:33:37 GMT",
+      "path": "snap-orkut/com-orkut.top5000.cmty.txt.gz",
+      "requested_url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.top5000.cmty.txt.gz",
+      "retrieved_utc": "2026-07-22T11:25:29+00:00",
+      "role": "candidate_groups",
+      "sha256": "cbebaf6b36efdbaa5f918b7300719099385f3afb07eb08bf07ae994a28e21904"
+    },
+    {
+      "bytes": 447251958,
+      "etag": "\"3380026-1aa885f6-4ce573f5738c0\"",
+      "final_url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.ungraph.txt.gz",
+      "last_modified": "Tue, 13 Nov 2012 02:33:47 GMT",
+      "path": "snap-orkut/com-orkut.ungraph.txt.gz",
+      "requested_url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.ungraph.txt.gz",
+      "retrieved_utc": "2026-07-22T11:25:20+00:00",
+      "role": "graph",
+      "sha256": "f73e33fb685f411a10c952f2ba3ea788380b91a17bc636e38da1a23f6c6b2bc6"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "snap-orkut",
+  "snapshot": "official SNAP static snapshot available on 2026-07-22",
+  "source_normalization": {
+    "candidate_groups": 5000,
+    "candidate_groups_path": "data/official-latest-20260722/snap-orkut/candidate_groups.txt",
+    "dataset": "SNAP-Orkut",
+    "edges": 117185083,
+    "memberships": 1078576,
+    "normalized_edges": "data_sources/official/official-latest-20260722/work/snap-orkut/edges.txt",
+    "raw_files": [
+      {
+        "path": "snap-orkut/com-orkut.ungraph.txt.gz",
+        "sha256": "f73e33fb685f411a10c952f2ba3ea788380b91a17bc636e38da1a23f6c6b2bc6"
+      },
+      {
+        "path": "snap-orkut/com-orkut.top5000.cmty.txt.gz",
+        "sha256": "cbebaf6b36efdbaa5f918b7300719099385f3afb07eb08bf07ae994a28e21904"
+      }
+    ],
+    "slug": "snap-orkut",
+    "source_kind": "SNAP largest connected component and official top-5000 communities",
+    "vertex_id_mapping": "dense IDs assigned by first occurrence in the frozen official edge stream",
+    "vertex_id_mapping_path": "data_sources/official/official-latest-20260722/work/snap-orkut/source_vertex_ids.tsv",
+    "vertex_id_mapping_sha256": "b8b74750c5134998dab48ec583085b70d89d1438d194579a7102b067117de5f8",
+    "vertices": 3072441
+  },
+  "status": "include",
+  "transform": "Use the official largest connected component and official top-5000 community file without author-side filtering; preserve official vertex IDs through an explicit dense mapping; edge weight is floor(100 times Jaccard neighborhood distance)."
+}

@@ -1,5 +1,6 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
+  "data_freeze": "official-latest-20260722",
   "purpose": "SIGMOD/VLDB submission feasibility gate, not final paper evidence",
   "default_budget_hours": 15,
   "seed": 20260722,
@@ -15,20 +16,24 @@
     "pruneddp_safe"
   ],
   "breadth_strata": [
-    "E1: each graph at f=400 and g in {4,10,16}, plus balanced f=200/1600 checks",
-    "E2: all eight graphs at g in {4,12}, representative four at g in {9,16}",
-    "E3 practical-original: each graph at (g=5,f=400) and (g=8,f=1600)",
-    "E3 natural keyword queries: both graphs at g in {4,10}",
-    "E4 author queries: one alternating g=5/7 cell per graph, including the source CPU artifact",
-    "E5: one g=10 ablation cell per graph"
+    "A: DBLP-AMiner and IMDb at f=400, g in {4,8,12,16}, plus g=10 at the f-range endpoints {100,3200}",
+    "B: all six SNAP graphs, MovieLens-32M and Toronto-current at g in {4,12}; four representative sources also at g=16",
+    "C: DBpedia at g in {1,4,8,10,11,12} and LinkedMDB at g in {1,4,8,9,12}",
+    "secondary: one fixed A, B and C ablation cell"
   ],
   "fixed_depth_strata": [
-    "E2 all graphs at g=16",
-    "E2 representative graphs at g in {9,14}",
-    "E1 each graph at g in {14,16}, f=400",
-    "E3 natural g=10 and practical-original (g=8,f=1600)"
+    "A: DBLP-AMiner and IMDb at g=16,f=400",
+    "B: every one of the eight datasets at g=16",
+    "C: DBpedia g in {10,12} and LinkedMDB g in {9,12}"
   ],
+  "current_fixed_depth_entry_count": 13,
+  "fixed_depth_shortfall_note": "LinkedMDB g=12 has only one natural source-query mapping, so it contributes breadth but no distinct rank-2 depth query.",
   "adaptive_policy": "Only after breadth: follow up cells where Safe solves but ABHSS times out, or Safe is at least 2x faster than the best ABHSS. These samples are diagnostic and excluded from unbiased claim estimates.",
+  "excluded": [
+    "old paper-author graph/query artifacts",
+    "retired synthetic MovieLens controlled panel",
+    "GPU/heterogeneous and approximate-algorithm performance"
+  ],
   "probe_only_binaries": [
     "abhss_light_probe",
     "abhss_heavy_probe",

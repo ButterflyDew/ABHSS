@@ -1,0 +1,134 @@
+[
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 1,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g1.txt",
+    "query_sha256": "3aad1ce4d375aa365db0cd25e38cf5f193acef29c25b062794967d4be532e77d",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 3198,
+    "unique_mapped_group_sets_with_g": 1829
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 2,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g2.txt",
+    "query_sha256": "1c6604321fb92763f984e83cd59564bbfd807731f6b079795f9ec59cd53ebdc9",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 16476,
+    "unique_mapped_group_sets_with_g": 14397
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 3,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g3.txt",
+    "query_sha256": "bcf13e9b547bcf2f58c61a7fd70fb31c58e2b5bb12e3c8c98b7b3f39d9f19f7e",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 36897,
+    "unique_mapped_group_sets_with_g": 35767
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 4,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g4.txt",
+    "query_sha256": "cfaf48a11e9a1d94dcfe108a0ade447f0a211fc0585bee5e6b29855c153cc0f6",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 41918,
+    "unique_mapped_group_sets_with_g": 41617
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 5,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g5.txt",
+    "query_sha256": "8f23c9085aa2da280f55bdb816e06518ab20e8f8783c209f630c9576fc27e7d2",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 14045,
+    "unique_mapped_group_sets_with_g": 14003
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 6,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g6.txt",
+    "query_sha256": "0ddb2189c368e2f7795475dd6f0b7bd4d87cb26967c54d6c88138933867f6b88",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 2817,
+    "unique_mapped_group_sets_with_g": 2804
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 7,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 20,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g7.txt",
+    "query_sha256": "4957a334287e27667c1302b3b4e063462699215775217a0f7bca0f5dca8bb6ac",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 526,
+    "unique_mapped_group_sets_with_g": 524
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 8,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 25,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g8.txt",
+    "query_sha256": "6066e00597b0c9da57301c0c1651cebfb7a854f8760ffdd34e8a2d45aba4a8b6",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 99,
+    "unique_mapped_group_sets_with_g": 99
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 9,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 26,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g9.txt",
+    "query_sha256": "9e1aa8a08d1fe8844651a023a072ee7b532dd397c4c12b560ee3d9002bca1147",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 26,
+    "unique_mapped_group_sets_with_g": 26
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 10,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 6,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g10.txt",
+    "query_sha256": "681377cedde3da521f9352ddf402b4f6f469c7af277f070b7cf314c7f4268a36",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 6,
+    "unique_mapped_group_sets_with_g": 6
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 11,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 2,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g11.txt",
+    "query_sha256": "5ca3e4ce0b9d934cf56c557361db561810ae89cbf759941c6aff870a01780676",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 2,
+    "unique_mapped_group_sets_with_g": 2
+  },
+  {
+    "dataset": "LinkedMDB-2012",
+    "g": 12,
+    "graph_path": "data/official-latest-20260722/linkedmdb",
+    "queries": 1,
+    "query_path": "experiment_data/official_latest/natural/linkedmdb/query_g12.txt",
+    "query_sha256": "5746945a221d997abde78115dd9c7b2d7728d8b169e033db3843235b86dfbf09",
+    "selection": "all rare g>=9 rows; stable-hash quota for g<=8; component-infeasible rows replaced without solver feedback",
+    "source_rows_with_g": 1,
+    "unique_mapped_group_sets_with_g": 1
+  }
+]

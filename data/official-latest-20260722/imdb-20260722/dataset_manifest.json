@@ -1,0 +1,102 @@
+{
+  "auxiliary_hashes": {
+    "source_group_ids.tsv": {
+      "bytes": 1290811,
+      "sha256": "9c95c2b0a177f1efcd710413f7fdb040575415f0406d465f7a1a89a597a0e372"
+    },
+    "source_normalization.json": {
+      "bytes": 925,
+      "sha256": "9fd40b7743dbcf89d02551d2d65ab86e84d7cffccf4f8074848bb2db2a195212"
+    },
+    "source_vertex_ids.tsv": {
+      "bytes": 488447291,
+      "sha256": "f1a6bb987f529620544a08906e634d2f91b4086f454b4d0bd9c3a9c8b7626bf1"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 165715919,
+    "candidate_group_memberships": 19661596,
+    "candidate_groups": 61020,
+    "maximum_candidate_group_size": 4793,
+    "minimum_candidate_group_size": 50,
+    "path": "data/official-latest-20260722/imdb-20260722/candidate_groups.txt",
+    "sha256": "7ce84af397be47b46e6379a9bc5c69e1e9732c85b19e15a81522e5ad8dfdf20f"
+  },
+  "dataset": "IMDb-daily-20260722",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 1827989170,
+    "edges": 100556350,
+    "maximum_edge_weight": 1.0,
+    "minimum_edge_weight": 1.0,
+    "path": "data/official-latest-20260722/imdb-20260722/graph.txt",
+    "sha256": "83f41038f6543c18ed4319006bedea58d780d7863f271f877117f678b784f90b",
+    "vertices": 18588661,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://developer.imdb.com/non-commercial-datasets/",
+  "query_generation": null,
+  "query_pools": [],
+  "raw_files": [
+    {
+      "bytes": 306907386,
+      "etag": "\"183dea6b5897ae942c25affe266e2209-37\"",
+      "final_url": "https://datasets.imdbws.com/name.basics.tsv.gz",
+      "last_modified": "Wed, 22 Jul 2026 00:40:19 GMT",
+      "path": "imdb-20260722/name.basics.tsv.gz",
+      "requested_url": "https://datasets.imdbws.com/name.basics.tsv.gz",
+      "retrieved_utc": "2026-07-22T12:02:04+00:00",
+      "role": "people",
+      "sha256": "b873526bbef1c61a53d9e39c7614818356a3cf9ff3ac2e333124efada034205c"
+    },
+    {
+      "bytes": 224489159,
+      "etag": "\"b4d759f65a12cff8ac1d72e54668a8ec-27\"",
+      "final_url": "https://datasets.imdbws.com/title.basics.tsv.gz",
+      "last_modified": "Wed, 22 Jul 2026 00:39:20 GMT",
+      "path": "imdb-20260722/title.basics.tsv.gz",
+      "requested_url": "https://datasets.imdbws.com/title.basics.tsv.gz",
+      "retrieved_utc": "2026-07-22T12:00:46+00:00",
+      "role": "titles",
+      "sha256": "37098b04f0bb101fb49027ff257b5a270cb6e37fa924585184fc6cc21713a9d7"
+    },
+    {
+      "bytes": 773921604,
+      "etag": "\"b7f1d9fbd27aee3f2877d47c2559796d-93\"",
+      "final_url": "https://datasets.imdbws.com/title.principals.tsv.gz",
+      "last_modified": "Wed, 22 Jul 2026 00:40:28 GMT",
+      "path": "imdb-20260722/title.principals.tsv.gz",
+      "requested_url": "https://datasets.imdbws.com/title.principals.tsv.gz",
+      "retrieved_utc": "2026-07-22T12:01:41+00:00",
+      "role": "title_people",
+      "sha256": "d24d517868d618aefb0e1d5b3d8b1148254697281eeab898e6bb5bac9d1d9d90"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "imdb-20260722",
+  "snapshot": "mutable daily non-commercial export retrieved and frozen on 2026-07-22",
+  "source_normalization": {
+    "candidate_group_memberships": 19661596,
+    "candidate_groups": 61020,
+    "edges": 100556350,
+    "graph_model": "title-person bipartite multigraph; one unit edge per title.principals row",
+    "label_fields": "titleType, primaryTitle, originalTitle, genres, primaryName, primaryProfession",
+    "largest_connected_component_vertices": 18083600,
+    "maximum_candidate_frequency": 4800,
+    "minimum_candidate_frequency": 50,
+    "person_vertices": 7141984,
+    "person_vertices_with_metadata": 7138785,
+    "schema_version": 1,
+    "source_name_rows": 15508878,
+    "source_title_rows": 12661952,
+    "title_vertices": 11446677,
+    "title_vertices_with_metadata": 11446677,
+    "tokenization": "lower-case maximal ASCII alphanumeric runs, deduplicated per vertex",
+    "vertex_mapping": "title then person first occurrence while scanning frozen title.principals.tsv",
+    "vertices": 18588661,
+    "vertices_without_metadata": 3199
+  },
+  "status": "include",
+  "transform": "Build a title-person bipartite multigraph with one unit-weight edge per frozen title.principals row. Assign dense identifiers at first title/person occurrence. Candidate labels are lower-case ASCII alphanumeric tokens from titleType, primaryTitle, originalTitle, genres, primaryName and primaryProfession, deduplicated per vertex; retain real labels with frequency 50..4800 so the controlled sweep can cover f=100..3200 without extrapolating beyond the source labels."
+}

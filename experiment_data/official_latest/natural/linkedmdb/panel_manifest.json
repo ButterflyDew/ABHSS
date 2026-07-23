@@ -1,0 +1,7558 @@
+{
+  "component_audit": {
+    "connected_components": 64770,
+    "largest_component_vertices": 1166496
+  },
+  "component_infeasible_replacements": [
+    {
+      "g": 2,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:65726",
+      "source_query_index": 65726
+    },
+    {
+      "g": 2,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:68232",
+      "source_query_index": 68232
+    },
+    {
+      "g": 3,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:79999",
+      "source_query_index": 79999
+    },
+    {
+      "g": 3,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:79375",
+      "source_query_index": 79375
+    },
+    {
+      "g": 5,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:41862",
+      "source_query_index": 41862
+    },
+    {
+      "g": 5,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:35107",
+      "source_query_index": 35107
+    },
+    {
+      "g": 6,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:42962",
+      "source_query_index": 42962
+    },
+    {
+      "g": 6,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:39408",
+      "source_query_index": 39408
+    },
+    {
+      "g": 7,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:37829",
+      "source_query_index": 37829
+    },
+    {
+      "g": 8,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:41022",
+      "source_query_index": 41022
+    },
+    {
+      "g": 8,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "dev:3089",
+      "source_query_index": 99274
+    },
+    {
+      "g": 8,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "test:6897",
+      "source_query_index": 113082
+    },
+    {
+      "g": 8,
+      "reason": "no connected component intersects every mapped group",
+      "source_query_id": "train:38555",
+      "source_query_index": 38555
+    }
+  ],
+  "dataset": "LinkedMDB-2012",
+  "queries": [
+    {
+      "g": 1,
+      "group_ids": [
+        206596
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "acted",
+        "barfly"
+      ],
+      "retained_tokens": [
+        "barfly"
+      ],
+      "source_query_id": "train:64761",
+      "source_query_index": 64761,
+      "source_text": "who acted in Barfly?",
+      "stable_rank": "00de2328ebc29c22e36aac619d1285b498b2ea54fc1ef23a60bdaa43acf7c153"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        232993
+      ],
+      "group_sizes": [
+        2
+      ],
+      "normalized_tokens": [
+        "starred",
+        "gunfighters"
+      ],
+      "retained_tokens": [
+        "gunfighters"
+      ],
+      "source_query_id": "train:67549",
+      "source_query_index": 67549,
+      "source_text": "who starred in Gunfighters?",
+      "stable_rank": "011924f84a59f9b6c771a2e3269547bb0fad17fd5d02e1efc103b328c81b4211"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        229092
+      ],
+      "group_sizes": [
+        63
+      ],
+      "normalized_tokens": [
+        "describe",
+        "fury"
+      ],
+      "retained_tokens": [
+        "fury"
+      ],
+      "source_query_id": "train:19581",
+      "source_query_index": 19581,
+      "source_text": "describe Fury?",
+      "stable_rank": "012a1fc14ace02fea4738ba4d25aba457d91d785e7fb4aaede59e546566ebe61"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        285994
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "starred",
+        "unloved"
+      ],
+      "retained_tokens": [
+        "unloved"
+      ],
+      "source_query_id": "train:72978",
+      "source_query_index": 72978,
+      "source_text": "who starred in The Unloved?",
+      "stable_rank": "013198f2f4dcb926b3d796f6f234838d49fa35c08a5c3352cdd94b2ec70177b2"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        203433
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "acted",
+        "anzio"
+      ],
+      "retained_tokens": [
+        "anzio"
+      ],
+      "source_query_id": "dev:1868",
+      "source_query_index": 98053,
+      "source_text": "who acted in Anzio?",
+      "stable_rank": "013f14532961be89cc0a83ea282f8f3b6a505808a3e5666cbe644a049aaf2a3b"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        277918
+      ],
+      "group_sizes": [
+        14
+      ],
+      "normalized_tokens": [
+        "acted",
+        "speak"
+      ],
+      "retained_tokens": [
+        "speak"
+      ],
+      "source_query_id": "train:64134",
+      "source_query_index": 64134,
+      "source_text": "who acted in Speak?",
+      "stable_rank": "0147d4fdf4b3edfe2d68c1a45d99c1fa065a8aaecf0d695807db6ed546174021"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        221538
+      ],
+      "group_sizes": [
+        6
+      ],
+      "normalized_tokens": [
+        "biyi",
+        "bandele",
+        "direct"
+      ],
+      "retained_tokens": [
+        "direct"
+      ],
+      "source_query_id": "train:59327",
+      "source_query_index": 59327,
+      "source_text": "what did Biyi Bandele direct?",
+      "stable_rank": "016c9c0ba62bc524874ba949df3dfad285967c760f4eb58ad5a9354ce25474da"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        202014
+      ],
+      "group_sizes": [
+        53
+      ],
+      "normalized_tokens": [
+        "acted",
+        "midaq",
+        "alley"
+      ],
+      "retained_tokens": [
+        "alley"
+      ],
+      "source_query_id": "train:72717",
+      "source_query_index": 72717,
+      "source_text": "who acted in Midaq Alley?",
+      "stable_rank": "01e03a49886b69d9452917d543bb282e1e17b181b97f20082e669c07541f3fae"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        284282
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "topics",
+        "trainspotting"
+      ],
+      "retained_tokens": [
+        "trainspotting"
+      ],
+      "source_query_id": "train:14571",
+      "source_query_index": 14571,
+      "source_text": "what topics is Trainspotting about?",
+      "stable_rank": "0200d9a586c55132badcafe7781d43032e8a6d5c49bf0ec44b7926e33b829172"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        253885
+      ],
+      "group_sizes": [
+        70
+      ],
+      "normalized_tokens": [
+        "mickey",
+        "directed"
+      ],
+      "retained_tokens": [
+        "mickey"
+      ],
+      "source_query_id": "train:79783",
+      "source_query_index": 79783,
+      "source_text": "who was Mickey directed by?",
+      "stable_rank": "0219b426ede2140b6104cbbce3e260eafc1d11704650147c749ff5e30139962f"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        268444
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "steep",
+        "released"
+      ],
+      "retained_tokens": [
+        "released"
+      ],
+      "source_query_id": "train:21834",
+      "source_query_index": 21834,
+      "source_text": "Steep, when was it released?",
+      "stable_rank": "02334cbe55e07b43595be0b550a7260d3eed309c42608bf96bf16f5a61bdf2b9"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        215797
+      ],
+      "group_sizes": [
+        25
+      ],
+      "normalized_tokens": [
+        "acted",
+        "cinderella"
+      ],
+      "retained_tokens": [
+        "cinderella"
+      ],
+      "source_query_id": "train:67945",
+      "source_query_index": 67945,
+      "source_text": "who acted in Cinderella?",
+      "stable_rank": "0249944af26db759bd07609d31d9d0d45e5aa718cba8f973406a52bbaf3356e3"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        201814
+      ],
+      "group_sizes": [
+        286
+      ],
+      "normalized_tokens": [
+        "directed",
+        "alexander"
+      ],
+      "retained_tokens": [
+        "alexander"
+      ],
+      "source_query_id": "train:75352",
+      "source_query_index": 75352,
+      "source_text": "who directed Alexander?",
+      "stable_rank": "02667b6d2a6e414928d744cf89455fec7b572e4031d289d21d620ca2ead15ded"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        278265
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "topics",
+        "spud"
+      ],
+      "retained_tokens": [
+        "spud"
+      ],
+      "source_query_id": "dev:5770",
+      "source_query_index": 101955,
+      "source_text": "which topics is Spud about?",
+      "stable_rank": "028c5a28cb0c68a886b728cfea01f8f310e7f153160ffaeecabe92eda6eacc45"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        212003
+      ],
+      "group_sizes": [
+        1
+      ],
+      "normalized_tokens": [
+        "directed",
+        "bullitt"
+      ],
+      "retained_tokens": [
+        "bullitt"
+      ],
+      "source_query_id": "train:83530",
+      "source_query_index": 83530,
+      "source_text": "who directed Bullitt?",
+      "stable_rank": "0293305d693796987bfec3218a754d2c87436b954230882d10b3215379097186"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        226184
+      ],
+      "group_sizes": [
+        160
+      ],
+      "normalized_tokens": [
+        "acted",
+        "family"
+      ],
+      "retained_tokens": [
+        "family"
+      ],
+      "source_query_id": "train:65460",
+      "source_query_index": 65460,
+      "source_text": "who acted in The Family?",
+      "stable_rank": "02c97df196d2a81727c6786d84fad97847f1a511a78a062c6a650b21dd6c7410"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        236124
+      ],
+      "group_sizes": [
+        6
+      ],
+      "normalized_tokens": [
+        "acted",
+        "holding"
+      ],
+      "retained_tokens": [
+        "holding"
+      ],
+      "source_query_id": "train:68281",
+      "source_query_index": 68281,
+      "source_text": "who acted in The Holding?",
+      "stable_rank": "0403794d2be79f0289d2ce9192215f5b7e74c6dc5afcf418c943181c3ba7cc06"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        274682
+      ],
+      "group_sizes": [
+        11
+      ],
+      "normalized_tokens": [
+        "acted",
+        "shame"
+      ],
+      "retained_tokens": [
+        "shame"
+      ],
+      "source_query_id": "train:70080",
+      "source_query_index": 70080,
+      "source_text": "who acted in Shame?",
+      "stable_rank": "0453ba1e9214585221daae5fc08425fbbadb7c18303bae8b57ab81c633f82810"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        275424
+      ],
+      "group_sizes": [
+        3
+      ],
+      "normalized_tokens": [
+        "topics",
+        "shocker"
+      ],
+      "retained_tokens": [
+        "shocker"
+      ],
+      "source_query_id": "train:17835",
+      "source_query_index": 17835,
+      "source_text": "which topics is Shocker about?",
+      "stable_rank": "045ca5851bf96210c048c0d8bf30c78de718641b0866f0670ab47fafcaba3778"
+    },
+    {
+      "g": 1,
+      "group_ids": [
+        264959
+      ],
+      "group_sizes": [
+        11
+      ],
+      "normalized_tokens": [
+        "popular"
+      ],
+      "retained_tokens": [
+        "popular"
+      ],
+      "source_query_id": "train:45685",
+      "source_query_index": 45685,
+      "source_text": "how popular is To Be or Not to Be?",
+      "stable_rank": "04996848170aafa8bf7a262bd09fb2b317721faa87bdfc7659715c0f6ee795c4"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        262935,
+        268444
+      ],
+      "group_sizes": [
+        21,
+        1
+      ],
+      "normalized_tokens": [
+        "penelope",
+        "released"
+      ],
+      "retained_tokens": [
+        "penelope",
+        "released"
+      ],
+      "source_query_id": "train:22813",
+      "source_query_index": 22813,
+      "source_text": "Penelope, when was it released?",
+      "stable_rank": "00049bd45f9b92c85d280bd9444f793268eba8ff70a75fbe81dbb9641ca508d6"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        290702,
+        222648
+      ],
+      "group_sizes": [
+        6,
+        1
+      ],
+      "normalized_tokens": [
+        "wrote",
+        "dreamchild"
+      ],
+      "retained_tokens": [
+        "wrote",
+        "dreamchild"
+      ],
+      "source_query_id": "train:39765",
+      "source_query_index": 39765,
+      "source_text": "who wrote Dreamchild?",
+      "stable_rank": "0006834f5e5215f34ec25725ec644627e573ff2598367cb0a153536b3a985ed1"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        230246,
+        240611
+      ],
+      "group_sizes": [
+        410,
+        125
+      ],
+      "normalized_tokens": [
+        "genre",
+        "julia"
+      ],
+      "retained_tokens": [
+        "genre",
+        "julia"
+      ],
+      "source_query_id": "train:49226",
+      "source_query_index": 49226,
+      "source_text": "what genre is Julia and Julia in?",
+      "stable_rank": "000989d0763c5a08b0a22d95bce312499839f93ea8a163f50d0a2a52aa40c3c2"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        257093,
+        226579
+      ],
+      "group_sizes": [
+        133,
+        91
+      ],
+      "normalized_tokens": [
+        "starred",
+        "naked",
+        "fear"
+      ],
+      "retained_tokens": [
+        "naked",
+        "fear"
+      ],
+      "source_query_id": "train:73738",
+      "source_query_index": 73738,
+      "source_text": "who starred in Naked Fear?",
+      "stable_rank": "000dd135e92dc47abfa0ed1c74e18b88c602938ebacd3fa1633dd1a9fa5747d9"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        230246,
+        284855
+      ],
+      "group_sizes": [
+        410,
+        5
+      ],
+      "normalized_tokens": [
+        "genre",
+        "trucker"
+      ],
+      "retained_tokens": [
+        "genre",
+        "trucker"
+      ],
+      "source_query_id": "train:51296",
+      "source_query_index": 51296,
+      "source_text": "what is the genre of Trucker?",
+      "stable_rank": "00117433b361affbc5cc7c4de367803e9fa72ddc0a26275156b961fef714ef56"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        278654,
+        202450
+      ],
+      "group_sizes": [
+        84,
+        1
+      ],
+      "normalized_tokens": [
+        "stars",
+        "americathon"
+      ],
+      "retained_tokens": [
+        "stars",
+        "americathon"
+      ],
+      "source_query_id": "train:68284",
+      "source_query_index": 68284,
+      "source_text": "who stars in Americathon?",
+      "stable_rank": "001ce40e7974693ef19c96c7394f5c25a5c627c84d6a701fb2ccfad6769e8012"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        290446,
+        259629
+      ],
+      "group_sizes": [
+        1,
+        9
+      ],
+      "normalized_tokens": [
+        "starred",
+        "wondrous",
+        "oblivion"
+      ],
+      "retained_tokens": [
+        "wondrous",
+        "oblivion"
+      ],
+      "source_query_id": "train:66460",
+      "source_query_index": 66460,
+      "source_text": "who starred in Wondrous Oblivion?",
+      "stable_rank": "002530a45d55070664bde383141737d17f5d680a593ff2f898d5f407f142da77"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        255983,
+        236262
+      ],
+      "group_sizes": [
+        45,
+        9
+      ],
+      "normalized_tokens": [
+        "movies",
+        "homer"
+      ],
+      "retained_tokens": [
+        "movies",
+        "homer"
+      ],
+      "source_query_id": "train:3615",
+      "source_query_index": 3615,
+      "source_text": "which movies are about homer?",
+      "stable_rank": "002788d5a44f88f0dc7dff875c8fb604d3f4b2a94f93efb856e5d2fbee591c9d"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        240628,
+        203549
+      ],
+      "group_sizes": [
+        16,
+        2
+      ],
+      "normalized_tokens": [
+        "juliette",
+        "goglia",
+        "appear"
+      ],
+      "retained_tokens": [
+        "juliette",
+        "appear"
+      ],
+      "source_query_id": "train:89139",
+      "source_query_index": 89139,
+      "source_text": "what does Juliette Goglia appear in?",
+      "stable_rank": "002d41a54a4642b284dc6d56fba82e3ffe5ff1abcefb23d673093f74cf084c1f"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        221541,
+        243825
+      ],
+      "group_sizes": [
+        18127,
+        1
+      ],
+      "normalized_tokens": [
+        "director",
+        "knowing"
+      ],
+      "retained_tokens": [
+        "director",
+        "knowing"
+      ],
+      "source_query_id": "train:76939",
+      "source_query_index": 76939,
+      "source_text": "who is the director for Knowing?",
+      "stable_rank": "002dca754803a385b02a0d12f26056bdc68cddc366ed606b040bbc7b58a50014"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        246039,
+        225618
+      ],
+      "group_sizes": [
+        15,
+        2
+      ],
+      "normalized_tokens": [
+        "language",
+        "evilenko"
+      ],
+      "retained_tokens": [
+        "language",
+        "evilenko"
+      ],
+      "source_query_id": "test:5084",
+      "source_query_index": 111269,
+      "source_text": "what language is Evilenko in?",
+      "stable_rank": "00337461a7d95828c54261127e57c5ea08aeb10318e5fb156b47f116ad17f770"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        262681,
+        219742
+      ],
+      "group_sizes": [
+        36,
+        342
+      ],
+      "normalized_tokens": [
+        "topics",
+        "pearl",
+        "death"
+      ],
+      "retained_tokens": [
+        "pearl",
+        "death"
+      ],
+      "source_query_id": "train:12817",
+      "source_query_index": 12817,
+      "source_text": "what topics is The Pearl of Death about?",
+      "stable_rank": "0037be919ee71e9cf8346f01a74a912fa0b3b56db116548b83636622e0755cad"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        278654,
+        209484
+      ],
+      "group_sizes": [
+        84,
+        5
+      ],
+      "normalized_tokens": [
+        "stars",
+        "blob"
+      ],
+      "retained_tokens": [
+        "stars",
+        "blob"
+      ],
+      "source_query_id": "train:70039",
+      "source_query_index": 70039,
+      "source_text": "who stars in The Blob?",
+      "stable_rank": "003eb28272402e9f0f99bbc03f8ea2025772afcb997d915141bfc1dedcc1a147"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        277633,
+        270546
+      ],
+      "group_sizes": [
+        15,
+        26
+      ],
+      "normalized_tokens": [
+        "sorority",
+        "row",
+        "directed"
+      ],
+      "retained_tokens": [
+        "sorority",
+        "row"
+      ],
+      "source_query_id": "train:85074",
+      "source_query_index": 85074,
+      "source_text": "who was Sorority Row directed by?",
+      "stable_rank": "0042baf04ba6da76c46852eb06e6c6038e8c5dd4102041b434d3da0a5ddfdcf7"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        255983,
+        215688
+      ],
+      "group_sizes": [
+        45,
+        13
+      ],
+      "normalized_tokens": [
+        "movies",
+        "described",
+        "cia"
+      ],
+      "retained_tokens": [
+        "movies",
+        "cia"
+      ],
+      "source_query_id": "train:1620",
+      "source_query_index": 1620,
+      "source_text": "what movies can be described by cia?",
+      "stable_rank": "0047a6956d3117833f909a6c094bcbfe31b77876713418137d8021db17e9cbe3"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        258497,
+        289289
+      ],
+      "group_sizes": [
+        64,
+        1
+      ],
+      "normalized_tokens": [
+        "nights",
+        "weekends",
+        "directed"
+      ],
+      "retained_tokens": [
+        "nights",
+        "weekends"
+      ],
+      "source_query_id": "train:84323",
+      "source_query_index": 84323,
+      "source_text": "who was Nights and Weekends directed by?",
+      "stable_rank": "004860ee15e63c0aed9d97a2bc8e6933c6cbfee7ae0763b239fe10e2be849ae9"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        219409,
+        268444
+      ],
+      "group_sizes": [
+        50,
+        1
+      ],
+      "normalized_tokens": [
+        "darling",
+        "released"
+      ],
+      "retained_tokens": [
+        "darling",
+        "released"
+      ],
+      "source_query_id": "train:24376",
+      "source_query_index": 24376,
+      "source_text": "Darling, when was it released?",
+      "stable_rank": "0048824cad7b471f55ec1c4755b8cc35d33e1af4cf7d80264cdb2d4bfc0720b4"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        226640,
+        290580
+      ],
+      "group_sizes": [
+        10,
+        445
+      ],
+      "normalized_tokens": [
+        "acted",
+        "feed",
+        "world"
+      ],
+      "retained_tokens": [
+        "feed",
+        "world"
+      ],
+      "source_query_id": "train:74974",
+      "source_query_index": 74974,
+      "source_text": "who acted in We Feed the World?",
+      "stable_rank": "00526fdab3c9f6985ef015edf0bba87d8e8ec598f5eaf5a962481bce272d6d42"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        255982,
+        252293
+      ],
+      "group_sizes": [
+        401,
+        6
+      ],
+      "normalized_tokens": [
+        "acted",
+        "movie",
+        "maze"
+      ],
+      "retained_tokens": [
+        "movie",
+        "maze"
+      ],
+      "source_query_id": "test:2483",
+      "source_query_index": 108668,
+      "source_text": "who acted in the movie The Maze?",
+      "stable_rank": "0055b07c0deb3d05e7da29c0f92f8545c8fd87cbd13eb61933bcb1c27f827684"
+    },
+    {
+      "g": 2,
+      "group_ids": [
+        227207,
+        279577
+      ],
+      "group_sizes": [
+        106919,
+        29
+      ],
+      "normalized_tokens": [
+        "directed",
+        "film",
+        "student"
+      ],
+      "retained_tokens": [
+        "film",
+        "student"
+      ],
+      "source_query_id": "train:79501",
+      "source_query_index": 79501,
+      "source_text": "who directed the film The Student?",
+      "stable_rank": "005a0975ee7264042b91043a7e63c2e463f1dd18bcb8ff2143f733b7650828c8"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        221541,
+        208768,
+        216720
+      ],
+      "group_sizes": [
+        18127,
+        728,
+        1
+      ],
+      "normalized_tokens": [
+        "director",
+        "directed",
+        "big",
+        "combo"
+      ],
+      "retained_tokens": [
+        "director",
+        "big",
+        "combo"
+      ],
+      "source_query_id": "train:81655",
+      "source_query_index": 81655,
+      "source_text": "who is the director that directed The Big Combo?",
+      "stable_rank": "0004aabc5f92a6e94de52607781b1bb65a9c4eecea6efa022ab168386c120d66"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        233881,
+        235040,
+        227235
+      ],
+      "group_sizes": [
+        25,
+        1,
+        421
+      ],
+      "normalized_tokens": [
+        "hanna",
+        "hemil",
+        "directed",
+        "films"
+      ],
+      "retained_tokens": [
+        "hanna",
+        "hemil",
+        "films"
+      ],
+      "source_query_id": "train:60261",
+      "source_query_index": 60261,
+      "source_text": "Hanna Hemil\u00e4 directed which films?",
+      "stable_rank": "000625fb6bf0e58bb00e3b38ba57aaab882c7eb406321d8631fa1b332f6667be"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        255982,
+        283814,
+        268444
+      ],
+      "group_sizes": [
+        401,
+        397,
+        1
+      ],
+      "normalized_tokens": [
+        "movie",
+        "tony",
+        "released"
+      ],
+      "retained_tokens": [
+        "movie",
+        "tony",
+        "released"
+      ],
+      "source_query_id": "dev:7433",
+      "source_query_index": 103618,
+      "source_text": "when was the movie Tony released?",
+      "stable_rank": "00067e8b36ce01c54a3cbd23a671f1bc136ce63a4ef40bf6b5db4bf05f480d92"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        255982,
+        256043,
+        290710
+      ],
+      "group_sizes": [
+        401,
+        486,
+        74
+      ],
+      "normalized_tokens": [
+        "acted",
+        "movie",
+        "mr",
+        "wu"
+      ],
+      "retained_tokens": [
+        "movie",
+        "mr",
+        "wu"
+      ],
+      "source_query_id": "train:72860",
+      "source_query_index": 72860,
+      "source_text": "who acted in the movie Mr. Wu?",
+      "stable_rank": "0006e8a912bfe52ea2be8c467f76b60d10419e1cc61732d64f6002c140b531a6"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        290580,
+        203616,
+        268444
+      ],
+      "group_sizes": [
+        445,
+        2,
+        1
+      ],
+      "normalized_tokens": [
+        "world",
+        "apu",
+        "released"
+      ],
+      "retained_tokens": [
+        "world",
+        "apu",
+        "released"
+      ],
+      "source_query_id": "train:24267",
+      "source_query_index": 24267,
+      "source_text": "The World of Apu, when was it released?",
+      "stable_rank": "0007655afb4988db2ae9d8b3292cf153dd710f85616b26e79ca8e767125ef24a"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        227207,
+        263365,
+        290687
+      ],
+      "group_sizes": [
+        106919,
+        1013,
+        1
+      ],
+      "normalized_tokens": [
+        "film",
+        "peter",
+        "helliar",
+        "write"
+      ],
+      "retained_tokens": [
+        "film",
+        "peter",
+        "write"
+      ],
+      "source_query_id": "train:9949",
+      "source_query_index": 9949,
+      "source_text": "which film did Peter Helliar write?",
+      "stable_rank": "0007d7a0748af46101a03e2404aaaa3e6e9afa5cd9f2c2dd8c95f27b8c4366bf"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        290558,
+        227207,
+        274184
+      ],
+      "group_sizes": [
+        27,
+        106919,
+        4
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "film",
+        "serenity"
+      ],
+      "retained_tokens": [
+        "words",
+        "film",
+        "serenity"
+      ],
+      "source_query_id": "train:16762",
+      "source_query_index": 16762,
+      "source_text": "which words describe film Serenity?",
+      "stable_rank": "00089b830f01ef0d3db325b97a8afff3777b2abd5e551e0fb2d272786a3769c4"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        200610,
+        282516,
+        239638
+      ],
+      "group_sizes": [
+        7,
+        14,
+        1
+      ],
+      "normalized_tokens": [
+        "actors",
+        "thank",
+        "jeeves"
+      ],
+      "retained_tokens": [
+        "actors",
+        "thank",
+        "jeeves"
+      ],
+      "source_query_id": "train:72494",
+      "source_query_index": 72494,
+      "source_text": "who are the actors in Thank You, Jeeves!?",
+      "stable_rank": "000dd9c932965162989735ccdb09f5f71a210bc5c902bb69fe6bb7237ed940dc"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        230246,
+        270032,
+        250685
+      ],
+      "group_sizes": [
+        410,
+        92,
+        48
+      ],
+      "normalized_tokens": [
+        "genre",
+        "romance",
+        "manhattan"
+      ],
+      "retained_tokens": [
+        "genre",
+        "romance",
+        "manhattan"
+      ],
+      "source_query_id": "train:52219",
+      "source_query_index": 52219,
+      "source_text": "what is the genre of Romance in Manhattan?",
+      "stable_rank": "000e6862923049512a3182b6fc1a11069c7fce42daa9077f244bf7dd0c0e4997"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        230246,
+        256313,
+        275634
+      ],
+      "group_sizes": [
+        410,
+        30,
+        1
+      ],
+      "normalized_tokens": [
+        "genre",
+        "mummy",
+        "shroud"
+      ],
+      "retained_tokens": [
+        "genre",
+        "mummy",
+        "shroud"
+      ],
+      "source_query_id": "train:49945",
+      "source_query_index": 49945,
+      "source_text": "what was the genre of The Mummy's Shroud?",
+      "stable_rank": "00100537e28847492c1edbab19970c8a0c761896dbae0b713fc90651ee845744"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        227235,
+        278449,
+        249822
+      ],
+      "group_sizes": [
+        421,
+        47,
+        136
+      ],
+      "normalized_tokens": [
+        "films",
+        "stage",
+        "magic"
+      ],
+      "retained_tokens": [
+        "films",
+        "stage",
+        "magic"
+      ],
+      "source_query_id": "train:3740",
+      "source_query_index": 3740,
+      "source_text": "what films are about stage magic?",
+      "stable_rank": "00101cde97e8cd744bca3fdef37749dff6c0c44cda875e156f7de9c4ec24b23d"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        255982,
+        232205,
+        221543
+      ],
+      "group_sizes": [
+        401,
+        268,
+        5
+      ],
+      "normalized_tokens": [
+        "movie",
+        "great",
+        "directors",
+        "starred"
+      ],
+      "retained_tokens": [
+        "movie",
+        "great",
+        "directors"
+      ],
+      "source_query_id": "train:68124",
+      "source_query_index": 68124,
+      "source_text": "the movie Great Directors starred who?",
+      "stable_rank": "00102c725fa86bc1b0e13108bac145b3ad69647f7a50d288f6a81677d6aa0981"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        255983,
+        266939,
+        221762
+      ],
+      "group_sizes": [
+        45,
+        39,
+        19
+      ],
+      "normalized_tokens": [
+        "movies",
+        "described",
+        "radio",
+        "dj"
+      ],
+      "retained_tokens": [
+        "movies",
+        "radio",
+        "dj"
+      ],
+      "source_query_id": "train:426",
+      "source_query_index": 426,
+      "source_text": "what movies can be described with radio dj?",
+      "stable_rank": "00122cb15e75267606318141d369a216948371a2a7666b37978428f7745b6f11"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        216237,
+        267481,
+        268444
+      ],
+      "group_sizes": [
+        57,
+        39,
+        1
+      ],
+      "normalized_tokens": [
+        "close",
+        "range",
+        "released"
+      ],
+      "retained_tokens": [
+        "close",
+        "range",
+        "released"
+      ],
+      "source_query_id": "train:22046",
+      "source_query_index": 22046,
+      "source_text": "At Close Range, when was it released?",
+      "stable_rank": "0013709427c5502b95a7fce73fd7128d8b5d0250030ddf68f9eab249efa11a06"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        231067,
+        290558,
+        233855
+      ],
+      "group_sizes": [
+        40,
+        27,
+        5
+      ],
+      "normalized_tokens": [
+        "give",
+        "words",
+        "describing",
+        "hangover"
+      ],
+      "retained_tokens": [
+        "give",
+        "words",
+        "hangover"
+      ],
+      "source_query_id": "train:14911",
+      "source_query_index": 14911,
+      "source_text": "can you give a few words describing what The Hangover is about?",
+      "stable_rank": "0015e214c8e8948fd78105271e4b0a45778bbaf32862cc36cbf9d43f5875cbb6"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        227235,
+        200850,
+        261519
+      ],
+      "group_sizes": [
+        421,
+        4,
+        1
+      ],
+      "normalized_tokens": [
+        "films",
+        "described",
+        "adrianne",
+        "palicki"
+      ],
+      "retained_tokens": [
+        "films",
+        "adrianne",
+        "palicki"
+      ],
+      "source_query_id": "train:1752",
+      "source_query_index": 1752,
+      "source_text": "which films can be described by adrianne palicki?",
+      "stable_rank": "0016c48e005a1b8dcf97d135207346da77567914e8b5fee7c43cf72602d6e4b0"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        227235,
+        255128,
+        274746
+      ],
+      "group_sizes": [
+        421,
+        68,
+        58
+      ],
+      "normalized_tokens": [
+        "films",
+        "described",
+        "molly",
+        "shannon"
+      ],
+      "retained_tokens": [
+        "films",
+        "molly",
+        "shannon"
+      ],
+      "source_query_id": "train:1419",
+      "source_query_index": 1419,
+      "source_text": "what films can be described by molly shannon?",
+      "stable_rank": "0019132126f8f46f8bf14f5a7b244242ef68b8a1b400281cc280d8165041f47b"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        227235,
+        219742,
+        270546
+      ],
+      "group_sizes": [
+        421,
+        342,
+        26
+      ],
+      "normalized_tokens": [
+        "films",
+        "described",
+        "death",
+        "row"
+      ],
+      "retained_tokens": [
+        "films",
+        "death",
+        "row"
+      ],
+      "source_query_id": "train:58",
+      "source_query_index": 58,
+      "source_text": "which films can be described by death row?",
+      "stable_rank": "001da6be52f35e80e382c097f80744ef30ca895575aca1b6010d701961f9ba12"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        278976,
+        212267,
+        221541
+      ],
+      "group_sizes": [
+        512,
+        4,
+        18127
+      ],
+      "normalized_tokens": [
+        "steve",
+        "buscemi",
+        "director"
+      ],
+      "retained_tokens": [
+        "steve",
+        "buscemi",
+        "director"
+      ],
+      "source_query_id": "train:59527",
+      "source_query_index": 59527,
+      "source_text": "what was Steve Buscemi the director of?",
+      "stable_rank": "001db3546ea49347d4e63ab78567e58af3cc5e182476e49a2e2890538442fbaa"
+    },
+    {
+      "g": 3,
+      "group_ids": [
+        286111,
+        283215,
+        274716
+      ],
+      "group_sizes": [
+        57,
+        482,
+        43
+      ],
+      "normalized_tokens": [
+        "acted",
+        "upon",
+        "time",
+        "shanghai"
+      ],
+      "retained_tokens": [
+        "upon",
+        "time",
+        "shanghai"
+      ],
+      "source_query_id": "train:65374",
+      "source_query_index": 65374,
+      "source_text": "who acted in Once Upon a Time in Shanghai?",
+      "stable_rank": "001fc98fa5b8b5d25ada8f925fb5281b4c62fc25986113110bfff08e2e8598af"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        255982,
+        290693,
+        240218,
+        290659
+      ],
+      "group_sizes": [
+        401,
+        4,
+        2310,
+        1
+      ],
+      "normalized_tokens": [
+        "movie",
+        "written",
+        "john",
+        "wrathall"
+      ],
+      "retained_tokens": [
+        "movie",
+        "written",
+        "john",
+        "wrathall"
+      ],
+      "source_query_id": "dev:9537",
+      "source_query_index": 105722,
+      "source_text": "what is a movie written by John Wrathall?",
+      "stable_rank": "0001315345cfd17970814790ad0e53c51a128f916cb7fc1238ea0ef9106e4ad5"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        268443,
+        291269,
+        256043,
+        272312
+      ],
+      "group_sizes": [
+        428,
+        107,
+        486,
+        2
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "mr",
+        "sardonicus"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "mr",
+        "sardonicus"
+      ],
+      "source_query_id": "train:28243",
+      "source_query_index": 28243,
+      "source_text": "what was the release year of Mr. Sardonicus?",
+      "stable_rank": "00013bea77fec7f32ef983d8fc40196ca581269e1a814f84577fa3d398625c48"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        229334,
+        267527,
+        203552,
+        255983
+      ],
+      "group_sizes": [
+        1,
+        1,
+        1,
+        45
+      ],
+      "normalized_tokens": [
+        "galatea",
+        "ranzi",
+        "appears",
+        "movies"
+      ],
+      "retained_tokens": [
+        "galatea",
+        "ranzi",
+        "appears",
+        "movies"
+      ],
+      "source_query_id": "train:88659",
+      "source_query_index": 88659,
+      "source_text": "Galatea Ranzi appears in which movies?",
+      "stable_rank": "00030a18fad4da3012d62592b5f3d7fe8ffb926603c4f4c25997428e1788875d"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        231067,
+        290558,
+        228210,
+        226596
+      ],
+      "group_sizes": [
+        40,
+        27,
+        127,
+        18
+      ],
+      "normalized_tokens": [
+        "give",
+        "words",
+        "describing",
+        "four",
+        "feathers"
+      ],
+      "retained_tokens": [
+        "give",
+        "words",
+        "four",
+        "feathers"
+      ],
+      "source_query_id": "train:15466",
+      "source_query_index": 15466,
+      "source_text": "can you give a few words describing what The Four Feathers is about?",
+      "stable_rank": "0003aeaa7eea9ba5fade33dd080f8e5a9ea0d2198066f9f1d15f5c9ca327a2c9"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        268443,
+        291269,
+        238327,
+        218349
+      ],
+      "group_sizes": [
+        428,
+        107,
+        1,
+        3
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "intolerable",
+        "cruelty"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "intolerable",
+        "cruelty"
+      ],
+      "source_query_id": "train:26330",
+      "source_query_index": 26330,
+      "source_text": "what was the release year of Intolerable Cruelty?",
+      "stable_rank": "000a17d821d872aec05e0dcd26cc10801ce1b5a1994642edfdb209bdb1dffc49"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        215973,
+        228078,
+        278599
+      ],
+      "group_sizes": [
+        421,
+        115,
+        2,
+        235
+      ],
+      "normalized_tokens": [
+        "films",
+        "claire",
+        "forlani",
+        "star"
+      ],
+      "retained_tokens": [
+        "films",
+        "claire",
+        "forlani",
+        "star"
+      ],
+      "source_query_id": "train:91483",
+      "source_query_index": 91483,
+      "source_text": "what films did Claire Forlani star in?",
+      "stable_rank": "000ae03e28dec020d094ad5b722f964fb97c99b3c69ad09c07c3cf3868ed7bbc"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        239191,
+        290447,
+        221541,
+        227235
+      ],
+      "group_sizes": [
+        1158,
+        111,
+        18127,
+        421
+      ],
+      "normalized_tokens": [
+        "james",
+        "wong",
+        "director",
+        "films"
+      ],
+      "retained_tokens": [
+        "james",
+        "wong",
+        "director",
+        "films"
+      ],
+      "source_query_id": "test:1346",
+      "source_query_index": 107531,
+      "source_text": "James Wong was the director of which films?",
+      "stable_rank": "000dc81de16ab5ffa2cfc42c20b17749b505797e91d1219adbab1969d88dd8a7"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        265612,
+        246039,
+        227207,
+        279226
+      ],
+      "group_sizes": [
+        3,
+        15,
+        106919,
+        1
+      ],
+      "normalized_tokens": [
+        "primary",
+        "language",
+        "film",
+        "storage"
+      ],
+      "retained_tokens": [
+        "primary",
+        "language",
+        "film",
+        "storage"
+      ],
+      "source_query_id": "train:47486",
+      "source_query_index": 47486,
+      "source_text": "what is the primary language in the film The Storage?",
+      "stable_rank": "000f0c3b06617dff0c1736e93b44c4be3cd133ff3caf83fa5a9c4d9fcee63c3b"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        216043,
+        292403,
+        290688
+      ],
+      "group_sizes": [
+        421,
+        157,
+        4,
+        17346
+      ],
+      "normalized_tokens": [
+        "films",
+        "claude",
+        "zidi",
+        "writer"
+      ],
+      "retained_tokens": [
+        "films",
+        "claude",
+        "zidi",
+        "writer"
+      ],
+      "source_query_id": "train:6456",
+      "source_query_index": 6456,
+      "source_text": "what films was Claude Zidi a writer on?",
+      "stable_rank": "0010e1be3d684fe0ba927ba8fa6a11598237030f8f57d2415a6548cdf20a6d06"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        290688,
+        227207,
+        267141,
+        286653
+      ],
+      "group_sizes": [
+        17346,
+        106919,
+        56,
+        98
+      ],
+      "normalized_tokens": [
+        "writer",
+        "film",
+        "rainbow",
+        "valley"
+      ],
+      "retained_tokens": [
+        "writer",
+        "film",
+        "rainbow",
+        "valley"
+      ],
+      "source_query_id": "train:41751",
+      "source_query_index": 41751,
+      "source_text": "who is the writer of the film Rainbow Valley?",
+      "stable_rank": "0013854854c6f6083752de2d7978f70e3827741abb79fd55adeee676de85512a"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        230246,
+        227207,
+        213598,
+        132087
+      ],
+      "group_sizes": [
+        410,
+        106919,
+        92,
+        17
+      ],
+      "normalized_tokens": [
+        "genre",
+        "film",
+        "case",
+        "39"
+      ],
+      "retained_tokens": [
+        "genre",
+        "film",
+        "case",
+        "39"
+      ],
+      "source_query_id": "train:48930",
+      "source_query_index": 48930,
+      "source_text": "what is the genre for the film Case 39?",
+      "stable_rank": "0014e9066e8baec1fbe34142a1fee00c3290e18b53c990703dfceb642f9f3269"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        290558,
+        227207,
+        288747,
+        232801
+      ],
+      "group_sizes": [
+        27,
+        106919,
+        31,
+        2
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "film",
+        "waiting",
+        "guffman"
+      ],
+      "retained_tokens": [
+        "words",
+        "film",
+        "waiting",
+        "guffman"
+      ],
+      "source_query_id": "train:14350",
+      "source_query_index": 14350,
+      "source_text": "what words describe film Waiting for Guffman?",
+      "stable_rank": "001654b4da97b22a2695627a5343cb096724efd669256bcfd1198756dbd1811c"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        253236,
+        274884,
+        221538
+      ],
+      "group_sizes": [
+        421,
+        23,
+        6,
+        6
+      ],
+      "normalized_tokens": [
+        "films",
+        "melville",
+        "shavelson",
+        "direct"
+      ],
+      "retained_tokens": [
+        "films",
+        "melville",
+        "shavelson",
+        "direct"
+      ],
+      "source_query_id": "train:61039",
+      "source_query_index": 61039,
+      "source_text": "what films did Melville Shavelson direct?",
+      "stable_rank": "001b7d46c8ab4307e68d6d27bd9160bb570d89212a5a93503ab01d5d2cae8c45"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        255983,
+        222353,
+        252611,
+        200609
+      ],
+      "group_sizes": [
+        45,
+        128,
+        28,
+        50608
+      ],
+      "normalized_tokens": [
+        "movies",
+        "dorothy",
+        "mcguire",
+        "actor"
+      ],
+      "retained_tokens": [
+        "movies",
+        "dorothy",
+        "mcguire",
+        "actor"
+      ],
+      "source_query_id": "train:92636",
+      "source_query_index": 92636,
+      "source_text": "what movies was Dorothy McGuire an actor in?",
+      "stable_rank": "0025c796e1c01dac55d5ea267e1d98d32288ca9f46bc44e9586d3e6a474f837f"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227207,
+        230246,
+        116171,
+        225888
+      ],
+      "group_sizes": [
+        106919,
+        410,
+        9,
+        343
+      ],
+      "normalized_tokens": [
+        "film",
+        "genre",
+        "247",
+        "f"
+      ],
+      "retained_tokens": [
+        "film",
+        "genre",
+        "247",
+        "f"
+      ],
+      "source_query_id": "train:58100",
+      "source_query_index": 58100,
+      "source_text": "what film genre is 247\u00b0F?",
+      "stable_rank": "0026a97ae030202582fc005a04c0cbbcbd5d4a6b8f757f2a882f99c21765c297"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        283652,
+        212192,
+        203549
+      ],
+      "group_sizes": [
+        421,
+        689,
+        1,
+        2
+      ],
+      "normalized_tokens": [
+        "films",
+        "tom",
+        "burlinson",
+        "appear"
+      ],
+      "retained_tokens": [
+        "films",
+        "tom",
+        "burlinson",
+        "appear"
+      ],
+      "source_query_id": "train:90944",
+      "source_query_index": 90944,
+      "source_text": "what films does Tom Burlinson appear in?",
+      "stable_rank": "0027b922466d468dfddc28f168d1a19043f9bffa4196eec8a6ccd2bf94dee497"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        219572,
+        210684,
+        278599
+      ],
+      "group_sizes": [
+        421,
+        1846,
+        5,
+        235
+      ],
+      "normalized_tokens": [
+        "films",
+        "david",
+        "bowie",
+        "star"
+      ],
+      "retained_tokens": [
+        "films",
+        "david",
+        "bowie",
+        "star"
+      ],
+      "source_query_id": "train:95398",
+      "source_query_index": 95398,
+      "source_text": "what films did David Bowie star in?",
+      "stable_rank": "0028a9b8425d3350284709523c0b65b18e3902ea7d9fa2547013ffed6fd4f993"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        255983,
+        236427,
+        246003,
+        278599
+      ],
+      "group_sizes": [
+        45,
+        72,
+        26,
+        235
+      ],
+      "normalized_tokens": [
+        "movies",
+        "hope",
+        "lange",
+        "star"
+      ],
+      "retained_tokens": [
+        "movies",
+        "hope",
+        "lange",
+        "star"
+      ],
+      "source_query_id": "test:788",
+      "source_query_index": 106973,
+      "source_text": "what movies did Hope Lange star in?",
+      "stable_rank": "002f4028e48c585446feb6779ba2e40828a3301ec6ff0b7e5a75908ba5b97840"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        219158,
+        229111,
+        203549
+      ],
+      "group_sizes": [
+        421,
+        299,
+        4,
+        2
+      ],
+      "normalized_tokens": [
+        "films",
+        "dan",
+        "futterman",
+        "appear"
+      ],
+      "retained_tokens": [
+        "films",
+        "dan",
+        "futterman",
+        "appear"
+      ],
+      "source_query_id": "test:596",
+      "source_query_index": 106781,
+      "source_text": "what films does Dan Futterman appear in?",
+      "stable_rank": "003041859a9a41ec190227ff9a4688b325f9d223350961f989aa6cb17102f97c"
+    },
+    {
+      "g": 4,
+      "group_ids": [
+        227235,
+        239256,
+        218663,
+        203549
+      ],
+      "group_sizes": [
+        421,
+        233,
+        4,
+        2
+      ],
+      "normalized_tokens": [
+        "films",
+        "jane",
+        "curtin",
+        "appear"
+      ],
+      "retained_tokens": [
+        "films",
+        "jane",
+        "curtin",
+        "appear"
+      ],
+      "source_query_id": "train:88018",
+      "source_query_index": 88018,
+      "source_text": "what films does Jane Curtin appear in?",
+      "stable_rank": "00312a2f924164cb3def0efc4527ae9c55e7025f85222405103de9385bb7e1cd"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        255982,
+        257431,
+        207905,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        401,
+        23,
+        100,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "movie",
+        "nat",
+        "bennett",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "movie",
+        "nat",
+        "bennett",
+        "write",
+        "story"
+      ],
+      "source_query_id": "train:9598",
+      "source_query_index": 9598,
+      "source_text": "what movie did Nat Bennett write the story for?",
+      "stable_rank": "00011d127bcc6539dfe689f714fa0c568577ef8eb3995bc665b57c6b26e9cc33"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        291269,
+        227207,
+        284869,
+        247574,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        103,
+        51,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "true",
+        "lies",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "true",
+        "lies",
+        "released"
+      ],
+      "source_query_id": "train:26952",
+      "source_query_index": 26952,
+      "source_text": "what year was the film True Lies released?",
+      "stable_rank": "00077603ea0e0bf478ac7e4391a2efee6a7a4e18ebacee36bfd0f3820145dd89"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        255982,
+        212718,
+        259142,
+        175159,
+        290558
+      ],
+      "group_sizes": [
+        401,
+        118,
+        1,
+        9,
+        27
+      ],
+      "normalized_tokens": [
+        "describe",
+        "movie",
+        "call",
+        "northside",
+        "777",
+        "words"
+      ],
+      "retained_tokens": [
+        "movie",
+        "call",
+        "northside",
+        "777",
+        "words"
+      ],
+      "source_query_id": "train:20339",
+      "source_query_index": 20339,
+      "source_text": "can you describe movie Call Northside 777 in a few words?",
+      "stable_rank": "0008a6259afd95b5032b2d88a006aa446c094502551014e75b3f737d1dd1562b"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        218046,
+        227207,
+        273479,
+        248403,
+        233128
+      ],
+      "group_sizes": [
+        9,
+        106919,
+        5,
+        30,
+        219
+      ],
+      "normalized_tokens": [
+        "creator",
+        "film",
+        "script",
+        "lonely",
+        "guy"
+      ],
+      "retained_tokens": [
+        "creator",
+        "film",
+        "script",
+        "lonely",
+        "guy"
+      ],
+      "source_query_id": "train:35067",
+      "source_query_index": 35067,
+      "source_text": "who is the creator of the film script for The Lonely Guy?",
+      "stable_rank": "00095c3fe80bb9373cd0245a2b9bb70021e750b88117989de436a3321c1752a9"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        227207,
+        253806,
+        219687,
+        248826,
+        290687
+      ],
+      "group_sizes": [
+        106919,
+        1646,
+        1718,
+        39,
+        1
+      ],
+      "normalized_tokens": [
+        "film",
+        "michael",
+        "de",
+        "luca",
+        "write"
+      ],
+      "retained_tokens": [
+        "film",
+        "michael",
+        "de",
+        "luca",
+        "write"
+      ],
+      "source_query_id": "train:8777",
+      "source_query_index": 8777,
+      "source_text": "what film did Michael De Luca write?",
+      "stable_rank": "00114132363dd3669f4e24566b52e8b99421ec91edd299915ec8d3a35f92bb39"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        227207,
+        216043,
+        254201,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        106919,
+        157,
+        324,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "film",
+        "claude",
+        "miller",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "film",
+        "claude",
+        "miller",
+        "write",
+        "story"
+      ],
+      "source_query_id": "test:9551",
+      "source_query_index": 115736,
+      "source_text": "which film did Claude Miller write the story for?",
+      "stable_rank": "0012098d62a90d158b322bede1218940c6092f61c7bc9cfd0ef3b22cc3524051"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        230246,
+        242990,
+        204614,
+        110936,
+        226138
+      ],
+      "group_sizes": [
+        410,
+        32,
+        166,
+        1637,
+        87
+      ],
+      "normalized_tokens": [
+        "genre",
+        "kick",
+        "ass",
+        "2",
+        "fall"
+      ],
+      "retained_tokens": [
+        "genre",
+        "kick",
+        "ass",
+        "2",
+        "fall"
+      ],
+      "source_query_id": "train:50028",
+      "source_query_index": 50028,
+      "source_text": "what genre does Kick-Ass 2 fall under?",
+      "stable_rank": "001219b16f84f23c7943e3bded6eb5e6c56824bc9ff60465737a997b37366d19"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        285483,
+        255982,
+        218835,
+        238874,
+        288563
+      ],
+      "group_sizes": [
+        22,
+        401,
+        916,
+        1082,
+        14
+      ],
+      "normalized_tokens": [
+        "type",
+        "movie",
+        "d",
+        "j",
+        "vu"
+      ],
+      "retained_tokens": [
+        "type",
+        "movie",
+        "d",
+        "j",
+        "vu"
+      ],
+      "source_query_id": "train:53017",
+      "source_query_index": 53017,
+      "source_text": "what type of movie is D\u00e9j\u00e0 Vu?",
+      "stable_rank": "00159c23907e2fbd4cfaee75f30ea365226bd07ed62181a6261fad46f5596a9e"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        255982,
+        263365,
+        223131,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        401,
+        1013,
+        84,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "movie",
+        "peter",
+        "duncan",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "movie",
+        "peter",
+        "duncan",
+        "write",
+        "story"
+      ],
+      "source_query_id": "train:5486",
+      "source_query_index": 5486,
+      "source_text": "what movie did Peter Duncan write the story for?",
+      "stable_rank": "001aa018b13369ed8dc481ce3b5ceea2189d400b192537029e563e3d8e758a38"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        291269,
+        255982,
+        207196,
+        201077,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        1,
+        17,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "beaches",
+        "agn",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "beaches",
+        "agn",
+        "released"
+      ],
+      "source_query_id": "train:24096",
+      "source_query_index": 24096,
+      "source_text": "what year was the movie The Beaches of Agn\u00e8s released?",
+      "stable_rank": "0027435c1b81276cf2997a65d8799091bb3a0996a29e417e3bfd729c634bd5b0"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        246039,
+        260052,
+        245632,
+        288839,
+        273523
+      ],
+      "group_sizes": [
+        15,
+        169,
+        273,
+        12,
+        171
+      ],
+      "normalized_tokens": [
+        "language",
+        "spoken",
+        "old",
+        "lady",
+        "walked",
+        "sea"
+      ],
+      "retained_tokens": [
+        "language",
+        "old",
+        "lady",
+        "walked",
+        "sea"
+      ],
+      "source_query_id": "train:47155",
+      "source_query_index": 47155,
+      "source_text": "what is the language spoken in The Old Lady Who Walked in the Sea?",
+      "stable_rank": "002871f3d443560ab6841464b7b35e89fe1a2f350ff849a176a2af3bfac1022e"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        231067,
+        290558,
+        275094,
+        236195,
+        289074
+      ],
+      "group_sizes": [
+        40,
+        27,
+        40,
+        85,
+        59
+      ],
+      "normalized_tokens": [
+        "give",
+        "words",
+        "describing",
+        "sherlock",
+        "holmes",
+        "washington"
+      ],
+      "retained_tokens": [
+        "give",
+        "words",
+        "sherlock",
+        "holmes",
+        "washington"
+      ],
+      "source_query_id": "train:13212",
+      "source_query_index": 13212,
+      "source_text": "can you give a few words describing Sherlock Holmes in Washington?",
+      "stable_rank": "0030223a2798f4ee8e4e91949183b3c0cde2cb2ab14c992fe4ddb96a9ccd6d95"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        268443,
+        291269,
+        227207,
+        273632,
+        247886
+      ],
+      "group_sizes": [
+        428,
+        107,
+        106919,
+        1,
+        20
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "film",
+        "secondhand",
+        "lions"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "film",
+        "secondhand",
+        "lions"
+      ],
+      "source_query_id": "train:26981",
+      "source_query_index": 26981,
+      "source_text": "what was the release year of the film Secondhand Lions?",
+      "stable_rank": "003d22b036564c1db494b7982542bd46ae50e2d45b7eeaa8edbf8132f3bb8fee"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        291269,
+        255982,
+        201041,
+        279617,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        70,
+        13,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "age",
+        "stupid",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "age",
+        "stupid",
+        "released"
+      ],
+      "source_query_id": "train:29451",
+      "source_query_index": 29451,
+      "source_text": "what year was the movie The Age of Stupid released?",
+      "stable_rank": "00500b1dbbb52caac5a033c8e7216417612b65ebe1581034b0ea694c725b9866"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        268443,
+        291269,
+        227207,
+        289709,
+        258497
+      ],
+      "group_sizes": [
+        428,
+        107,
+        106919,
+        533,
+        64
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "film",
+        "white",
+        "nights"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "film",
+        "white",
+        "nights"
+      ],
+      "source_query_id": "train:22595",
+      "source_query_index": 22595,
+      "source_text": "what was the release year of the film White Nights?",
+      "stable_rank": "005463d3da759ff527fe731fa4634f51b56fc8b5c7a975c10086005527b4bf82"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        200610,
+        236870,
+        261192,
+        258232,
+        279259
+      ],
+      "group_sizes": [
+        7,
+        4,
+        505,
+        49,
+        1276
+      ],
+      "normalized_tokens": [
+        "actors",
+        "huey",
+        "p",
+        "newton",
+        "story"
+      ],
+      "retained_tokens": [
+        "actors",
+        "huey",
+        "p",
+        "newton",
+        "story"
+      ],
+      "source_query_id": "train:65548",
+      "source_query_index": 65548,
+      "source_text": "who are the actors in A Huey P. Newton Story?",
+      "stable_rank": "0064966411c61256383abee41af36bcf54e41d38980b024f811b6799cf497b05"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        290580,
+        203471
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        445,
+        12
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "world",
+        "apart"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "world",
+        "apart"
+      ],
+      "source_query_id": "train:24786",
+      "source_query_index": 24786,
+      "source_text": "what was the release year of the movie A World Apart?",
+      "stable_rank": "006541b445765656c4b8c07d2760e30e31f9bd0cc01a69b12b557ecd3eb94a50"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        263268,
+        238750,
+        209146,
+        283412,
+        216803
+      ],
+      "group_sizes": [
+        18,
+        1,
+        1,
+        9,
+        5
+      ],
+      "normalized_tokens": [
+        "person",
+        "directed",
+        "itty",
+        "bitty",
+        "titty",
+        "committee"
+      ],
+      "retained_tokens": [
+        "person",
+        "itty",
+        "bitty",
+        "titty",
+        "committee"
+      ],
+      "source_query_id": "train:75168",
+      "source_query_index": 75168,
+      "source_text": "which person directed Itty Bitty Titty Committee?",
+      "stable_rank": "006f71c7fc6f98507144dea5bf49c870aac9768c72b9f08486e5089a990c100b"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        291269,
+        255982,
+        248601,
+        229115,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        237,
+        45,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "lost",
+        "future",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "lost",
+        "future",
+        "released"
+      ],
+      "source_query_id": "train:28876",
+      "source_query_index": 28876,
+      "source_text": "what year was the movie The Lost Future released?",
+      "stable_rank": "00735e67ee09021466f6094c9609829d2bd79b9b9dacbf4d03eaba74f3565c76"
+    },
+    {
+      "g": 5,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        146562,
+        263770
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        22,
+        34
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "52",
+        "pick"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "52",
+        "pick"
+      ],
+      "source_query_id": "train:23319",
+      "source_query_index": 23319,
+      "source_text": "what was the release date of the movie 52 Pick-Up?",
+      "stable_rank": "008131ec6537971c8cf12698944e8918b24a5d0627a1e7d33b61b0848b48eb8b"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        290702,
+        227207,
+        233226,
+        281984,
+        220627,
+        238356
+      ],
+      "group_sizes": [
+        6,
+        106919,
+        441,
+        17,
+        104,
+        1
+      ],
+      "normalized_tokens": [
+        "wrote",
+        "film",
+        "h",
+        "tel",
+        "des",
+        "invalides"
+      ],
+      "retained_tokens": [
+        "wrote",
+        "film",
+        "h",
+        "tel",
+        "des",
+        "invalides"
+      ],
+      "source_query_id": "train:40243",
+      "source_query_index": 40243,
+      "source_text": "who wrote the film H\u00f4tel des Invalides?",
+      "stable_rank": "001a08141484e158805e8f7313c169224920dd17e3fbe2b35fbae14d76d989ed"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        285483,
+        255982,
+        231805,
+        200484,
+        278401,
+        252038
+      ],
+      "group_sizes": [
+        22,
+        401,
+        12,
+        10,
+        223,
+        264
+      ],
+      "normalized_tokens": [
+        "type",
+        "movie",
+        "gospel",
+        "according",
+        "st",
+        "matthew"
+      ],
+      "retained_tokens": [
+        "type",
+        "movie",
+        "gospel",
+        "according",
+        "st",
+        "matthew"
+      ],
+      "source_query_id": "dev:4464",
+      "source_query_index": 100649,
+      "source_text": "what type of movie is The Gospel According to St. Matthew?",
+      "stable_rank": "0029eb9204076ce0495f38e854adaa8769953aefc8195e019f97c29bf72d7700"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        243225,
+        255982,
+        256446,
+        248051,
+        259407,
+        112053
+      ],
+      "group_sizes": [
+        39,
+        401,
+        8,
+        65,
+        38,
+        56
+      ],
+      "normalized_tokens": [
+        "kind",
+        "movie",
+        "murderer",
+        "lives",
+        "number",
+        "21"
+      ],
+      "retained_tokens": [
+        "kind",
+        "movie",
+        "murderer",
+        "lives",
+        "number",
+        "21"
+      ],
+      "source_query_id": "train:58545",
+      "source_query_index": 58545,
+      "source_text": "what kind of movie is The Murderer Lives at Number 21?",
+      "stable_rank": "0046fe26109fb06470c8cb9291e8b4671cd2b3291bdac91e235ced0b3447fa7d"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        290558,
+        227207,
+        265117,
+        202256,
+        269362,
+        285392
+      ],
+      "group_sizes": [
+        27,
+        106919,
+        9,
+        43,
+        15,
+        23
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "film",
+        "postman",
+        "always",
+        "rings",
+        "twice"
+      ],
+      "retained_tokens": [
+        "words",
+        "film",
+        "postman",
+        "always",
+        "rings",
+        "twice"
+      ],
+      "source_query_id": "train:14084",
+      "source_query_index": 14084,
+      "source_text": "what words describe film The Postman Always Rings Twice?",
+      "stable_rank": "005a7dea594aaa1d660b00823360be4206ed9d6a47009537df63cdee36ad320e"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        268443,
+        291269,
+        227207,
+        282848,
+        222104,
+        218387
+      ],
+      "group_sizes": [
+        428,
+        107,
+        106919,
+        1,
+        521,
+        71
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "film",
+        "thoroughbreds",
+        "don",
+        "cry"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "film",
+        "thoroughbreds",
+        "don",
+        "cry"
+      ],
+      "source_query_id": "train:22035",
+      "source_query_index": 22035,
+      "source_text": "what was the release year of the film Thoroughbreds Don't Cry?",
+      "stable_rank": "006d08fc44f0ead8df4fc64873988832250c7881d01aa172b4605274be31ac1d"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        227207,
+        219222,
+        225888,
+        229438,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        106919,
+        544,
+        343,
+        1,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "film",
+        "daniel",
+        "f",
+        "galouye",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "film",
+        "daniel",
+        "f",
+        "galouye",
+        "write",
+        "story"
+      ],
+      "source_query_id": "test:9548",
+      "source_query_index": 115733,
+      "source_text": "which film did Daniel F. Galouye write the story for?",
+      "stable_rank": "0070c145981bd2460bd7f3dd292ba997547fe3ce70a0e9e97d4a6c03128a04ec"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        230246,
+        227207,
+        265615,
+        254636,
+        239589,
+        211447
+      ],
+      "group_sizes": [
+        410,
+        106919,
+        34,
+        142,
+        631,
+        15
+      ],
+      "normalized_tokens": [
+        "genre",
+        "film",
+        "prime",
+        "miss",
+        "jean",
+        "brodie"
+      ],
+      "retained_tokens": [
+        "genre",
+        "film",
+        "prime",
+        "miss",
+        "jean",
+        "brodie"
+      ],
+      "source_query_id": "train:51197",
+      "source_query_index": 51197,
+      "source_text": "what genre of film is The Prime of Miss Jean Brodie?",
+      "stable_rank": "00825a4d18e36e3935e3c49e36ed2b00fc460bd0e803ecac525579ad2bf863fe"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        254540,
+        217922,
+        218835,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        38,
+        29,
+        916,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "mirror",
+        "crack",
+        "d",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "mirror",
+        "crack",
+        "d",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:40432",
+      "source_query_index": 40432,
+      "source_text": "The Mirror Crack'd is a film written by this person?",
+      "stable_rank": "008387cb9bf8b77e609f8d09a8cae68af3dbe6b4882358f1e050275f16b66017"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        227207,
+        271631,
+        22252,
+        219659,
+        277188,
+        268444
+      ],
+      "group_sizes": [
+        106919,
+        21,
+        11,
+        216,
+        9,
+        1
+      ],
+      "normalized_tokens": [
+        "film",
+        "sal",
+        "120",
+        "days",
+        "sodom",
+        "released"
+      ],
+      "retained_tokens": [
+        "film",
+        "sal",
+        "120",
+        "days",
+        "sodom",
+        "released"
+      ],
+      "source_query_id": "train:32951",
+      "source_query_index": 32951,
+      "source_text": "when was the film Sal\u00f2, or the 120 Days of Sodom released?",
+      "stable_rank": "008f1128b616ffcedf61309a54a4db7ee79bc24dbc272acc15c4111b95a2ce23"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        290558,
+        255982,
+        272523,
+        258473,
+        280039,
+        255663
+      ],
+      "group_sizes": [
+        27,
+        401,
+        30,
+        643,
+        56,
+        57
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "movie",
+        "saturday",
+        "night",
+        "sunday",
+        "morning"
+      ],
+      "retained_tokens": [
+        "words",
+        "movie",
+        "saturday",
+        "night",
+        "sunday",
+        "morning"
+      ],
+      "source_query_id": "train:15712",
+      "source_query_index": 15712,
+      "source_text": "which words describe movie Saturday Night and Sunday Morning?",
+      "stable_rank": "00a449de2fa76259d33203c394a6465b43603ab69222ff756af0be1ea9a8316f"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        200881,
+        236837,
+        227331
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        223,
+        5,
+        48
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "adventures",
+        "huckleberry",
+        "finn"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "adventures",
+        "huckleberry",
+        "finn"
+      ],
+      "source_query_id": "train:25641",
+      "source_query_index": 25641,
+      "source_text": "what was the release date of the film The Adventures of Huckleberry Finn?",
+      "stable_rank": "00a715c4a2ca17b1e71ce0a6c68abb3e0264a7c6da32d2d4ffe3f8209c1e9090"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        290702,
+        227207,
+        225559,
+        223378,
+        278665,
+        276895
+      ],
+      "group_sizes": [
+        6,
+        106919,
+        25,
+        7,
+        8,
+        71
+      ],
+      "normalized_tokens": [
+        "wrote",
+        "film",
+        "even",
+        "dwarfs",
+        "started",
+        "small"
+      ],
+      "retained_tokens": [
+        "wrote",
+        "film",
+        "even",
+        "dwarfs",
+        "started",
+        "small"
+      ],
+      "source_query_id": "train:40898",
+      "source_query_index": 40898,
+      "source_text": "who wrote the film Even Dwarfs Started Small?",
+      "stable_rank": "00bda96dc78ab91f48d0bbb8c4908924c955209ec3a51f8fa601c77b6309f0e5"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        261707,
+        291269,
+        292307
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        19,
+        107,
+        61
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "panic",
+        "year",
+        "zero"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "panic",
+        "year",
+        "zero"
+      ],
+      "source_query_id": "train:32830",
+      "source_query_index": 32830,
+      "source_text": "what was the release date of the movie Panic in Year Zero!?",
+      "stable_rank": "00c7279343dc677efe83168c790a943fdc726f625df8db71e75ea30dce4b0c20"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        218046,
+        227207,
+        273479,
+        218835,
+        238874,
+        288563
+      ],
+      "group_sizes": [
+        9,
+        106919,
+        5,
+        916,
+        1082,
+        14
+      ],
+      "normalized_tokens": [
+        "creator",
+        "film",
+        "script",
+        "d",
+        "j",
+        "vu"
+      ],
+      "retained_tokens": [
+        "creator",
+        "film",
+        "script",
+        "d",
+        "j",
+        "vu"
+      ],
+      "source_query_id": "train:39767",
+      "source_query_index": 39767,
+      "source_text": "who is the creator of the film script for D\u00e9j\u00e0 Vu?",
+      "stable_rank": "00e7d365a9ef52a3188a9603625a54d2bc2ac3a9d087a90d2c127cfc6bb627df"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        215929,
+        248061,
+        219692
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        354,
+        100,
+        344
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "city",
+        "living",
+        "dead"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "city",
+        "living",
+        "dead"
+      ],
+      "source_query_id": "train:20748",
+      "source_query_index": 20748,
+      "source_text": "what was the release date of the movie City of the Living Dead?",
+      "stable_rank": "010541585bd32a4b53641a564067097720526c98005ee8f1dd08b6d9050e6b38"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        255982,
+        201756,
+        231608,
+        247386,
+        270632,
+        221541
+      ],
+      "group_sizes": [
+        401,
+        79,
+        50,
+        58,
+        4,
+        18127
+      ],
+      "normalized_tokens": [
+        "movie",
+        "alejandro",
+        "gonz",
+        "lez",
+        "rritu",
+        "director"
+      ],
+      "retained_tokens": [
+        "movie",
+        "alejandro",
+        "gonz",
+        "lez",
+        "rritu",
+        "director"
+      ],
+      "source_query_id": "train:62493",
+      "source_query_index": 62493,
+      "source_text": "which movie was Alejandro Gonz\u00e1lez I\u00f1\u00e1rritu the director for?",
+      "stable_rank": "011667b06ec291499ed16aa2bd81fd42e154a5e71033524391c80bcd87152a9c"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        255982,
+        265692,
+        288966,
+        250118,
+        207935,
+        268444
+      ],
+      "group_sizes": [
+        401,
+        167,
+        338,
+        51,
+        35,
+        1
+      ],
+      "normalized_tokens": [
+        "movie",
+        "private",
+        "war",
+        "major",
+        "benson",
+        "released"
+      ],
+      "retained_tokens": [
+        "movie",
+        "private",
+        "war",
+        "major",
+        "benson",
+        "released"
+      ],
+      "source_query_id": "test:8075",
+      "source_query_index": 114260,
+      "source_text": "when was the movie The Private War of Major Benson released?",
+      "stable_rank": "012a454134bc08c980a16a10fb2de927932c9bf52df2c3111e1f8db2411a96cf"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        202119,
+        212821,
+        240305
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        32,
+        71,
+        401
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "along",
+        "came",
+        "jones"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "along",
+        "came",
+        "jones"
+      ],
+      "source_query_id": "train:24557",
+      "source_query_index": 24557,
+      "source_text": "what was the release year of the movie Along Came Jones?",
+      "stable_rank": "013cadfdd7c3cf78eb2c4a859677adb544afaef05cda0eb32cc27d03a7a78b66"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        291269,
+        227207,
+        246268,
+        236663,
+        246778,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        471,
+        407,
+        47,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "last",
+        "house",
+        "left",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "last",
+        "house",
+        "left",
+        "released"
+      ],
+      "source_query_id": "train:32420",
+      "source_query_index": 32420,
+      "source_text": "what year was the film The Last House on the Left released?",
+      "stable_rank": "014feced888514c728756ffe4ba89006f80f89f0be6fcae22aa78280507a3a56"
+    },
+    {
+      "g": 6,
+      "group_ids": [
+        290702,
+        255982,
+        259125,
+        289543,
+        255918,
+        264680
+      ],
+      "group_sizes": [
+        6,
+        401,
+        122,
+        253,
+        20,
+        78
+      ],
+      "normalized_tokens": [
+        "wrote",
+        "movie",
+        "north",
+        "west",
+        "mounted",
+        "police"
+      ],
+      "retained_tokens": [
+        "wrote",
+        "movie",
+        "north",
+        "west",
+        "mounted",
+        "police"
+      ],
+      "source_query_id": "train:42314",
+      "source_query_index": 42314,
+      "source_text": "who wrote the movie North West Mounted Police?",
+      "stable_rank": "01abd141c071121f63a33783040dd0c1643e1b38fa7487ea331680ca68cc6fbd"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        227207,
+        230246,
+        219692,
+        234688,
+        253535,
+        231296,
+        270484
+      ],
+      "group_sizes": [
+        106919,
+        410,
+        344,
+        105,
+        32,
+        236,
+        39
+      ],
+      "normalized_tokens": [
+        "film",
+        "genre",
+        "dead",
+        "heat",
+        "merry",
+        "go",
+        "round"
+      ],
+      "retained_tokens": [
+        "film",
+        "genre",
+        "dead",
+        "heat",
+        "merry",
+        "go",
+        "round"
+      ],
+      "source_query_id": "test:4663",
+      "source_query_index": 110848,
+      "source_text": "what film genre is Dead Heat on a Merry-Go-Round?",
+      "stable_rank": "007245b99e5b475a5201634310fb3437d2c9b4c87a77d6b0ba20369e2378d9f3"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        291269,
+        255982,
+        289514,
+        235356,
+        223579,
+        275431,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        53,
+        10,
+        7,
+        14,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "werner",
+        "herzog",
+        "eats",
+        "shoe",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "werner",
+        "herzog",
+        "eats",
+        "shoe",
+        "released"
+      ],
+      "source_query_id": "train:34023",
+      "source_query_index": 34023,
+      "source_text": "what year was the movie Werner Herzog Eats His Shoe released?",
+      "stable_rank": "0075f6022de5b2dffcb9eac0429c06654ba0562c72c18c98cd56fcf4fbbefe3b"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        263268,
+        290702,
+        255982,
+        258235,
+        279215,
+        232264,
+        287905
+      ],
+      "group_sizes": [
+        18,
+        6,
+        401,
+        98,
+        60,
+        7,
+        35
+      ],
+      "normalized_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "next",
+        "stop",
+        "greenwich",
+        "village"
+      ],
+      "retained_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "next",
+        "stop",
+        "greenwich",
+        "village"
+      ],
+      "source_query_id": "train:43195",
+      "source_query_index": 43195,
+      "source_text": "which person wrote the movie Next Stop, Greenwich Village?",
+      "stable_rank": "00910362f232504ac827061b9f8f3b77a32fc16c61102438df2e881a5a3cb18c"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        218046,
+        227207,
+        273479,
+        258473,
+        247588,
+        240019,
+        267984
+      ],
+      "group_sizes": [
+        9,
+        106919,
+        5,
+        643,
+        566,
+        187,
+        5
+      ],
+      "normalized_tokens": [
+        "creator",
+        "film",
+        "script",
+        "night",
+        "life",
+        "jimmy",
+        "reardon"
+      ],
+      "retained_tokens": [
+        "creator",
+        "film",
+        "script",
+        "night",
+        "life",
+        "jimmy",
+        "reardon"
+      ],
+      "source_query_id": "train:43675",
+      "source_query_index": 43675,
+      "source_text": "who is the creator of the film script for A Night in the Life of Jimmy Reardon?",
+      "stable_rank": "014cc9133ddb4bcb5fc8123c0786a7a25158afe797f761b168b637fd6987d051"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        291269,
+        227207,
+        269805,
+        236532,
+        263800,
+        275550,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        45,
+        92,
+        57,
+        129,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "rocky",
+        "horror",
+        "picture",
+        "show",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "rocky",
+        "horror",
+        "picture",
+        "show",
+        "released"
+      ],
+      "source_query_id": "train:24891",
+      "source_query_index": 24891,
+      "source_text": "what year was the film The Rocky Horror Picture Show released?",
+      "stable_rank": "03fe5524a09433de6b18264959e9692b726a1a5fbda4a546dbd2741c410823d5"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        291269,
+        255982,
+        144336,
+        214108,
+        263049,
+        273629,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        321,
+        2,
+        58,
+        146,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "5",
+        "centimeters",
+        "per",
+        "second",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "5",
+        "centimeters",
+        "per",
+        "second",
+        "released"
+      ],
+      "source_query_id": "train:33171",
+      "source_query_index": 33171,
+      "source_text": "what year was the movie 5 Centimeters Per Second released?",
+      "stable_rank": "04b62a8bb77ef4c3a90085e913b0a5b702b4a7e4b59b024d1146a06dc7de4827"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        263268,
+        290702,
+        255982,
+        256059,
+        262051,
+        287659,
+        215874
+      ],
+      "group_sizes": [
+        18,
+        6,
+        401,
+        215,
+        162,
+        17,
+        50
+      ],
+      "normalized_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "mrs",
+        "parker",
+        "vicious",
+        "circle"
+      ],
+      "retained_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "mrs",
+        "parker",
+        "vicious",
+        "circle"
+      ],
+      "source_query_id": "train:38386",
+      "source_query_index": 38386,
+      "source_text": "which person wrote the movie Mrs. Parker and the Vicious Circle?",
+      "stable_rank": "04e2a8cdd8c8cd810c0b730b740aa99ab890123edf64be48e765d215f2dd20a9"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        265775,
+        246529,
+        225390,
+        221700
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        62,
+        9,
+        22,
+        10
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "professor",
+        "layton",
+        "eternal",
+        "diva"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "professor",
+        "layton",
+        "eternal",
+        "diva"
+      ],
+      "source_query_id": "train:32915",
+      "source_query_index": 32915,
+      "source_text": "what was the release date of the film Professor Layton and the Eternal Diva?",
+      "stable_rank": "066562017ad3b38d5f1a485588d765d8e1454fef85c6f4f34d95e5261ff9e121"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        255982,
+        251199,
+        286717,
+        220530,
+        264649,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        401,
+        1,
+        464,
+        141,
+        4,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "movie",
+        "marieke",
+        "van",
+        "der",
+        "pol",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "movie",
+        "marieke",
+        "van",
+        "der",
+        "pol",
+        "write",
+        "story"
+      ],
+      "source_query_id": "train:9885",
+      "source_query_index": 9885,
+      "source_text": "what movie did Marieke van der Pol write the story for?",
+      "stable_rank": "06f66b1269646d044fcf89278579c93bdbc44882a768c5716fbfef6644af1502"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        290688,
+        227207,
+        245471,
+        256182,
+        219687,
+        253781,
+        235247
+      ],
+      "group_sizes": [
+        17346,
+        106919,
+        1133,
+        29,
+        1718,
+        98,
+        3
+      ],
+      "normalized_tokens": [
+        "writer",
+        "film",
+        "la",
+        "mujer",
+        "de",
+        "mi",
+        "hermano"
+      ],
+      "retained_tokens": [
+        "writer",
+        "film",
+        "la",
+        "mujer",
+        "de",
+        "mi",
+        "hermano"
+      ],
+      "source_query_id": "train:43842",
+      "source_query_index": 43842,
+      "source_text": "who was the writer of the film La mujer de mi hermano?",
+      "stable_rank": "07e3c5fa0fc271c3ed2e76f6a4ca454e036112878b789265e061fd97e7068388"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        278654,
+        282731,
+        285432,
+        275504,
+        227235,
+        231181,
+        231867
+      ],
+      "group_sizes": [
+        84,
+        13,
+        323,
+        74,
+        421,
+        99,
+        44
+      ],
+      "normalized_tokens": [
+        "stars",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "retained_tokens": [
+        "stars",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "source_query_id": "train:70989",
+      "source_query_index": 70989,
+      "source_text": "who stars in Thirty Two Short Films About Glenn Gould?",
+      "stable_rank": "083a1fcd4748cf4a50daaf88ddd2ce89f2462174e8e750f93b335978852c41c1"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        291269,
+        227207,
+        255600,
+        278990,
+        216760,
+        236247,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        172,
+        130,
+        61,
+        268,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "morgan",
+        "stewart",
+        "coming",
+        "home",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "morgan",
+        "stewart",
+        "coming",
+        "home",
+        "released"
+      ],
+      "source_query_id": "train:27359",
+      "source_query_index": 27359,
+      "source_text": "what year was the film Morgan Stewart's Coming Home released?",
+      "stable_rank": "0892ce4d488ba4c2462c9c4a14caf8f6c026bc80888505c18b06299a1f5cbb1a"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        230246,
+        255982,
+        200205,
+        217655,
+        252958,
+        213154,
+        243009
+      ],
+      "group_sizes": [
+        410,
+        401,
+        45,
+        33,
+        75,
+        160,
+        17
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "captain",
+        "kidd"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "captain",
+        "kidd"
+      ],
+      "source_query_id": "train:57217",
+      "source_query_index": 57217,
+      "source_text": "what is the genre of the movie Abbott and Costello Meet Captain Kidd?",
+      "stable_rank": "08f99643387df9e8fccf37f96d13055192ab0252748e1a880880e86e4de08978"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        248696,
+        219742,
+        248412,
+        238636
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        1086,
+        342,
+        194,
+        232
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "love",
+        "death",
+        "long",
+        "island"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "love",
+        "death",
+        "long",
+        "island"
+      ],
+      "source_query_id": "dev:7332",
+      "source_query_index": 103517,
+      "source_text": "what was the release date of the movie Love and Death on Long Island?",
+      "stable_rank": "0926579eb7d4cb4bf5862ad02cfbd4f11bc423ded262ec451cd88af24143e84a"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        230246,
+        255982,
+        222104,
+        288957,
+        231296,
+        205661,
+        202118
+      ],
+      "group_sizes": [
+        410,
+        401,
+        521,
+        53,
+        236,
+        224,
+        78
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "don",
+        "want",
+        "go",
+        "back",
+        "alone"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "don",
+        "want",
+        "go",
+        "back",
+        "alone"
+      ],
+      "source_query_id": "train:53997",
+      "source_query_index": 53997,
+      "source_text": "what is the genre of the movie I Don't Want to Go Back Alone?",
+      "stable_rank": "09ad77a4cfd76e9c9c68c12ca984b07e5f5c2394f6653f02c6510620806dca96"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        230246,
+        255982,
+        248224,
+        279113,
+        285432,
+        276971,
+        206720
+      ],
+      "group_sizes": [
+        410,
+        401,
+        15,
+        10,
+        323,
+        11,
+        2
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "lock",
+        "stock",
+        "two",
+        "smoking",
+        "barrels"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "lock",
+        "stock",
+        "two",
+        "smoking",
+        "barrels"
+      ],
+      "source_query_id": "train:51895",
+      "source_query_index": 51895,
+      "source_text": "what is the genre of the movie Lock, Stock and Two Smoking Barrels?",
+      "stable_rank": "09c1af3b4535fef5e6851369fc38fb3d586ceb38440544144bcb2bc5959a9f9a"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        276895,
+        284161,
+        229943,
+        206447
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        71,
+        153,
+        180,
+        53
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "small",
+        "town",
+        "gay",
+        "bar"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "small",
+        "town",
+        "gay",
+        "bar"
+      ],
+      "source_query_id": "dev:8644",
+      "source_query_index": 104829,
+      "source_text": "what was the release year of the movie Small Town Gay Bar?",
+      "stable_rank": "09dd1206e243e5a44e6110f0b55bfe8a3bc5a74acec832387f15807248bb20fb"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        285432,
+        256243,
+        276365,
+        272248
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        323,
+        2,
+        71,
+        98
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "two",
+        "mules",
+        "sister",
+        "sara"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "two",
+        "mules",
+        "sister",
+        "sara"
+      ],
+      "source_query_id": "train:24622",
+      "source_query_index": 24622,
+      "source_text": "what was the release year of the movie Two Mules for Sister Sara?",
+      "stable_rank": "0a7f4fdb04c11057780b8542618be4c8dd3f86e058588472d4e8e4b3b0740224"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        276623,
+        213154,
+        290580,
+        283733
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        131,
+        160,
+        445,
+        80
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "sky",
+        "captain",
+        "world",
+        "tomorrow"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "sky",
+        "captain",
+        "world",
+        "tomorrow"
+      ],
+      "source_query_id": "train:20612",
+      "source_query_index": 20612,
+      "source_text": "what was the release year of the movie Sky Captain and the World of Tomorrow?",
+      "stable_rank": "0bb25f1d5593843828341a0bb7d93386bb756591a8a97470620890fda2628fed"
+    },
+    {
+      "g": 7,
+      "group_ids": [
+        227235,
+        226896,
+        246570,
+        256789,
+        219687,
+        203709,
+        290688
+      ],
+      "group_sizes": [
+        421,
+        126,
+        461,
+        1042,
+        1718,
+        4,
+        17346
+      ],
+      "normalized_tokens": [
+        "films",
+        "fernando",
+        "le",
+        "n",
+        "de",
+        "aranoa",
+        "writer"
+      ],
+      "retained_tokens": [
+        "films",
+        "fernando",
+        "le",
+        "n",
+        "de",
+        "aranoa",
+        "writer"
+      ],
+      "source_query_id": "test:9656",
+      "source_query_index": 115841,
+      "source_text": "what films was Fernando Le\u00f3n de Aranoa a writer on?",
+      "stable_rank": "0bc8a273ad2f33df4c92ecbd1a0e31dd8b8d1e5be6ceb9c912c43baa98dee9e1"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        230246,
+        255982,
+        225806,
+        200881,
+        200626,
+        246570,
+        209299,
+        273619
+      ],
+      "group_sizes": [
+        410,
+        401,
+        5,
+        223,
+        21,
+        461,
+        19,
+        1
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "extraordinary",
+        "adventures",
+        "ad",
+        "le",
+        "blanc",
+        "sec"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "extraordinary",
+        "adventures",
+        "ad",
+        "le",
+        "blanc",
+        "sec"
+      ],
+      "source_query_id": "train:54687",
+      "source_query_index": 54687,
+      "source_text": "what is the genre for the movie The Extraordinary Adventures of Ad\u00e8le Blanc-Sec?",
+      "stable_rank": "0859bbd47da7e9efe61553f42063efcf7c18a1f1a5f29f355e8969821d5d6a77"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        227207,
+        237881,
+        284869,
+        200877,
+        285432,
+        230992,
+        248696,
+        268444
+      ],
+      "group_sizes": [
+        106919,
+        3,
+        103,
+        141,
+        323,
+        317,
+        1086,
+        1
+      ],
+      "normalized_tokens": [
+        "film",
+        "incredibly",
+        "true",
+        "adventure",
+        "two",
+        "girls",
+        "love",
+        "released"
+      ],
+      "retained_tokens": [
+        "film",
+        "incredibly",
+        "true",
+        "adventure",
+        "two",
+        "girls",
+        "love",
+        "released"
+      ],
+      "source_query_id": "train:23019",
+      "source_query_index": 23019,
+      "source_text": "when was the film The Incredibly True Adventure of Two Girls in Love released?",
+      "stable_rank": "0adcfbafcfa307e1d2a81881d548de0d641e0cedb29cc98746e66903c3bf4ade"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        265612,
+        246039,
+        227207,
+        219332,
+        259560,
+        230802,
+        248015,
+        263018
+      ],
+      "group_sizes": [
+        3,
+        15,
+        106919,
+        13,
+        1089,
+        30,
+        503,
+        123
+      ],
+      "normalized_tokens": [
+        "primary",
+        "language",
+        "film",
+        "darby",
+        "o",
+        "gill",
+        "little",
+        "people"
+      ],
+      "retained_tokens": [
+        "primary",
+        "language",
+        "film",
+        "darby",
+        "o",
+        "gill",
+        "little",
+        "people"
+      ],
+      "source_query_id": "train:47487",
+      "source_query_index": 47487,
+      "source_text": "what is the primary language in the film Darby O'Gill and the Little People?",
+      "stable_rank": "0fd7c8629a13da861a88a90f23db3ba73013a8484dab11f532a3f6d25a33b590"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        221541,
+        289488,
+        216979,
+        238636,
+        254650,
+        231322,
+        205661,
+        227505
+      ],
+      "group_sizes": [
+        18127,
+        15,
+        8,
+        232,
+        52,
+        145,
+        224,
+        109
+      ],
+      "normalized_tokens": [
+        "director",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five"
+      ],
+      "retained_tokens": [
+        "director",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five"
+      ],
+      "source_query_id": "train:82481",
+      "source_query_index": 82481,
+      "source_text": "who was the director of Went to Coney Island on a Mission from God... Be Back by Five?",
+      "stable_rank": "1043e329b85ccbc3503208f4129bc90d8c4d842ce974f478642d3c18642f1165"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        264959,
+        260431,
+        201814,
+        282255,
+        236529,
+        231616,
+        205705,
+        219630
+      ],
+      "group_sizes": [
+        11,
+        1,
+        286,
+        10,
+        3,
+        240,
+        211,
+        434
+      ],
+      "normalized_tokens": [
+        "popular",
+        "opinion",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day"
+      ],
+      "retained_tokens": [
+        "popular",
+        "opinion",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day"
+      ],
+      "source_query_id": "train:34555",
+      "source_query_index": 34555,
+      "source_text": "what is popular opinion about Alexander and the Terrible, Horrible, No Good, Very Bad Day?",
+      "stable_rank": "15dcf1d67c37ac2b156963072abfee9cbec91123b587ea230ed409f694e50a92"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        272843,
+        216029,
+        279544,
+        208405,
+        235650,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        24,
+        62,
+        10,
+        69,
+        75,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "scenes",
+        "class",
+        "struggle",
+        "beverly",
+        "hills",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "scenes",
+        "class",
+        "struggle",
+        "beverly",
+        "hills",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:38714",
+      "source_query_index": 38714,
+      "source_text": "Scenes from the Class Struggle in Beverly Hills is a film written by this person?",
+      "stable_rank": "1a27f42bd2d0494ef15570044b4519cfc056a4da54a88df3e48795a7ad56404d"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        290688,
+        289488,
+        216979,
+        238636,
+        254650,
+        231322,
+        205661,
+        227505
+      ],
+      "group_sizes": [
+        17346,
+        15,
+        8,
+        232,
+        52,
+        145,
+        224,
+        109
+      ],
+      "normalized_tokens": [
+        "writer",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five"
+      ],
+      "retained_tokens": [
+        "writer",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five"
+      ],
+      "source_query_id": "train:41128",
+      "source_query_index": 41128,
+      "source_text": "who's the writer of Went to Coney Island on a Mission from God... Be Back by Five?",
+      "stable_rank": "1c7525e9dabf44bdf8b177aec52c5542587c165151c66fc1e44c108300e56917"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        227207,
+        201814,
+        282255,
+        236529,
+        231616,
+        205705,
+        219630,
+        200610
+      ],
+      "group_sizes": [
+        106919,
+        286,
+        10,
+        3,
+        240,
+        211,
+        434,
+        7
+      ],
+      "normalized_tokens": [
+        "film",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day",
+        "starred",
+        "actors"
+      ],
+      "retained_tokens": [
+        "film",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day",
+        "actors"
+      ],
+      "source_query_id": "dev:2343",
+      "source_query_index": 98528,
+      "source_text": "the film Alexander and the Terrible, Horrible, No Good, Very Bad Day starred which actors?",
+      "stable_rank": "216d7f280f7431a6a1d149aa4461c8c45bafb149d6698c0cf71f99d00824a572"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        263268,
+        290702,
+        255982,
+        255990,
+        201169,
+        272652,
+        211252,
+        207306
+      ],
+      "group_sizes": [
+        18,
+        6,
+        401,
+        37,
+        17,
+        25,
+        14,
+        84
+      ],
+      "normalized_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "moving",
+        "ahead",
+        "occasionally",
+        "saw",
+        "brief",
+        "glimpses",
+        "beauty"
+      ],
+      "retained_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "moving",
+        "ahead",
+        "saw",
+        "brief",
+        "beauty"
+      ],
+      "source_query_id": "dev:6218",
+      "source_query_index": 102403,
+      "source_text": "which person wrote the movie As I Was Moving Ahead Occasionally I Saw Brief Glimpses of Beauty?",
+      "stable_rank": "23be8e5907ca513e38aad247e5653e1b01126e1edb92fe7457fa686b11f04752"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        230246,
+        255982,
+        223860,
+        229497,
+        267883,
+        250510,
+        255449,
+        251213
+      ],
+      "group_sizes": [
+        410,
+        401,
+        20,
+        4,
+        3,
+        1186,
+        218,
+        1
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds"
+      ],
+      "source_query_id": "train:52121",
+      "source_query_index": 52121,
+      "source_text": "what is the genre for the movie The Effect of Gamma Rays on Man-in-the-Moon Marigolds?",
+      "stable_rank": "270582d22b9b61f159fcd4fe479272b464f804807d5cfbf9d272c61d8d96e23f"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        227207,
+        222104,
+        253271,
+        277764,
+        214112,
+        222761,
+        240584,
+        236372
+      ],
+      "group_sizes": [
+        106919,
+        521,
+        24,
+        114,
+        30,
+        5,
+        33,
+        104
+      ],
+      "normalized_tokens": [
+        "film",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood",
+        "directed"
+      ],
+      "retained_tokens": [
+        "film",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood"
+      ],
+      "source_query_id": "train:82275",
+      "source_query_index": 82275,
+      "source_text": "the film Don't Be a Menace to South Central While Drinking Your Juice in the Hood was directed by who?",
+      "stable_rank": "270a7a41b282d2af4a0468deed456b8c4f793b74990661a2bc90255a7f2d170b"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        291269,
+        255982,
+        258153,
+        231067,
+        279767,
+        225559,
+        211032,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        128,
+        40,
+        9,
+        25,
+        53,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "never",
+        "give",
+        "sucker",
+        "even",
+        "break",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "never",
+        "give",
+        "sucker",
+        "even",
+        "break",
+        "released"
+      ],
+      "source_query_id": "train:25496",
+      "source_query_index": 25496,
+      "source_text": "what year was the movie Never Give a Sucker an Even Break released?",
+      "stable_rank": "2941fd88f0b9dc4726b23efdb10b03021a8498877c1c2ccc4fc237c1d88e4528"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        259560,
+        236260,
+        266588,
+        220632,
+        221085
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        1089,
+        4,
+        82,
+        1,
+        2
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "o",
+        "homem",
+        "que",
+        "desafiou",
+        "diabo"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "o",
+        "homem",
+        "que",
+        "desafiou",
+        "diabo"
+      ],
+      "source_query_id": "train:23599",
+      "source_query_index": 23599,
+      "source_text": "what was the release year of the movie O Homem Que Desafiou o Diabo?",
+      "stable_rank": "2fd5d8ca9e658fd4084336ff143ea2ea6207435d18c16c27481eefabf748b8cb"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        255982,
+        238874,
+        266767,
+        253948,
+        224314,
+        249305,
+        290687,
+        279259
+      ],
+      "group_sizes": [
+        401,
+        1082,
+        681,
+        7,
+        2,
+        876,
+        1,
+        1276
+      ],
+      "normalized_tokens": [
+        "movie",
+        "j",
+        "r",
+        "mie",
+        "elka",
+        "m",
+        "write",
+        "story"
+      ],
+      "retained_tokens": [
+        "movie",
+        "j",
+        "r",
+        "mie",
+        "elka",
+        "m",
+        "write",
+        "story"
+      ],
+      "source_query_id": "train:7617",
+      "source_query_index": 7617,
+      "source_text": "what movie did J\u00e9r\u00e9mie Elka\u00efm write the story for?",
+      "stable_rank": "30ef9853c4ce4740d87fcbf24249764e3c3adafc5520a8ba8b9c6f53cbf82e0d"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        237778,
+        246611,
+        264457,
+        267953,
+        210211
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        20,
+        6,
+        5,
+        8,
+        4
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "impossible",
+        "learn",
+        "plow",
+        "reading",
+        "books"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "impossible",
+        "learn",
+        "plow",
+        "reading",
+        "books"
+      ],
+      "source_query_id": "train:30445",
+      "source_query_index": 30445,
+      "source_text": "what was the release date of the movie It's Impossible to Learn to Plow by Reading Books?",
+      "stable_rank": "32842ecc373c4e79d82d24e580db92a556bc2407053aaaa48bd09545f67d6cac"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        234201,
+        288895,
+        231296,
+        258175,
+        291541
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        381,
+        247,
+        236,
+        528,
+        209
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "harry",
+        "walter",
+        "go",
+        "new",
+        "york"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "harry",
+        "walter",
+        "go",
+        "new",
+        "york"
+      ],
+      "source_query_id": "train:27452",
+      "source_query_index": 27452,
+      "source_text": "what was the release date of the film Harry and Walter Go to New York?",
+      "stable_rank": "33d8685a93b9a499813e7cc5ca3db1d402f5268c09f5b2ee790fd28237fe01cd"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        268443,
+        219512,
+        284130,
+        245471,
+        249305,
+        255050,
+        222884,
+        255203
+      ],
+      "group_sizes": [
+        428,
+        464,
+        4,
+        1133,
+        876,
+        2,
+        165,
+        14
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "toute",
+        "la",
+        "m",
+        "moire",
+        "du",
+        "monde"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "toute",
+        "la",
+        "m",
+        "moire",
+        "du",
+        "monde"
+      ],
+      "source_query_id": "train:28399",
+      "source_query_index": 28399,
+      "source_text": "what was the release date of Toute la m\u00e9moire du monde?",
+      "stable_rank": "391891e73957733309972bba3b25603b4b8390fecc18ecb5bfcb08566db2638b"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        290688,
+        227207,
+        223860,
+        229497,
+        267883,
+        250510,
+        255449,
+        251213
+      ],
+      "group_sizes": [
+        17346,
+        106919,
+        20,
+        4,
+        3,
+        1186,
+        218,
+        1
+      ],
+      "normalized_tokens": [
+        "writer",
+        "film",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds"
+      ],
+      "retained_tokens": [
+        "writer",
+        "film",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds"
+      ],
+      "source_query_id": "train:38742",
+      "source_query_index": 38742,
+      "source_text": "who is the writer of the film The Effect of Gamma Rays on Man-in-the-Moon Marigolds?",
+      "stable_rank": "3a357f0653ede7988b6c7ee903a0905423b097e557415f906d2e2564296c6688"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        291269,
+        255982,
+        213154,
+        236462,
+        236503,
+        266767,
+        256789,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        160,
+        8,
+        3,
+        681,
+        1042,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "captain",
+        "horatio",
+        "hornblower",
+        "r",
+        "n",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "captain",
+        "horatio",
+        "hornblower",
+        "r",
+        "n",
+        "released"
+      ],
+      "source_query_id": "train:33769",
+      "source_query_index": 33769,
+      "source_text": "what year was the movie Captain Horatio Hornblower R.N. released?",
+      "stable_rank": "3a605b387a6bea32cd0cd908605a8866908feb09fb94655a3117a1b61128ba45"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        290558,
+        255982,
+        282731,
+        285432,
+        275504,
+        227235,
+        231181,
+        231867
+      ],
+      "group_sizes": [
+        27,
+        401,
+        13,
+        323,
+        74,
+        421,
+        99,
+        44
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "movie",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "retained_tokens": [
+        "words",
+        "movie",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "source_query_id": "train:14899",
+      "source_query_index": 14899,
+      "source_text": "what are some words that  describe movie Thirty Two Short Films About Glenn Gould?",
+      "stable_rank": "3bc784d10f5b83256fada7f10e461c90aeebaff2642adce9fa51c7fb097326bc"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        219692,
+        234688,
+        253535,
+        231296,
+        270484,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        344,
+        105,
+        32,
+        236,
+        39,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "dead",
+        "heat",
+        "merry",
+        "go",
+        "round",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "dead",
+        "heat",
+        "merry",
+        "go",
+        "round",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:36750",
+      "source_query_index": 36750,
+      "source_text": "Dead Heat on a Merry-Go-Round is a film written by this person?",
+      "stable_rank": "3cb2b97f3db659e6847b784b108e132a6955043863946cea5bd9a36a35ec486b"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        230246,
+        200205,
+        217655,
+        252958,
+        222538,
+        239668,
+        256043,
+        237192
+      ],
+      "group_sizes": [
+        410,
+        45,
+        33,
+        75,
+        346,
+        25,
+        486,
+        40
+      ],
+      "normalized_tokens": [
+        "genre",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "retained_tokens": [
+        "genre",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "source_query_id": "train:52763",
+      "source_query_index": 52763,
+      "source_text": "what was the genre of Abbott and Costello Meet Dr. Jekyll and Mr. Hyde?",
+      "stable_rank": "3f67b68a77d7240c98498b9bebe2143568372f0deb44bd1c0b2292902f4cfc8c"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        227207,
+        200205,
+        217655,
+        252958,
+        222538,
+        239668,
+        256043,
+        237192
+      ],
+      "group_sizes": [
+        106919,
+        45,
+        33,
+        75,
+        346,
+        25,
+        486,
+        40
+      ],
+      "normalized_tokens": [
+        "directed",
+        "film",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "retained_tokens": [
+        "film",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "source_query_id": "train:80579",
+      "source_query_index": 80579,
+      "source_text": "who directed the film Abbott and Costello Meet Dr. Jekyll and Mr. Hyde?",
+      "stable_rank": "402d88a1992a464bad66097413625bb4b4e85b7da83e93ef1572843487c4f322"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        231067,
+        290558,
+        204630,
+        239832,
+        239191,
+        217867,
+        269686,
+        228034
+      ],
+      "group_sizes": [
+        40,
+        27,
+        18,
+        129,
+        1158,
+        14,
+        1438,
+        116
+      ],
+      "normalized_tokens": [
+        "give",
+        "words",
+        "describing",
+        "assassination",
+        "jesse",
+        "james",
+        "coward",
+        "robert",
+        "ford"
+      ],
+      "retained_tokens": [
+        "give",
+        "words",
+        "assassination",
+        "jesse",
+        "james",
+        "coward",
+        "robert",
+        "ford"
+      ],
+      "source_query_id": "train:14333",
+      "source_query_index": 14333,
+      "source_text": "can you give a few words describing what The Assassination of Jesse James by the Coward Robert Ford is about?",
+      "stable_rank": "409487150253bb26d234cc018f374e4b9c735a77f9cca57069c0b54085748516"
+    },
+    {
+      "g": 8,
+      "group_ids": [
+        290558,
+        255982,
+        263087,
+        210133,
+        263208,
+        248830,
+        266625,
+        249305
+      ],
+      "group_sizes": [
+        27,
+        401,
+        1,
+        6,
+        2,
+        117,
+        4,
+        876
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "movie",
+        "perdona",
+        "bonita",
+        "pero",
+        "lucas",
+        "quer",
+        "m"
+      ],
+      "retained_tokens": [
+        "words",
+        "movie",
+        "perdona",
+        "bonita",
+        "pero",
+        "lucas",
+        "quer",
+        "m"
+      ],
+      "source_query_id": "train:17741",
+      "source_query_index": 17741,
+      "source_text": "what are some words that  describe movie Perdona bonita, pero Lucas me quer\u00eda a m\u00ed?",
+      "stable_rank": "43b97f846a27827803870df93338830fd077a406901bc41397892419094cd97a"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        227207,
+        223860,
+        229497,
+        267883,
+        250510,
+        255449,
+        251213,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        20,
+        4,
+        3,
+        1186,
+        218,
+        1,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "effect",
+        "gamma",
+        "rays",
+        "man",
+        "moon",
+        "marigolds",
+        "released"
+      ],
+      "source_query_id": "train:25693",
+      "source_query_index": 25693,
+      "source_text": "what year was the film The Effect of Gamma Rays on Man-in-the-Moon Marigolds released?",
+      "stable_rank": "002026ab065d5dbcc3539a63e7ca8a5a642c43f82aac678370003cb8880cac6e"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        263268,
+        290702,
+        255982,
+        203625,
+        281913,
+        237019,
+        228027,
+        216645,
+        227207
+      ],
+      "group_sizes": [
+        18,
+        6,
+        401,
+        5,
+        53,
+        11,
+        84,
+        3,
+        106919
+      ],
+      "normalized_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "aqua",
+        "teen",
+        "hunger",
+        "force",
+        "colon",
+        "film",
+        "theaters"
+      ],
+      "retained_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "aqua",
+        "teen",
+        "hunger",
+        "force",
+        "colon",
+        "film"
+      ],
+      "source_query_id": "dev:6317",
+      "source_query_index": 102502,
+      "source_text": "which person wrote the movie Aqua Teen Hunger Force Colon Movie Film for Theaters?",
+      "stable_rank": "076d96e4f9e68fc4f32b7af731078cd98879e8a294bc893d43407ca9c2542918"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        255982,
+        274470,
+        240897,
+        256789,
+        290935,
+        261192,
+        218835,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        40,
+        1,
+        1042,
+        201,
+        505,
+        916,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "sgt",
+        "kabukiman",
+        "n",
+        "y",
+        "p",
+        "d",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "sgt",
+        "kabukiman",
+        "n",
+        "y",
+        "p",
+        "d",
+        "released"
+      ],
+      "source_query_id": "train:21668",
+      "source_query_index": 21668,
+      "source_text": "what year was the movie Sgt. Kabukiman N.Y.P.D. released?",
+      "stable_rank": "0a2c19fd2b41279cd352c3c88fd605ad23a958c22a1cb61ec60c1be3f3072537"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        291269,
+        227207,
+        263270,
+        240446,
+        251533,
+        273400,
+        202440,
+        255983
+      ],
+      "group_sizes": [
+        428,
+        107,
+        106919,
+        1195,
+        140,
+        510,
+        9,
+        333,
+        45
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "film",
+        "personal",
+        "journey",
+        "martin",
+        "scorsese",
+        "american",
+        "movies"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "film",
+        "personal",
+        "journey",
+        "martin",
+        "scorsese",
+        "american",
+        "movies"
+      ],
+      "source_query_id": "train:32669",
+      "source_query_index": 32669,
+      "source_text": "what was the release year of the film A Personal Journey with Martin Scorsese Through American Movies?",
+      "stable_rank": "0f76a537fc131d47565aebe30661b9381b51e4459ee9c90e48225c864d177050"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        219687,
+        245467,
+        205136,
+        212449,
+        222884,
+        247991
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        1718,
+        957,
+        6,
+        583,
+        165,
+        3
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "de",
+        "l",
+        "autre",
+        "c",
+        "du",
+        "lit"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "de",
+        "l",
+        "autre",
+        "c",
+        "du",
+        "lit"
+      ],
+      "source_query_id": "train:30613",
+      "source_query_index": 30613,
+      "source_text": "what was the release date of the film De l'autre c\u00f4t\u00e9 du lit?",
+      "stable_rank": "126097ee52f2f927e1da5b04b90b589c749f138ec2d636180e80e12b4d097be3"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        227207,
+        201814,
+        282255,
+        236529,
+        231616,
+        205705,
+        219630,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        286,
+        10,
+        3,
+        240,
+        211,
+        434,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "alexander",
+        "terrible",
+        "horrible",
+        "good",
+        "bad",
+        "day",
+        "released"
+      ],
+      "source_query_id": "train:26454",
+      "source_query_index": 26454,
+      "source_text": "what year was the film Alexander and the Terrible, Horrible, No Good, Very Bad Day released?",
+      "stable_rank": "188cde687a5b498a350d164a4669302eb049b16b01451d222175fc1fcf3f7efe"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        219512,
+        222104,
+        253271,
+        277764,
+        214112,
+        222761,
+        240584,
+        236372
+      ],
+      "group_sizes": [
+        428,
+        464,
+        521,
+        24,
+        114,
+        30,
+        5,
+        33,
+        104
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood"
+      ],
+      "source_query_id": "train:28497",
+      "source_query_index": 28497,
+      "source_text": "what was the release date of Don't Be a Menace to South Central While Drinking Your Juice in the Hood?",
+      "stable_rank": "3f7762aec6399b7cb8239291cbefda76b6f7d8e361e10c58830c81637d6dd996"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        277633,
+        205577,
+        276798,
+        210686,
+        259560,
+        267316
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        15,
+        32,
+        1,
+        11,
+        1089,
+        31
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "sorority",
+        "babes",
+        "slimeball",
+        "bowl",
+        "o",
+        "rama"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "sorority",
+        "babes",
+        "slimeball",
+        "bowl",
+        "o",
+        "rama"
+      ],
+      "source_query_id": "train:23753",
+      "source_query_index": 23753,
+      "source_text": "what was the release date of the film Sorority Babes in the Slimeball Bowl-O-Rama?",
+      "stable_rank": "409baccb9c9ffdefd3b115dd8d641fe6b11c5327edd81f20d652041a577284b2"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        219512,
+        227207,
+        282731,
+        285432,
+        275504,
+        227235,
+        231181,
+        231867
+      ],
+      "group_sizes": [
+        428,
+        464,
+        106919,
+        13,
+        323,
+        74,
+        421,
+        99,
+        44
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "film",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "film",
+        "thirty",
+        "two",
+        "short",
+        "films",
+        "glenn",
+        "gould"
+      ],
+      "source_query_id": "dev:7855",
+      "source_query_index": 104040,
+      "source_text": "what was the release date of the film Thirty Two Short Films About Glenn Gould?",
+      "stable_rank": "6f985d94c6f36e9691e6b8dc6a7f2615b7ca7ece568bd0c01a0b9ce900a15a32"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        290558,
+        255982,
+        211873,
+        208853,
+        237910,
+        276400,
+        211979,
+        235883,
+        247206
+      ],
+      "group_sizes": [
+        27,
+        401,
+        28,
+        464,
+        8,
+        9,
+        29,
+        56,
+        18
+      ],
+      "normalized_tokens": [
+        "words",
+        "describe",
+        "movie",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson"
+      ],
+      "retained_tokens": [
+        "words",
+        "movie",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson"
+      ],
+      "source_query_id": "train:13663",
+      "source_query_index": 13663,
+      "source_text": "what are some words that  describe movie Buffalo Bill and the Indians, or Sitting Bull's History Lesson?",
+      "stable_rank": "7c6dc71f05198b40c22c9d46c6e1b465a882fa39e3b0d0e1cbd6ddbed1228ca8"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        265612,
+        246039,
+        227207,
+        133206,
+        255391,
+        122077,
+        289292,
+        110936,
+        219659
+      ],
+      "group_sizes": [
+        3,
+        15,
+        106919,
+        475,
+        7,
+        784,
+        18,
+        1637,
+        216
+      ],
+      "normalized_tokens": [
+        "primary",
+        "language",
+        "film",
+        "4",
+        "months",
+        "3",
+        "weeks",
+        "2",
+        "days"
+      ],
+      "retained_tokens": [
+        "primary",
+        "language",
+        "film",
+        "4",
+        "months",
+        "3",
+        "weeks",
+        "2",
+        "days"
+      ],
+      "source_query_id": "train:47612",
+      "source_query_index": 47612,
+      "source_text": "what is the primary language in the film 4 Months, 3 Weeks and 2 Days?",
+      "stable_rank": "8c1a00e5689ba07474f42df7e4c6ba15ba184ad84de0e5ab5abafb833a1d2ee2"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        230246,
+        222104,
+        253271,
+        277764,
+        214112,
+        222761,
+        240584,
+        236372,
+        226138
+      ],
+      "group_sizes": [
+        410,
+        521,
+        24,
+        114,
+        30,
+        5,
+        33,
+        104,
+        87
+      ],
+      "normalized_tokens": [
+        "genre",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood",
+        "fall"
+      ],
+      "retained_tokens": [
+        "genre",
+        "don",
+        "menace",
+        "south",
+        "central",
+        "drinking",
+        "juice",
+        "hood",
+        "fall"
+      ],
+      "source_query_id": "train:54220",
+      "source_query_index": 54220,
+      "source_text": "what genre does Don't Be a Menace to South Central While Drinking Your Juice in the Hood fall under?",
+      "stable_rank": "94f2c61e929806a9917095b1082e19002af2de2184d7e62623228e248ee1804f"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        255982,
+        245471,
+        256132,
+        219687,
+        285805,
+        212106,
+        217982,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        1133,
+        15,
+        1718,
+        165,
+        3,
+        1,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "la",
+        "muerte",
+        "de",
+        "un",
+        "bur",
+        "crata",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "la",
+        "muerte",
+        "de",
+        "un",
+        "bur",
+        "crata",
+        "released"
+      ],
+      "source_query_id": "train:34013",
+      "source_query_index": 34013,
+      "source_text": "what year was the movie La muerte de un bur\u00f3crata released?",
+      "stable_rank": "a611abcfae0e8cd7eb1549d825cf6562cc71fb8899a8b7e27edef81e960697b0"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        291269,
+        255982,
+        200205,
+        217655,
+        252958,
+        243140,
+        210361,
+        241720
+      ],
+      "group_sizes": [
+        428,
+        107,
+        401,
+        45,
+        33,
+        75,
+        142,
+        78,
+        2
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "killer",
+        "boris",
+        "karloff"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "killer",
+        "boris",
+        "karloff"
+      ],
+      "source_query_id": "dev:7819",
+      "source_query_index": 104004,
+      "source_text": "what was the release year of the movie Abbott and Costello Meet the Killer, Boris Karloff?",
+      "stable_rank": "a82ce1dc88f18d36e12fc12b9d57b342df143f4907521769cca83cfe5b099c76"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        133206,
+        255391,
+        122077,
+        289292,
+        110936,
+        219659,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        475,
+        7,
+        784,
+        18,
+        1637,
+        216,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "4",
+        "months",
+        "3",
+        "weeks",
+        "2",
+        "days",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "4",
+        "months",
+        "3",
+        "weeks",
+        "2",
+        "days",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:42611",
+      "source_query_index": 42611,
+      "source_text": "4 Months, 3 Weeks and 2 Days is a film written by this person?",
+      "stable_rank": "a8f5ce6d197dee3f9c436eadf6dfd6ed086eb639043ac66909840fc209435d84"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        255982,
+        203625,
+        281913,
+        237019,
+        228027,
+        216645,
+        227207,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        5,
+        53,
+        11,
+        84,
+        3,
+        106919,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "aqua",
+        "teen",
+        "hunger",
+        "force",
+        "colon",
+        "film",
+        "theaters",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "aqua",
+        "teen",
+        "hunger",
+        "force",
+        "colon",
+        "film",
+        "released"
+      ],
+      "source_query_id": "train:20972",
+      "source_query_index": 20972,
+      "source_text": "what year was the movie Aqua Teen Hunger Force Colon Movie Film for Theaters released?",
+      "stable_rank": "b0b213cb9f9120eaae31a9b612f059acdef69936bdfd9a980038cdcfb55334bc"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        285483,
+        255982,
+        211873,
+        208853,
+        237910,
+        276400,
+        211979,
+        235883,
+        247206
+      ],
+      "group_sizes": [
+        22,
+        401,
+        28,
+        464,
+        8,
+        9,
+        29,
+        56,
+        18
+      ],
+      "normalized_tokens": [
+        "type",
+        "movie",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson"
+      ],
+      "retained_tokens": [
+        "type",
+        "movie",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson"
+      ],
+      "source_query_id": "train:49122",
+      "source_query_index": 49122,
+      "source_text": "what type of movie is Buffalo Bill and the Indians, or Sitting Bull's History Lesson?",
+      "stable_rank": "b79fec73ee642af7279dbf198fb624fcbf4d013b47103f9305881ca236dedd54"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        231067,
+        290558,
+        283978,
+        224135,
+        211022,
+        283809,
+        219687,
+        245471,
+        247368
+      ],
+      "group_sizes": [
+        40,
+        27,
+        3,
+        577,
+        3,
+        5,
+        1718,
+        1133,
+        12
+      ],
+      "normalized_tokens": [
+        "give",
+        "words",
+        "describing",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley"
+      ],
+      "retained_tokens": [
+        "give",
+        "words",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley"
+      ],
+      "source_query_id": "train:14339",
+      "source_query_index": 14339,
+      "source_text": "can you give a few words describing Torrente, el brazo tonto de la ley?",
+      "stable_rank": "bc9c94637c070fa5a24e2a4832f3c830255ff20724907c174f17a957b8f9dd45"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        221541,
+        265087,
+        284869,
+        200881,
+        201993,
+        282395,
+        214827,
+        256448,
+        255146
+      ],
+      "group_sizes": [
+        18127,
+        2,
+        103,
+        223,
+        1,
+        99,
+        11,
+        2,
+        50
+      ],
+      "normalized_tokens": [
+        "director",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "retained_tokens": [
+        "director",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "source_query_id": "train:83119",
+      "source_query_index": 83119,
+      "source_text": "who is the director for The Positively True Adventures of the Alleged Texas Cheerleader-Murdering Mom?",
+      "stable_rank": "d02d4e7468c7fccaf344b14820c0abd9a6555c849511b63396690a77e1b10f85"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        227207,
+        283978,
+        224135,
+        211022,
+        283809,
+        219687,
+        245471,
+        247368,
+        268444
+      ],
+      "group_sizes": [
+        106919,
+        3,
+        577,
+        3,
+        5,
+        1718,
+        1133,
+        12,
+        1
+      ],
+      "normalized_tokens": [
+        "film",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley",
+        "released"
+      ],
+      "retained_tokens": [
+        "film",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley",
+        "released"
+      ],
+      "source_query_id": "train:26328",
+      "source_query_index": 26328,
+      "source_text": "when was the film Torrente, el brazo tonto de la ley released?",
+      "stable_rank": "d725e5c2f4af3c8bbb9e525bbee9da53964861ae02beae98b858f4d619ec39ef"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        255982,
+        265087,
+        284869,
+        200881,
+        201993,
+        282395,
+        214827,
+        256448,
+        255146
+      ],
+      "group_sizes": [
+        401,
+        2,
+        103,
+        223,
+        1,
+        99,
+        11,
+        2,
+        50
+      ],
+      "normalized_tokens": [
+        "acted",
+        "movie",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "retained_tokens": [
+        "movie",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "source_query_id": "train:70960",
+      "source_query_index": 70960,
+      "source_text": "who acted in the movie The Positively True Adventures of the Alleged Texas Cheerleader-Murdering Mom?",
+      "stable_rank": "dd7525790919e4bfb14e6c1760e8ae2fc99b766afa5b0787d18aed39659e3df9"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        255982,
+        204630,
+        239832,
+        239191,
+        217867,
+        269686,
+        228034,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        401,
+        18,
+        129,
+        1158,
+        14,
+        1438,
+        116,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "movie",
+        "assassination",
+        "jesse",
+        "james",
+        "coward",
+        "robert",
+        "ford",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "movie",
+        "assassination",
+        "jesse",
+        "james",
+        "coward",
+        "robert",
+        "ford",
+        "released"
+      ],
+      "source_query_id": "train:26360",
+      "source_query_index": 26360,
+      "source_text": "what year was the movie The Assassination of Jesse James by the Coward Robert Ford released?",
+      "stable_rank": "e1a320805d4cc603e6bbebc2fe286df4fc4efb44e4b4b41c7b1da67905acbc86"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        291269,
+        289488,
+        216979,
+        238636,
+        254650,
+        231322,
+        205661,
+        227505,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        15,
+        8,
+        232,
+        52,
+        145,
+        224,
+        109,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "went",
+        "coney",
+        "island",
+        "mission",
+        "god",
+        "back",
+        "five",
+        "released"
+      ],
+      "source_query_id": "train:28708",
+      "source_query_index": 28708,
+      "source_text": "what year was Went to Coney Island on a Mission from God... Be Back by Five released?",
+      "stable_rank": "e7a02be6ad75971327ff197a236601c9b8571d98f63170c3edbe7c227fcb7a86"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        268443,
+        291269,
+        227207,
+        281225,
+        209520,
+        250510,
+        260269,
+        209207,
+        275431
+      ],
+      "group_sizes": [
+        428,
+        107,
+        106919,
+        49,
+        13,
+        1186,
+        450,
+        864,
+        14
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "film",
+        "tall",
+        "blond",
+        "man",
+        "one",
+        "black",
+        "shoe"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "film",
+        "tall",
+        "blond",
+        "man",
+        "one",
+        "black",
+        "shoe"
+      ],
+      "source_query_id": "train:27930",
+      "source_query_index": 27930,
+      "source_text": "what was the release year of the film The Tall Blond Man with One Black Shoe?",
+      "stable_rank": "f38fd8f8707edcf26b6647c2b5f2c7487dafe4e44be39707d67c7c3ca946d0f5"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        274470,
+        240897,
+        256789,
+        290935,
+        261192,
+        218835,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        40,
+        1,
+        1042,
+        201,
+        505,
+        916,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "sgt",
+        "kabukiman",
+        "n",
+        "y",
+        "p",
+        "d",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "sgt",
+        "kabukiman",
+        "n",
+        "y",
+        "p",
+        "d",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:35564",
+      "source_query_index": 35564,
+      "source_text": "Sgt. Kabukiman N.Y.P.D. is a film written by this person?",
+      "stable_rank": "f59a7933fd63dfec2bc39fd879c988682a9f3041a5c80083ef47b199c4c3571a"
+    },
+    {
+      "g": 9,
+      "group_ids": [
+        265612,
+        246039,
+        227207,
+        225806,
+        200881,
+        200626,
+        246570,
+        209299,
+        273619
+      ],
+      "group_sizes": [
+        3,
+        15,
+        106919,
+        5,
+        223,
+        21,
+        461,
+        19,
+        1
+      ],
+      "normalized_tokens": [
+        "primary",
+        "language",
+        "film",
+        "extraordinary",
+        "adventures",
+        "ad",
+        "le",
+        "blanc",
+        "sec"
+      ],
+      "retained_tokens": [
+        "primary",
+        "language",
+        "film",
+        "extraordinary",
+        "adventures",
+        "ad",
+        "le",
+        "blanc",
+        "sec"
+      ],
+      "source_query_id": "train:47352",
+      "source_query_index": 47352,
+      "source_text": "what is the primary language in the film The Extraordinary Adventures of Ad\u00e8le Blanc-Sec?",
+      "stable_rank": "fbc1c5dc8dbd10865cdcae82f7e270cb3b7d1be0d3d5d659bf29dbac49562f12"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        200205,
+        217655,
+        252958,
+        222538,
+        239668,
+        256043,
+        237192
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        45,
+        33,
+        75,
+        346,
+        25,
+        486,
+        40
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "abbott",
+        "costello",
+        "meet",
+        "dr",
+        "jekyll",
+        "mr",
+        "hyde"
+      ],
+      "source_query_id": "train:26606",
+      "source_query_index": 26606,
+      "source_text": "what was the release date of the movie Abbott and Costello Meet Dr. Jekyll and Mr. Hyde?",
+      "stable_rank": "0dd733701422373798e5d6a62f81e18544d59a8a61f8616abfdee783cc15572f"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        268443,
+        291269,
+        265087,
+        284869,
+        200881,
+        201993,
+        282395,
+        214827,
+        256448,
+        255146
+      ],
+      "group_sizes": [
+        428,
+        107,
+        2,
+        103,
+        223,
+        1,
+        99,
+        11,
+        2,
+        50
+      ],
+      "normalized_tokens": [
+        "release",
+        "year",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "retained_tokens": [
+        "release",
+        "year",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "source_query_id": "train:29407",
+      "source_query_index": 29407,
+      "source_text": "what was the release year of The Positively True Adventures of the Alleged Texas Cheerleader-Murdering Mom?",
+      "stable_rank": "13308932a6bce292955fd4b7be3a6c93b9c0e2655d8af744f612050fd1923861"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        211873,
+        208853,
+        237910,
+        276400,
+        211979,
+        235883,
+        247206,
+        227207,
+        290693,
+        263268
+      ],
+      "group_sizes": [
+        28,
+        464,
+        8,
+        9,
+        29,
+        56,
+        18,
+        106919,
+        4,
+        18
+      ],
+      "normalized_tokens": [
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson",
+        "film",
+        "written",
+        "person"
+      ],
+      "retained_tokens": [
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson",
+        "film",
+        "written",
+        "person"
+      ],
+      "source_query_id": "train:35587",
+      "source_query_index": 35587,
+      "source_text": "Buffalo Bill and the Indians, or Sitting Bull's History Lesson is a film written by this person?",
+      "stable_rank": "3b393599d731b4745514615ed6cdf08c7142cacc9bdfc97086d593d6659c2195"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        291269,
+        227207,
+        211873,
+        208853,
+        237910,
+        276400,
+        211979,
+        235883,
+        247206,
+        268444
+      ],
+      "group_sizes": [
+        107,
+        106919,
+        28,
+        464,
+        8,
+        9,
+        29,
+        56,
+        18,
+        1
+      ],
+      "normalized_tokens": [
+        "year",
+        "film",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson",
+        "released"
+      ],
+      "retained_tokens": [
+        "year",
+        "film",
+        "buffalo",
+        "bill",
+        "indians",
+        "sitting",
+        "bull",
+        "history",
+        "lesson",
+        "released"
+      ],
+      "source_query_id": "train:21705",
+      "source_query_index": 21705,
+      "source_text": "what year was the film Buffalo Bill and the Indians, or Sitting Bull's History Lesson released?",
+      "stable_rank": "bef517b90543ea9cb6607e49f528c2832522c58132bd9ef7f98980ebfdeeb5ac"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        263268,
+        290702,
+        255982,
+        283978,
+        224135,
+        211022,
+        283809,
+        219687,
+        245471,
+        247368
+      ],
+      "group_sizes": [
+        18,
+        6,
+        401,
+        3,
+        577,
+        3,
+        5,
+        1718,
+        1133,
+        12
+      ],
+      "normalized_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley"
+      ],
+      "retained_tokens": [
+        "person",
+        "wrote",
+        "movie",
+        "torrente",
+        "el",
+        "brazo",
+        "tonto",
+        "de",
+        "la",
+        "ley"
+      ],
+      "source_query_id": "test:6610",
+      "source_query_index": 112795,
+      "source_text": "which person wrote the movie Torrente, el brazo tonto de la ley?",
+      "stable_rank": "d5f90255143f0bf0ba6ee41ae0ffc98227e29ebe1f3b9310efb72b713204f0b0"
+    },
+    {
+      "g": 10,
+      "group_ids": [
+        230246,
+        255982,
+        265087,
+        284869,
+        200881,
+        201993,
+        282395,
+        214827,
+        256448,
+        255146
+      ],
+      "group_sizes": [
+        410,
+        401,
+        2,
+        103,
+        223,
+        1,
+        99,
+        11,
+        2,
+        50
+      ],
+      "normalized_tokens": [
+        "genre",
+        "movie",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "retained_tokens": [
+        "genre",
+        "movie",
+        "positively",
+        "true",
+        "adventures",
+        "alleged",
+        "texas",
+        "cheerleader",
+        "murdering",
+        "mom"
+      ],
+      "source_query_id": "train:54912",
+      "source_query_index": 54912,
+      "source_text": "what is the genre of the movie The Positively True Adventures of the Alleged Texas Cheerleader-Murdering Mom?",
+      "stable_rank": "e73581ca9fafd9e46eb0c7f9acf32fd89b6bf6ae5d4fc4b5a61bfdbe6a7160dc"
+    },
+    {
+      "g": 11,
+      "group_ids": [
+        263018,
+        282710,
+        134319,
+        291269,
+        260052,
+        288083,
+        243802,
+        272266,
+        251492,
+        226770,
+        280127
+      ],
+      "group_sizes": [
+        123,
+        24,
+        19,
+        107,
+        169,
+        54,
+        2,
+        239,
+        179,
+        4,
+        1
+      ],
+      "normalized_tokens": [
+        "people",
+        "think",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad"
+      ],
+      "retained_tokens": [
+        "people",
+        "think",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad"
+      ],
+      "source_query_id": "train:34514",
+      "source_query_index": 34514,
+      "source_text": "what did people think of The 41-Year-Old Virgin Who Knocked Up Sarah Marshall and Felt Superbad About It?",
+      "stable_rank": "c35a94e5d7a739e766b4b41362149c00de6e90a5ace14476b9cac46ff290a75b"
+    },
+    {
+      "g": 11,
+      "group_ids": [
+        227207,
+        134319,
+        291269,
+        260052,
+        288083,
+        243802,
+        272266,
+        251492,
+        226770,
+        280127,
+        200610
+      ],
+      "group_sizes": [
+        106919,
+        19,
+        107,
+        169,
+        54,
+        2,
+        239,
+        179,
+        4,
+        1,
+        7
+      ],
+      "normalized_tokens": [
+        "film",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad",
+        "starred",
+        "actors"
+      ],
+      "retained_tokens": [
+        "film",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad",
+        "actors"
+      ],
+      "source_query_id": "train:66988",
+      "source_query_index": 66988,
+      "source_text": "the film The 41-Year-Old Virgin Who Knocked Up Sarah Marshall and Felt Superbad About It starred which actors?",
+      "stable_rank": "f0afb3b59a8ae109234fda059d7038568c6d5187a7ee159385466200181b7b58"
+    },
+    {
+      "g": 12,
+      "group_ids": [
+        268443,
+        219512,
+        255982,
+        134319,
+        291269,
+        260052,
+        288083,
+        243802,
+        272266,
+        251492,
+        226770,
+        280127
+      ],
+      "group_sizes": [
+        428,
+        464,
+        401,
+        19,
+        107,
+        169,
+        54,
+        2,
+        239,
+        179,
+        4,
+        1
+      ],
+      "normalized_tokens": [
+        "release",
+        "date",
+        "movie",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad"
+      ],
+      "retained_tokens": [
+        "release",
+        "date",
+        "movie",
+        "41",
+        "year",
+        "old",
+        "virgin",
+        "knocked",
+        "sarah",
+        "marshall",
+        "felt",
+        "superbad"
+      ],
+      "source_query_id": "train:24559",
+      "source_query_index": 24559,
+      "source_text": "what was the release date of the movie The 41-Year-Old Virgin Who Knocked Up Sarah Marshall and Felt Superbad About It?",
+      "stable_rank": "0c80c668f459e4bc09d2aa8ea0d685fdd06cd3929686624a2e549280c8bdf4bc"
+    }
+  ],
+  "quotas": {
+    "1": 20,
+    "2": 20,
+    "3": 20,
+    "4": 20,
+    "5": 20,
+    "6": 20,
+    "7": 20,
+    "8": 25,
+    "9": 26,
+    "10": 6,
+    "11": 2,
+    "12": 1
+  },
+  "schema_version": 1,
+  "seed": 20260722,
+  "selected_queries": 200,
+  "selection_note": "The 200-query paper budget is retained. Every naturally occurring g=1..12 stratum is primary; all 35 unique g=9..12 mappings are retained, while g=1..8 use pre-run stable-hash quotas.",
+  "source": "data_sources/official/official-latest-20260722/extracted/wikimovies/questions.tsv",
+  "source_g_counts": {
+    "0": 126,
+    "1": 3198,
+    "2": 16476,
+    "3": 36897,
+    "4": 41918,
+    "5": 14045,
+    "6": 2817,
+    "7": 526,
+    "8": 99,
+    "9": 26,
+    "10": 6,
+    "11": 2,
+    "12": 1
+  },
+  "source_queries": 116137,
+  "source_sha256": "5aa19f4dd12621972b06ac87f97e661318181ec9d9418a4c83d323862596ac85",
+  "stopwords": "tools/data/english_stopwords.txt",
+  "stopwords_sha256": "63a0b08cf5cb2d1ab635d77493c8de83977302f9f6846c36a0549552dce4910c",
+  "unique_mapping_counts": {
+    "1": 1829,
+    "2": 14397,
+    "3": 35767,
+    "4": 41617,
+    "5": 14003,
+    "6": 2804,
+    "7": 524,
+    "8": 99,
+    "9": 26,
+    "10": 6,
+    "11": 2,
+    "12": 1
+  }
+}

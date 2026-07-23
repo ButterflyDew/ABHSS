@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "vertices": 18588661,
+  "title_vertices": 11446677,
+  "person_vertices": 7141984,
+  "title_vertices_with_metadata": 11446677,
+  "person_vertices_with_metadata": 7138785,
+  "vertices_without_metadata": 3199,
+  "edges": 100556350,
+  "largest_connected_component_vertices": 18083600,
+  "source_title_rows": 12661952,
+  "source_name_rows": 15508878,
+  "candidate_groups": 61020,
+  "candidate_group_memberships": 19661596,
+  "minimum_candidate_frequency": 50,
+  "maximum_candidate_frequency": 4800,
+  "graph_model": "title-person bipartite multigraph; one unit edge per title.principals row",
+  "label_fields": "titleType, primaryTitle, originalTitle, genres, primaryName, primaryProfession",
+  "tokenization": "lower-case maximal ASCII alphanumeric runs, deduplicated per vertex",
+  "vertex_mapping": "title then person first occurrence while scanning frozen title.principals.tsv"
+}

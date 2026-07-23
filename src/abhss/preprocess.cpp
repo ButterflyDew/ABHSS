@@ -140,25 +140,6 @@ WitnessTree BuildWitnessFromEdges(const Graph& graph,
 }
 }  // namespace
 
-int FirstBit(int mask)
-{
-    int bit = 0;
-    while (!(mask & (1 << bit)))
-        ++bit;
-    return bit;
-}
-
-int CountBits(int mask)
-{
-    int count = 0;
-    while (mask)
-    {
-        mask &= mask - 1;
-        ++count;
-    }
-    return count;
-}
-
 double RowValue(const Row& row, int vertex)
 {
     const auto it = std::lower_bound(row.vertex.begin(), row.vertex.end(), vertex);
@@ -901,9 +882,18 @@ double FarthestRemaining(const Problem& p, int vertex, int original_mask)
 
 double FutureBound(const Problem& p, int vertex, int original_mask)
 {
-    double value = std::max(FarthestRemaining(p, vertex, original_mask),
-                            p.tour.At(vertex, original_mask, p.group_distance));
-    if (!p.light)
+    return FutureBound(
+        p, vertex, original_mask, FarthestRemaining(p, vertex, original_mask));
+}
+
+double FutureBound(const Problem& p,
+                   int vertex,
+                   int original_mask,
+                   double farthest)
+{
+    double value = std::max(
+        farthest, p.tour.At(vertex, original_mask, p.group_distance));
+    if (p.UsesDirectedCut())
         value = std::max(value, p.dual.At(vertex, original_mask));
     return value;
 }
@@ -933,10 +923,14 @@ bool PrepareProblem(Problem& p)
         return true;
     }
 
-    if (p.light)
+    if (p.UsesBoundedGroupDistances())
         p.best = BuildCanonicalSptUpper(p.graph, p.query, p.root);
+    const bool bounded_distances = p.UsesBoundedGroupDistances();
     p.group_distance = BuildGroupDistances(
-        p.graph, p.query, p.light, p.light ? p.best : fp::kInf);
+        p.graph,
+        p.query,
+        bounded_distances,
+        bounded_distances ? p.best : fp::kInf);
     const double star = RootStarUpper(p.group_distance, p.graph.n, p.root);
     p.best = std::min(p.best, star);
     if (p.best == 0.0 || fp::Le(p.best, p.component_cover.lower))
@@ -994,7 +988,7 @@ bool PrepareProblem(Problem& p)
                     metric[left][right], p.group_distance[left][vertex]);
     p.tour.Build(metric);
 
-    if (p.light)
+    if (!p.UsesDirectedCut())
     {
         p.witness_tree = BuildRootPathWitness(
             p.graph, p.query, p.root_path_union, p.anchor_group);

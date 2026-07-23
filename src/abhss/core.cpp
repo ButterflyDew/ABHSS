@@ -1,9 +1,8 @@
 ﻿#include "core.h"
 
 #include <numeric>
-#include <sstream>
 
-#include "../common/probe_diagnostics.h"
+#include "diagnostics.h"
 
 namespace gst::methods::abhss::internal
 {
@@ -159,6 +158,53 @@ void BuildEarlyAnchorRows(Problem& p, EarlyAnchor& early)
 
 namespace
 {
+class WitnessUpperScheduler
+{
+public:
+    WitnessUpperScheduler(Problem& problem,
+                          const std::vector<Row>& ordinary,
+                          bool evaluate_initial)
+        : problem_(problem), ordinary_(ordinary)
+    {
+        if (problem_.witness_tree.vertex.empty())
+            return;
+        long long merge_operations = 1;
+        for (int bit = 0; bit < problem_.nonanchor_count; ++bit)
+            merge_operations *= 3;
+        buy_ = static_cast<long long>(problem_.witness_tree.vertex.size()) *
+               ((merge_operations - 1) / 2 + merge_operations);
+        enabled_ = buy_ > 0;
+        if (enabled_ && evaluate_initial)
+            Evaluate();
+    }
+
+    void Account(long long row_work)
+    {
+        if (!enabled_)
+            return;
+        rent_ += row_work;
+        if (rent_ >= buy_)
+        {
+            Evaluate();
+            rent_ = 0;
+        }
+    }
+
+private:
+    void Evaluate()
+    {
+        problem_.best = std::min(
+            problem_.best,
+            EvaluateWitnessTree(problem_.witness_tree, problem_, ordinary_));
+    }
+
+    Problem& problem_;
+    const std::vector<Row>& ordinary_;
+    long long rent_ = 0;
+    long long buy_ = 0;
+    bool enabled_ = false;
+};
+
 template <class Use>
 void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use)
 {
@@ -225,18 +271,11 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
     std::vector<int> seeds;
 
     const int three_block_limit = (p.nonanchor_count + 2) / 3;
-    // 将普通队列的 pop/relax 次数当作 rent；累计达到一次见证树 subset DP
-    // 的保守操作数才重新求上界，避免每层无条件支付树 DP。
-    double tree_rent = 0.0;
-    long long merge_operations = 1;
-    for (int bit = 0; bit < p.nonanchor_count; ++bit)
-        merge_operations *= 3;
-    const long long tree_buy = static_cast<long long>(p.witness_tree.vertex.size()) *
-                               ((merge_operations - 1) / 2 + merge_operations);
-    const bool use_witness_tree = !p.witness_tree.vertex.empty();
-    if (p.light && use_witness_tree)
-        p.best = std::min(p.best,
-                          EvaluateWitnessTree(p.witness_tree, p, p.ordinary));
+    // Queue pop/relax operations pay rent toward one witness-tree subset DP.
+    // The scheduler is shared; only Light's root-path witness receives the
+    // existing zero-rent initial evaluation, whose early incumbent is material.
+    WitnessUpperScheduler witness(
+        p, p.ordinary, p.UsesBoundedGroupDistances());
 
     for (int size = 1; size <= p.half; ++size)
     {
@@ -245,6 +284,7 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
         {
             if (p.popcount[mask] != size || size == 1)
                 continue;
+            long long row_work = 0;
             touched.clear();
             settled.clear();
             const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
@@ -266,14 +306,33 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
 
             auto CanImprove = [&](int vertex, double value)
             {
-                if (!p.light && !(value + p.dual.At(vertex, remaining_original) < p.best))
+                if (bound_stamp[vertex] == stamp)
+                    return value + bound_cache[vertex] < p.best;
+
+                double lower = 0.0;
+                if (p.UsesDirectedCut())
+                {
+                    lower = p.dual.At(vertex, remaining_original);
+                    if (!(value + lower < p.best))
+                        return false;
+                }
+                lower = std::max(
+                    lower, FarthestRemaining(p, vertex, remaining_original));
+                if (!(value + lower < p.best))
                     return false;
-                if (!(value + FarthestRemaining(p, vertex, remaining_original) < p.best))
-                    return false;
-                if (early &&
-                    !(value + early->Future(p, remaining_nonanchor, vertex) < p.best))
-                    return false;
-                return value + Bound(vertex) < p.best;
+                if (early)
+                {
+                    lower = std::max(
+                        lower, early->Future(p, remaining_nonanchor, vertex));
+                    if (!(value + lower < p.best))
+                        return false;
+                }
+                lower = std::max(
+                    lower,
+                    p.tour.At(vertex, remaining_original, p.group_distance));
+                bound_stamp[vertex] = stamp;
+                bound_cache[vertex] = lower;
+                return value + lower < p.best;
             };
             auto Set = [&](int vertex, double value)
             {
@@ -325,13 +384,13 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
             {
                 const QueueNode node = queue.top();
                 queue.pop();
-                ++layer_work;
+                ++row_work;
                 if (node.distance != distance[node.vertex] || !(node.key < p.best))
                     continue;
                 settled.push_back(node.vertex);
                 for (const auto& edge : p.graph.adj[node.vertex])
                 {
-                    ++layer_work;
+                    ++row_work;
                     const double next = node.distance + edge.w;
                     if (next >= distance[edge.to] || !CanImprove(edge.to, next))
                         continue;
@@ -364,17 +423,8 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
             row.ready = true;
             p.ordinary_minimum[mask] = minimum;
 
-            if (p.light && use_witness_tree)
-            {
-                tree_rent += layer_work;
-                if (tree_rent >= tree_buy)
-                {
-                    p.best = std::min(
-                        p.best,
-                        EvaluateWitnessTree(p.witness_tree, p, p.ordinary));
-                    tree_rent = 0.0;
-                }
-            }
+            layer_work += row_work;
+            witness.Account(row_work);
 
             if (size == p.half)
             {
@@ -416,38 +466,13 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
                 distance[vertex] = fp::kInf;
         }
 
-        if (!p.light && use_witness_tree)
-        {
-            tree_rent += layer_work;
-            if (tree_rent >= tree_buy)
-            {
-                p.best = std::min(
-                    p.best,
-                    EvaluateWitnessTree(p.witness_tree, p, p.ordinary));
-                tree_rent = 0.0;
-            }
-        }
-
-        if (gst::ProbeDiagnosticsEnabled())
-        {
-            std::uint64_t rows = 0;
-            std::uint64_t scalars = 0;
-            for (const Row& row : p.ordinary)
-            {
-                rows += row.ready ? 1 : 0;
-                scalars += row.value.size();
-            }
-            std::ostringstream out;
-            out << "method="
-                << (p.light ? "abhss_light_family" : "abhss_heavy_family")
-                << " phase=ordinary_layer g=" << p.g
-                << " layer=" << size
-                << " rows=" << rows
-                << " scalars=" << scalars
-                << " layer_work=" << layer_work
-                << " best=" << p.best;
-            gst::EmitProbeDiagnostic(out.str());
-        }
+        EmitAbhssProbe(ProbeFamilyMethod(p),
+                       "ordinary_layer",
+                       p,
+                       -1.0,
+                       &p.ordinary,
+                       size,
+                       layer_work);
     }
 }
 

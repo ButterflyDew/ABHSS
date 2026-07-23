@@ -1,11 +1,8 @@
 ﻿#include "core.h"
 
-#include <chrono>
-#include <sstream>
-#include <stdexcept>
-
-#include "../common/probe_diagnostics.h"
-#include "../common/query_feasibility.h"
+#include "diagnostics.h"
+#include "forward.h"
+#include "pipeline.h"
 
 namespace gst::methods::abhss
 {
@@ -13,54 +10,7 @@ namespace
 {
 using namespace internal;
 
-using ProbeClock = std::chrono::steady_clock;
-
-std::uint64_t RowScalarCount(const std::vector<Row>& rows)
-{
-    std::uint64_t count = 0;
-    for (const Row& row : rows)
-        count += row.value.size();
-    return count;
-}
-
-std::uint64_t ReadyRowCount(const std::vector<Row>& rows)
-{
-    std::uint64_t count = 0;
-    for (const Row& row : rows)
-        count += row.ready ? 1 : 0;
-    return count;
-}
-
-double ProbeSecondsSince(const ProbeClock::time_point& start)
-{
-    return std::chrono::duration<double>(ProbeClock::now() - start).count();
-}
-
-void EmitHeavyProbe(const char* phase,
-                    const Problem& problem,
-                    double seconds = -1.0,
-                    const std::vector<Row>* rows = nullptr,
-                    int layer = -1)
-{
-    if (!gst::ProbeDiagnosticsEnabled())
-        return;
-    std::ostringstream out;
-    out << "method=abhss_heavy phase=" << phase
-        << " g=" << problem.g << " best=" << problem.best;
-    if (seconds >= 0.0)
-        out << " seconds=" << seconds;
-    if (layer >= 0)
-        out << " layer=" << layer;
-    if (rows != nullptr)
-        out << " rows=" << ReadyRowCount(*rows)
-            << " scalars=" << RowScalarCount(*rows);
-    gst::EmitProbeDiagnostic(out.str());
-}
-
-bool AnchoredAvailable(const std::vector<Row>& anchored, int mask)
-{
-    return !mask || anchored[mask].ready;
-}
+constexpr const char* kHeavyProbeMethod = "abhss_heavy";
 
 double AnchoredValue(const Problem& p,
                      const std::vector<Row>& anchored,
@@ -69,206 +19,6 @@ double AnchoredValue(const Problem& p,
 {
     return mask ? RowValue(anchored[mask], vertex)
                 : p.group_distance[p.anchor_group][vertex];
-}
-
-template <class Use>
-void ForEachAnchoredSum(const Problem& p,
-                        const std::vector<Row>& anchored,
-                        int anchor_side,
-                        int ordinary_side,
-                        Use&& use)
-{
-    if (!anchor_side)
-    {
-        ForEachOrdinaryBranch(p, ordinary_side, [&](int vertex, double value)
-        {
-            use(vertex, value + p.group_distance[p.anchor_group][vertex]);
-        });
-        return;
-    }
-    if (p.popcount[ordinary_side] == 1)
-    {
-        const auto& singleton =
-            p.group_distance[p.bit_to_group[FirstBit(ordinary_side)]];
-        ForEachValue(anchored[anchor_side], [&](int vertex, double value)
-        {
-            use(vertex, value + singleton[vertex]);
-        });
-        return;
-    }
-
-    ForEachRowBranchIntersection(
-        anchored[anchor_side], p.ordinary[ordinary_side],
-        [&](int vertex, double a, double d) { use(vertex, a + d); });
-}
-
-void CompleteLowRow(Problem& p,
-                    int mask,
-                    const std::vector<int>& roots,
-                    const std::vector<double>& anchored_distance,
-                    double anchored_minimum)
-{
-    const int remaining = p.full_mask ^ mask;
-    for (int left = remaining;; left = (left - 1) & remaining)
-    {
-        const int right = remaining ^ left;
-        if (left <= right && p.popcount[left] <= p.half &&
-            p.popcount[right] <= p.half &&
-            (!left || OrdinaryAvailable(p, left)) &&
-            (!right || OrdinaryAvailable(p, right)))
-        {
-            const double left_minimum =
-                !left || p.popcount[left] == 1 ? 0.0 : p.ordinary_minimum[left];
-            const double right_minimum =
-                !right || p.popcount[right] == 1 ? 0.0 : p.ordinary_minimum[right];
-            if (anchored_minimum + left_minimum + right_minimum < p.best)
-            {
-                int driver = 0;
-                size_t driver_size = roots.size();
-                for (int side : {left, right})
-                    if (side && p.popcount[side] > 1 &&
-                        p.ordinary[side].vertex.size() < driver_size)
-                    {
-                        driver = side;
-                        driver_size = p.ordinary[side].vertex.size();
-                    }
-                auto Visit = [&](int vertex)
-                {
-                    if (!std::binary_search(roots.begin(), roots.end(), vertex))
-                        return;
-                    const double a = left ? OrdinaryValue(p, left, vertex) : 0.0;
-                    const double b = right ? OrdinaryValue(p, right, vertex) : 0.0;
-                    if (a < fp::kInf && b < fp::kInf)
-                        p.best = std::min(
-                            p.best, anchored_distance[vertex] + a + b);
-                };
-                if (driver)
-                    ForEachOrdinaryValue(p, driver, [&](int vertex, double)
-                    {
-                        Visit(vertex);
-                    });
-                else
-                    for (int vertex : roots)
-                        Visit(vertex);
-            }
-        }
-        if (!left)
-            break;
-    }
-}
-
-std::vector<Row> BuildLowAnchoredRows(Problem& p, int last_size)
-{
-    std::vector<Row> anchored(p.subset_count);
-    std::vector<double> distance(p.graph.n + 1, fp::kInf);
-    std::vector<double> bound_cache(p.graph.n + 1);
-    std::vector<int> bound_stamp(p.graph.n + 1);
-    int stamp = 0;
-    std::vector<int> touched;
-    std::vector<int> settled;
-    for (int size = 1; size <= last_size; ++size)
-    {
-        for (int mask = 1; mask < p.subset_count; ++mask)
-        {
-            if (p.popcount[mask] != size)
-                continue;
-            touched.clear();
-            settled.clear();
-            double minimum = fp::kInf;
-            const int remaining_nonanchor = p.full_mask ^ mask;
-            const int remaining_original =
-                p.nonanchor_original_mask ^ p.original_mask[mask];
-            ++stamp;
-            auto Bound = [&](int vertex)
-            {
-                if (bound_stamp[vertex] != stamp)
-                {
-                    bound_stamp[vertex] = stamp;
-                    bound_cache[vertex] =
-                        FutureBound(p, vertex, remaining_original);
-                }
-                return bound_cache[vertex];
-            };
-            auto CanImprove = [&](int vertex, double value)
-            {
-                return value + Bound(vertex) < p.best;
-            };
-            auto Set = [&](int vertex, double value)
-            {
-                if (value >= distance[vertex] || !CanImprove(vertex, value))
-                    return;
-                if (distance[vertex] >= fp::kInf)
-                    touched.push_back(vertex);
-                distance[vertex] = value;
-            };
-
-            for (int ordinary_side = mask;
-                 ordinary_side;
-                 ordinary_side = (ordinary_side - 1) & mask)
-            {
-                const int anchor_side = mask ^ ordinary_side;
-                if (!OrdinaryAvailable(p, ordinary_side) ||
-                    !AnchoredAvailable(anchored, anchor_side))
-                    continue;
-                ForEachAnchoredSum(p, anchored, anchor_side, ordinary_side, Set);
-            }
-            if (touched.empty())
-                continue;
-
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
-            for (int vertex : touched)
-                queue.push({distance[vertex] + Bound(vertex),
-                            distance[vertex],
-                            vertex});
-            while (!queue.empty())
-            {
-                const QueueNode node = queue.top();
-                queue.pop();
-                if (node.distance != distance[node.vertex] || !(node.key < p.best))
-                    continue;
-                settled.push_back(node.vertex);
-                minimum = std::min(minimum, node.distance);
-                double star = node.distance;
-                for (int bits = remaining_nonanchor; bits; bits &= bits - 1)
-                    star += p.group_distance[
-                        p.bit_to_group[FirstBit(bits & -bits)]][node.vertex];
-                p.best = std::min(p.best, star);
-                for (const auto& edge : p.graph.adj[node.vertex])
-                {
-                    const double next = node.distance + edge.w;
-                    if (next >= distance[edge.to] || !CanImprove(edge.to, next))
-                        continue;
-                    if (distance[edge.to] >= fp::kInf)
-                        touched.push_back(edge.to);
-                    distance[edge.to] = next;
-                    queue.push({next + Bound(edge.to),
-                                next,
-                                edge.to});
-                }
-            }
-            std::sort(settled.begin(), settled.end());
-            settled.erase(std::unique(settled.begin(), settled.end()), settled.end());
-            CompleteLowRow(p, mask, settled, distance, minimum);
-            settled.erase(
-                std::remove_if(settled.begin(), settled.end(), [&](int vertex)
-                {
-                    return !(distance[vertex] + Bound(vertex) < p.best);
-                }),
-                settled.end());
-
-            Row& row = anchored[mask];
-            row.vertex = settled;
-            row.value.reserve(settled.size());
-            for (int vertex : settled)
-                row.value.push_back(distance[vertex]);
-            row.ready = true;
-            for (int vertex : touched)
-                distance[vertex] = fp::kInf;
-        }
-    }
-    return anchored;
 }
 
 template <class Use>
@@ -606,67 +356,41 @@ void SolveHighAdjoint(Problem& p,
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;
         }
-        EmitHeavyProbe("adjoint_layer", p, -1.0, &backward, size);
+        EmitAbhssProbe(
+            kHeavyProbeMethod, "adjoint_layer", p, -1.0, &backward, size);
     }
 }
 }  // namespace
 
 SolveResult SolveHeavyOneQuery(const Graph& graph, const Query& query)
 {
-    const int g = static_cast<int>(query.groups.size());
-    if (!g)
-        return {0.0, true};
-    if (g > 16)
-        throw std::runtime_error("ABHSSHeavy supports group count <= 16.");
-    if (!IsQueryFeasible(graph, query))
-        return {};
-    if (g == 1)
-        return {0.0, true};
+    SolveResult trivial;
+    if (ResolveQueryPrelude(graph, query, "ABHSSHeavy", trivial))
+        return trivial;
 
-    Problem problem(graph, query, false);
-    const auto prepare_start = ProbeClock::now();
-    EmitHeavyProbe("prepare_start", problem);
-    if (PrepareProblem(problem))
-    {
-        EmitHeavyProbe(
-            "prepare_closed", problem, ProbeSecondsSince(prepare_start));
+    Problem problem(graph, query, SolverVariant::Heavy);
+    if (PrepareWithProbe(problem, kHeavyProbeMethod))
         return {problem.best, true};
-    }
-    EmitHeavyProbe("prepare_end", problem, ProbeSecondsSince(prepare_start));
 
-    const auto ordinary_start = ProbeClock::now();
-    EmitHeavyProbe("ordinary_start", problem);
-    BuildOrdinaryRows(problem, nullptr);
-    EmitHeavyProbe("ordinary_end",
-                   problem,
-                   ProbeSecondsSince(ordinary_start),
-                   &problem.ordinary);
+    BuildOrdinaryWithProbe(problem, nullptr, kHeavyProbeMethod);
     const int high_last = problem.half - 1;
     const int low_last = std::max(0, high_last / 2);
-    if (problem.half < 2)
-    {
-        std::vector<double> anchor_distance(graph.n + 1, fp::kInf);
-        std::vector<int> roots(graph.n);
-        for (int vertex = 1; vertex <= graph.n; ++vertex)
-        {
-            roots[vertex - 1] = vertex;
-            anchor_distance[vertex] =
-                problem.group_distance[problem.anchor_group][vertex];
-        }
-        CompleteLowRow(problem, 0, roots, anchor_distance, 0.0);
-    }
-    const auto low_anchor_start = ProbeClock::now();
-    EmitHeavyProbe("low_anchor_start", problem);
-    std::vector<Row> anchored = BuildLowAnchoredRows(problem, low_last);
-    EmitHeavyProbe("low_anchor_end",
-                   problem,
-                   ProbeSecondsSince(low_anchor_start),
-                   &anchored);
-    const auto adjoint_start = ProbeClock::now();
-    EmitHeavyProbe("adjoint_start", problem);
+
+    ForwardAnchoredPlan plan;
+    plan.last_size = low_last;
+    plan.retain_last_layer = true;
+    plan.probe_method = kHeavyProbeMethod;
+    plan.probe_phase = "low_anchor_layer";
+    std::vector<Row> anchored = RunForwardAnchoredStage(
+        problem, plan, "low_anchor_start", "low_anchor_end");
+
+    ProbeTimer adjoint_timer;
+    EmitAbhssProbe(kHeavyProbeMethod, "adjoint_start", problem);
     SolveHighAdjoint(problem, anchored, low_last, high_last);
-    EmitHeavyProbe(
-        "adjoint_end", problem, ProbeSecondsSince(adjoint_start));
+    EmitAbhssProbe(kHeavyProbeMethod,
+                   "adjoint_end",
+                   problem,
+                   adjoint_timer.Seconds());
     return {problem.best, problem.best < fp::kInf / 4};
 }
 

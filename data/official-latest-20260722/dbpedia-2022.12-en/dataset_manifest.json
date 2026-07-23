@@ -1,0 +1,227 @@
+{
+  "auxiliary_hashes": {
+    "relation_frequencies.tsv": {
+      "bytes": 37592,
+      "sha256": "de691b0fad77670478501dd187dc3de3b1e205a0edfe6b27f9c485f386773040"
+    },
+    "source_group_ids.tsv": {
+      "bytes": 19107,
+      "sha256": "17481d71b6825e72d24da55aef81d5732d696388039346a74a8dd58dae3b21c5"
+    },
+    "source_normalization.json": {
+      "bytes": 875,
+      "sha256": "9480c5612638aa874161f071b7f3b1029dbbc8c8b71a05b63695f7602f53140a"
+    },
+    "source_query_manifest.json": {
+      "bytes": 346011,
+      "sha256": "946e26bb704a8843d284cbf2e45bd2ca3d5914789a224d70436b57f24df1391e"
+    },
+    "source_vertex_ids.tsv": {
+      "bytes": 498859332,
+      "sha256": "7e57c09c205320e836fa49638487ed97571d7a0cb790930e3841f30527b89249"
+    }
+  },
+  "candidate_groups": {
+    "bytes": 22073431,
+    "candidate_group_memberships": 2824808,
+    "candidate_groups": 1176,
+    "maximum_candidate_group_size": 211002,
+    "minimum_candidate_group_size": 1,
+    "path": "data/official-latest-20260722/dbpedia-2022.12-en/candidate_groups.txt",
+    "sha256": "8a3b87126ae8251304998fe638721288c5fcd7139dd60fc2668b47f0d8cf97da"
+  },
+  "dataset": "DBpedia-2022.12-en",
+  "freeze_id": "official-latest-20260722",
+  "graph": {
+    "bytes": 651808550,
+    "edges": 22787803,
+    "maximum_edge_weight": 14.9593616328,
+    "minimum_edge_weight": 0.6931471806,
+    "path": "data/official-latest-20260722/dbpedia-2022.12-en/graph.txt",
+    "sha256": "e71d474ae51329f9723456fbce638372681fefa234a8017cd179db63df475d7d",
+    "vertices": 7958883,
+    "zero_weight_edges": 0
+  },
+  "interface_contract": "undirected graph, 1-based dense vertices, one nonnegative edge weight per row; query groups are non-empty deduplicated vertex sets",
+  "official_page": "https://www.dbpedia.org/blog/dbpedia-snapshot-2022-12-release/",
+  "query_generation": null,
+  "query_pools": [
+    {
+      "bytes": 58803,
+      "g": 1,
+      "group_ids_sha256": "a773a99273bd0df81e460cf6a86d7c54b22a450e5aebd34574fb364895489a5c",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g1.txt",
+      "queries": 5,
+      "sha256": "69626b226be185be81b5110347fdc8e10e2154d71167e417639d93e9cf126671"
+    },
+    {
+      "bytes": 4059939,
+      "g": 2,
+      "group_ids_sha256": "6dd330a742eb66073d7cb2bbccf32cf91a0227340cdf4e31617aa8134aabe0c3",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g2.txt",
+      "queries": 76,
+      "sha256": "1cacee5028b0d14584bac3d3044f50cee2666affc580026144c01414f5d73998"
+    },
+    {
+      "bytes": 19476173,
+      "g": 3,
+      "group_ids_sha256": "6e72e538a80b7f925a11745c66c98189cf948adf4cd84fd8f929d842f763d99e",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g3.txt",
+      "queries": 80,
+      "sha256": "1f846415cf141f780beef4f3ea9639fb98d8675a370f9a4fcd1ed65b9aad1650"
+    },
+    {
+      "bytes": 25889000,
+      "g": 4,
+      "group_ids_sha256": "2d98f014780a768d8616c06ddea003c5de760bb5a34182cd7080d858053417b8",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g4.txt",
+      "queries": 59,
+      "sha256": "48a83da5e6fb007f4add6228bacdabd1e3201541d942ea038c92270384251ce8"
+    },
+    {
+      "bytes": 61136183,
+      "g": 5,
+      "group_ids_sha256": "aaa474a9eeade62b9580526b588d4b07e9c0fa695a316d934c166c7b0b3118a5",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g5.txt",
+      "queries": 60,
+      "sha256": "246000cf02cc9744b7a661f32d71a315db14270074b5c1d7f73f72e0e6a6b213"
+    },
+    {
+      "bytes": 88801214,
+      "g": 6,
+      "group_ids_sha256": "98629f2f11159aca087baf72fcc6002c08dad90d4b5233a91aac0d5d04f3f3ee",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g6.txt",
+      "queries": 71,
+      "sha256": "95ec1bc0d5ff4216ce39b89d3aa8763025303123d058770b55cc0b89fe6108e9"
+    },
+    {
+      "bytes": 80941542,
+      "g": 7,
+      "group_ids_sha256": "802d4ca2f7c23f97ea6b11c0f2590a7b59ea4fcb3d4dd75f7aa2d81533fd71ef",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g7.txt",
+      "queries": 54,
+      "sha256": "475ef2b5da2ab94ca2c66538e0fe93af77e397442df4ae3c2c88cbd83228b2d2"
+    },
+    {
+      "bytes": 44230313,
+      "g": 8,
+      "group_ids_sha256": "8c4acf36206d7a8a5a209fbe8603be445e45f79e1346e7cbaf2237c500821953",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g8.txt",
+      "queries": 27,
+      "sha256": "856ef6934ac67e9ab89a184eafe5d27f9fac017c26ec96995bd9d22331612e87"
+    },
+    {
+      "bytes": 19736955,
+      "g": 9,
+      "group_ids_sha256": "0aae0ba4b8f9352feb3508e78024420650a270a618d6f7d66008beabc0d7de78",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g9.txt",
+      "queries": 14,
+      "sha256": "6526c1c5818a493ba6ba385fce9e4559aee5b9a62b80ed0a2df6c5f7a6e81325"
+    },
+    {
+      "bytes": 17159426,
+      "g": 10,
+      "group_ids_sha256": "f6c67eb9ba8d8ab67d5103c41ab6c573fabb436a34a8f94e2bc78f6b6d4036fc",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g10.txt",
+      "queries": 13,
+      "sha256": "7782cb589d0c8015d2814fc0b72a838c83e69209d60c196172449645c425e3c2"
+    },
+    {
+      "bytes": 6954057,
+      "g": 11,
+      "group_ids_sha256": "d3a05e2d7c6b7ddb784556f8e92b56dbeb1ed1d7071dd8d4cd18297b261853d0",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g11.txt",
+      "queries": 2,
+      "sha256": "26550fd8f100d5e890759b58255874f61bb624435dd2c5b4a661779fd755a990"
+    },
+    {
+      "bytes": 6793117,
+      "g": 12,
+      "group_ids_sha256": "007b20faf265988503b3f9f7789374c573e85ea48574eb916d55bf803191a450",
+      "path": "data/official-latest-20260722/dbpedia-2022.12-en/query_g12.txt",
+      "queries": 3,
+      "sha256": "3daab6801b408a098d85684c645b7d31217e0c778bef98e63164835533d53e63"
+    }
+  ],
+  "raw_files": [
+    {
+      "bytes": 168694622,
+      "etag": "\"6408a2b7-a0e135e\"",
+      "final_url": "https://downloads.dbpedia.org/repo/dbpedia/generic/labels/2022.12.01/labels_lang=en.ttl.bz2",
+      "last_modified": "Wed, 08 Mar 2023 14:59:03 GMT",
+      "path": "dbpedia-2022.12/labels_lang=en.ttl.bz2",
+      "requested_url": "https://downloads.dbpedia.org/repo/dbpedia/generic/labels/2022.12.01/labels_lang=en.ttl.bz2",
+      "retrieved_utc": "2026-07-22T12:00:28+00:00",
+      "role": "labels",
+      "sha256": "b1863f1f8398e677433563d90b87e01a742861373940486a57025fd031f3bc0d"
+    },
+    {
+      "bytes": 191694609,
+      "etag": "\"6407a1de-b6d0711\"",
+      "final_url": "https://downloads.dbpedia.org/repo/dbpedia/mappings/mappingbased-objects/2022.12.01/mappingbased-objects_lang=en.ttl.bz2",
+      "last_modified": "Tue, 07 Mar 2023 20:43:10 GMT",
+      "path": "dbpedia-2022.12/mappingbased-objects_lang=en.ttl.bz2",
+      "requested_url": "https://downloads.dbpedia.org/repo/dbpedia/mappings/mappingbased-objects/2022.12.01/mappingbased-objects_lang=en.ttl.bz2",
+      "retrieved_utc": "2026-07-22T11:52:25+00:00",
+      "role": "rdf_graph",
+      "sha256": "76747563b7bb6587d8707ae65489186b54d17acec060da7566397992c171371a"
+    },
+    {
+      "bytes": 22711,
+      "etag": "\"1b282cd92441d8cafec35ea3ce8fe69d026dba034e7f4096665cd46230443b6e\"",
+      "final_url": "https://raw.githubusercontent.com/iai-group/DBpedia-Entity/master/collection/v2/queries-v2.txt",
+      "last_modified": null,
+      "path": "dbpedia-entity-v2/queries-v2.txt",
+      "requested_url": "https://raw.githubusercontent.com/iai-group/DBpedia-Entity/master/collection/v2/queries-v2.txt",
+      "retrieved_utc": "2026-07-22T12:00:29+00:00",
+      "role": "source_queries",
+      "sha256": "8f770cf72d671c48c304e4bb827c6d9ea44f3d85e6d78272ad014aa09aa94cd8"
+    },
+    {
+      "bytes": 21606,
+      "etag": "\"dc7cddafa06ef06dd9330f96b2089f37bf449cc00ecccbffcacaaf35ea887eaa\"",
+      "final_url": "https://raw.githubusercontent.com/iai-group/DBpedia-Entity/master/collection/v2/queries-v2_stopped.txt",
+      "last_modified": null,
+      "path": "dbpedia-entity-v2/queries-v2_stopped.txt",
+      "requested_url": "https://raw.githubusercontent.com/iai-group/DBpedia-Entity/master/collection/v2/queries-v2_stopped.txt",
+      "retrieved_utc": "2026-07-22T12:26:03+00:00",
+      "role": "source_queries_officially_stopped",
+      "sha256": "a1adde12299b58cb1c1ea902984b77cd62420348a21b35b2d58beaad7b5a8a3f"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "dbpedia-2022.12-en",
+  "snapshot": "DBpedia 2022.12.01 English mapping-based objects and labels",
+  "source_normalization": {
+    "candidate_group_memberships": 2824808,
+    "candidate_groups": 1176,
+    "edge_weight": "ln(1 + retained frequency of predicate)",
+    "edges": 22787803,
+    "label_rows": 16904466,
+    "labels_on_graph_vertices": 4176173,
+    "literal_or_blank_object_rows_discarded": 0,
+    "memberships_before_deduplication": 2824808,
+    "parallel_edges": "retained",
+    "predicate_types": 633,
+    "rdf_rows": 22791171,
+    "rdf_type_rows_discarded": 0,
+    "schema_version": 1,
+    "self_loops_removed": 3368,
+    "tokenization": "lower-case maximal ASCII alphanumeric runs; per-label and per-group deduplication; all-token mode removes the frozen stopword list, source-query-vocabulary mode preserves exactly the supplied vocabulary",
+    "vertex_mapping": "first occurrence among retained URI-URI non-rdf:type triples",
+    "vertices": 7958883,
+    "vocabulary_mode": "source-query tokens"
+  },
+  "source_query_panel": {
+    "feasible_queries_in_requested_g_range": 464,
+    "path": "data/official-latest-20260722/dbpedia-2022.12-en/source_query_manifest.json",
+    "protocol": "officially preprocessed query text -> lower-case ASCII alphanumeric tokens -> exact rdfs:label token groups",
+    "sha256": "946e26bb704a8843d284cbf2e45bd2ca3d5914789a224d70436b57f24df1391e",
+    "source_queries": 467,
+    "source_query_path": "data_sources/official/official-latest-20260722/raw/dbpedia-entity-v2/queries-v2_stopped.txt",
+    "source_query_sha256": "a1adde12299b58cb1c1ea902984b77cd62420348a21b35b2d58beaad7b5a8a3f",
+    "source_text_is_officially_preprocessed": true
+  },
+  "status": "include",
+  "transform": "Discard rdf:type and every triple whose object is not a URI. Preserve every remaining URI-URI triple as one undirected edge (parallel edges are retained). Its weight is ln(1 + freq(predicate)), following the same relation-informativeness protocol verified exactly on LinkedMDB. Candidate groups are lower-cased tokens from English rdfs:label literals."
+}

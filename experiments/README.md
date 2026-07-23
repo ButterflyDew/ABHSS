@@ -1,17 +1,27 @@
-# Paper experiment manifests
+# Frozen experiment configuration
 
-- `paper_matrix.json`：唯一全量矩阵，timeout=10,000 秒；
-- `environment_lock.json`：外部源码 commit、归档哈希和许可状态；
-- `data_snapshot.json`：图、原查询和来源归档快照；
-- `graph_identity_audit.json`：同名图的逐边身份判定；
-- `correctness_audit.json`：已知最优值交叉验证与 pathmax 反例；
-- `scip-jack.set`：SCIP-Jack 单线程/10,000 秒配置。
+This directory is the tracked control plane for the SIGMOD/VLDB experiment artifact. Large source archives, converted graphs, queries and result records are intentionally ignored; their identities are pinned here by hashes and manifests.
 
-最小检查：
+| File | Purpose |
+|---|---|
+| `paper_matrix.json` | executable A/B/C primary matrix plus secondary gates and ablation |
+| `official_sources.json` | official URLs, snapshot names, source roles and exact transforms |
+| `data_snapshot.json` | hashes and counts for raw downloads, interfaces and fixed panels |
+| `query_feasibility_audit.json` | common-component gate for every graph/query pair in the matrix |
+| `environment_lock.json` | timeout, scope, required correctness dependencies and reporting contract |
+| `probe_15h_plan.json` | predeclared 15-hour feasibility-probe strata and diagnostic policy |
+| `correctness_audit.json` | known-optimum and PrunedDP++ reproduction evidence |
+| `graph_identity_audit.json` | same-name graph policy and LinkedMDB reconstruction evidence |
+| `scip-jack.set` | single-thread SCIP-Jack correctness-gate settings |
 
-```powershell
-python tools/experiments/validate_environment.py
-python tools/experiments/run_experiments.py --dry-run
-```
+The primary experiment families are:
 
-正式协议与 suite 角色见 [`../docs/FULL_EXPERIMENT_PLAN.md`](../docs/FULL_EXPERIMENT_PLAN.md)。不要手改生成后的 panel 文件；修改生成协议后必须重建 manifest、更新快照并创建新的 paper run id。
+- A: controlled real-label `<g,f>` panels on DBLP-AMiner-V18 and IMDb-daily-20260722;
+- B: related-group cross-`g` panels on six SNAP graphs, MovieLens-32M and Toronto-current;
+- C: all feasible natural DBpedia queries and a fixed 200-query LinkedMDB/WikiMovies panel, including natural low and high `g`.
+
+The only formal performance methods are ABHSS-Light, ABHSS-Heavy and PrunedDP++-Safe, all single-compute-thread with a 10,000-second solver deadline. Light and Heavy remain separate; no per-instance best-of-two is permitted.
+
+Before a long run, rebuild `query_feasibility_audit.json` and `data_snapshot.json`, then run `tools/experiments/validate_environment.py --deep-snapshot`. A changed matrix intentionally invalidates the old feasibility audit until it is regenerated.
+
+Old author-repository graph/query products, synthetic MovieLens controls, GPU/heterogeneous timing and approximate-only quality comparisons are excluded from the formal matrix. They may remain locally for parser or provenance audits but must not enter aggregate tables.
