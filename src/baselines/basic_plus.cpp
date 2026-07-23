@@ -15,9 +15,8 @@
 #include <utility>
 #include <vector>
 
-// The upstream header-only library uses several STL names without std::.
-// Keep this compatibility declaration confined to the adapter translation
-// unit; no upstream source has been edited.
+// 上游 header-only 库使用多个未加 std:: 的 STL 名称。兼容声明仅限本
+// adapter translation unit，不修改任何上游源码。
 using namespace std;
 
 #include <graph_hash_of_mixed_weighted/graph_hash_of_mixed_weighted.h>
@@ -33,6 +32,7 @@ namespace methods
 namespace basic_plus
 {
 
+/** @brief 转换统一图/组接口并以作者精确参数调用 Basic+。 */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query)
 {
     const int group_count = static_cast<int>(query.groups.size());
@@ -66,8 +66,8 @@ SolveResult SolveOneQuery(const Graph& graph, const Query& query)
         }
     }
 
-    // These are the exact settings used by the authors' driver for an
-    // edge-weight-only GST: lambda=1 and maximum_return_app_ratio=1.
+    // 作者 driver 的纯边权 GST 精确设置：lambda=1、
+    // maximum_return_app_ratio=1。
     graph_hash_of_mixed_weighted solution =
         graph_hash_of_mixed_weighted_BasicProgressivePlus_vertex_edge_weighted_ProgressiveReturn(
             input_graph, group_graph, compulsory_group_vertices, 1.0, 1.0);

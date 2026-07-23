@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build the fixed paper panel from the 31,200 expanded GPU4GST queries.
+"""Build the fixed P2 cross-g panel from expanded GPU4GST queries.
 
 Selection is independent of algorithm runtime.  Within every selected
-dataset/g cell, queries are stratified by rank in log(mean group size), then
-chosen by a stable SHA-256 key.  This protects the panel from both accidental
-size imbalance and post-hoc cherry-picking.
+dataset/g cell, five queries are stratified by rank in log(mean group size),
+then chosen by a stable SHA-256 key.  This protects the compact panel from
+both accidental size imbalance and post-hoc cherry-picking.
 """
 
 from __future__ import annotations
@@ -20,34 +20,44 @@ from typing import TextIO
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = ROOT / "data"
-DEFAULT_OUTPUT = ROOT / "experiment_data" / "gpu4gst_panel"
+DEFAULT_OUTPUT = ROOT / "experiment_data" / "p2_cross_g"
 DATASETS = (
     "GPU4GST_Musae",
     "GPU4GST_Twitch",
-    "GPU4GST_Github",
     "GPU4GST_Youtube",
     "GPU4GST_DBLP",
     "GPU4GST_Orkut",
-    "GPU4GST_LiveJournal",
     "GPU4GST_Reddit",
 )
-REPRESENTATIVE_DATASETS = (
-    "GPU4GST_Musae",
-    "GPU4GST_Youtube",
-    "GPU4GST_DBLP",
-    "GPU4GST_Orkut",
-)
-ANCHOR_G = (4, 8, 12, 16)
-ALL_G = tuple(range(4, 17))
-SEED = 20260721
+SIZE_CLASS = {
+    "GPU4GST_Musae": "small",
+    "GPU4GST_Twitch": "small",
+    "GPU4GST_Youtube": "medium",
+    "GPU4GST_DBLP": "medium",
+    "GPU4GST_Orkut": "large",
+    "GPU4GST_Reddit": "large",
+}
+ALL_G = tuple(range(5, 17))
+QUERIES_PER_CELL = 5
+SEED = 20260723
+CANDIDATE_GENERATOR_SEED = 2025
 
 
 def paper_dataset_name(source_dataset: str) -> str:
-    return "DBLP-GPU25" if source_dataset == "GPU4GST_DBLP" else source_dataset
+    source_name = source_dataset.removeprefix("GPU4GST_")
+    return f"{source_name}-GPU4GST"
 
 
 def stable_key(*parts: object) -> str:
     return hashlib.sha256(":".join(map(str, parts)).encode("utf-8")).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while block := source.read(4 * 1024 * 1024):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def scan_query_file(path: Path, expected_g: int) -> list[dict[str, object]]:
@@ -165,14 +175,6 @@ def copy_selected_group_ids(source: Path, destination: Path, selected_indices: s
                 output_file.write(line)
 
 
-def cell_count(dataset: str, g: int) -> tuple[int, str] | None:
-    if g in ANCHOR_G:
-        return 10, "all_graph_anchor"
-    if dataset in REPRESENTATIVE_DATASETS:
-        return 10, "representative_dense_g"
-    return None
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=DATA_ROOT)
@@ -183,23 +185,38 @@ def main() -> int:
     query_manifest: list[dict[str, object]] = []
     cell_manifest: list[dict[str, object]] = []
     for dataset in DATASETS:
+        source_manifest_path = args.data_root / dataset / "dataset_manifest.json"
+        source_manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+        candidate_seed = int(source_manifest["base_seed"])
+        if candidate_seed != CANDIDATE_GENERATOR_SEED:
+            raise ValueError(
+                f"{dataset} candidate seed is {candidate_seed}, expected "
+                f"{CANDIDATE_GENERATOR_SEED}"
+            )
+        if int(source_manifest["queries_per_g"]) != 300:
+            raise ValueError(f"{dataset} does not contain 300 candidates per g")
+        generated_by_g = {
+            int(row["g"]): row for row in source_manifest.get("generated", [])
+        }
         for g in ALL_G:
-            selection = cell_count(dataset, g)
-            if selection is None:
-                continue
-            count, role = selection
+            if g not in generated_by_g:
+                raise ValueError(f"{dataset} manifest has no generator record for g={g}")
             source = args.data_root / dataset / f"query_g{g}.txt"
             records = scan_query_file(source, g)
-            selected = select_stratified(records, count, args.seed, dataset, g)
-            destination = args.output / dataset / f"paper_related_g{g}.txt"
+            selected = select_stratified(
+                records, QUERIES_PER_CELL, args.seed, dataset, g
+            )
+            destination = args.output / dataset / f"cross_g{g}.txt"
             copy_selected_queries(source, destination, selected, g)
             group_id_source = args.data_root / dataset / f"query_g{g}.group_ids.txt"
-            if group_id_source.exists():
-                copy_selected_group_ids(
-                    group_id_source,
-                    args.output / dataset / f"paper_related_g{g}.group_ids.txt",
-                    {int(row["source_query_index"]) for row in selected},
-                )
+            group_id_destination = args.output / dataset / f"cross_g{g}.group_ids.txt"
+            if not group_id_source.is_file():
+                raise FileNotFoundError(group_id_source)
+            copy_selected_group_ids(
+                group_id_source,
+                group_id_destination,
+                {int(row["source_query_index"]) for row in selected},
+            )
 
             cell_manifest.append(
                 {
@@ -208,11 +225,29 @@ def main() -> int:
                     "graph_path": f"data/{dataset}",
                     "g": g,
                     "source_query_path": str(source.relative_to(ROOT)).replace("\\", "/"),
+                    "source_query_sha256": sha256_file(source),
+                    "source_group_ids_path": str(group_id_source.relative_to(ROOT)).replace("\\", "/"),
+                    "source_group_ids_sha256": sha256_file(group_id_source),
                     "panel_query_path": str(destination.relative_to(ROOT)).replace("\\", "/"),
+                    "panel_query_sha256": sha256_file(destination),
+                    "group_ids_path": (
+                        str(group_id_destination.relative_to(ROOT)).replace("\\", "/")
+                        if group_id_destination.exists()
+                        else None
+                    ),
+                    "group_ids_sha256": (
+                        sha256_file(group_id_destination)
+                        if group_id_destination.exists()
+                        else None
+                    ),
                     "source_queries": len(records),
                     "selected_queries": len(selected),
-                    "role": role,
-                    "stratification": "rank deciles of log1p(realized mean group size)",
+                    "size_class": SIZE_CLASS[dataset],
+                    "role": "P2_cross_g",
+                    "candidate_generator_base_seed": candidate_seed,
+                    "candidate_generator_derived_seed": int(generated_by_g[g]["seed"]),
+                    "panel_selection_seed": args.seed,
+                    "stratification": "five equal-rank strata of log1p(realized mean group size), one stable-hash query per stratum",
                 }
             )
             for row in selected:
@@ -220,7 +255,8 @@ def main() -> int:
                     {
                         "dataset": paper_dataset_name(dataset),
                         "source_dataset": dataset,
-                        "role": role,
+                        "size_class": SIZE_CLASS[dataset],
+                        "role": "P2_cross_g",
                         **row,
                     }
                 )

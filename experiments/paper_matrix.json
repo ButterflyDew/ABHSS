@@ -1,104 +1,93 @@
 {
   "schema_version": 4,
-  "paper_scope": "single-compute-thread exact undirected edge-weighted GST",
-  "submission_target": "SIGMOD or VLDB Research Track",
-  "data_freeze": "official-latest-20260722",
+  "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
+  "submission_target": "SIGMOD or VLDB",
+  "data_freeze": "published-workloads-plus-imdb-20260722",
   "primary_baseline": "pruneddp_safe",
-  "method_switching": "ABHSS-Light and ABHSS-Heavy are always reported separately; no per-instance oracle",
+  "method_switching": "forbidden; ABHSS configuration is frozen before a query batch; base and enhanced invoke the same executable and no per-query oracle is allowed",
+  "abhss_configuration_chain": {
+    "base": [],
+    "directed_cut_only": ["directed-cut"],
+    "enhanced": ["directed-cut", "adjoint-completion"],
+    "dependency": "adjoint-completion requires directed-cut",
+    "formal_configurations": ["base", "enhanced"]
+  },
   "timeout_seconds": 10000,
   "graph_load_timeout_seconds": 1800,
   "primary_design": {
-    "A": "controlled <g,f> experiment on current official DBLP-AMiner and IMDb graphs built with the graph semantics used by PrunedDP++; g=4..16 at f=400 and f=100..3200 at g=10 are this paper's design rather than the historical paper's parameter grid",
-    "B": "cross-g experiment on six official SNAP graphs plus MovieLens-32M and Toronto-current, using source-feature related-group generation",
-    "C": "natural-query experiment on DBpedia and LinkedMDB; every feasible naturally occurring low- and high-g stratum is primary"
+    "P1": "all queries on the five MonoGST+ and eight GPU4GST author workloads; the two DBLP graphs remain distinct; report one aggregate row per graph rather than per g",
+    "P2": "cross-g study for g=5..16 on two small, two medium and two large GPU4GST graphs; five input-stratified queries per graph/g cell",
+    "S2": "secondary controlled <g,f> study on DBLP-MonoGSTPlus and IMDb-latest-20260722; g in {6,10,14}, f in {200,400,800,1600,3200}, five MonoGST+-protocol queries per cell"
   },
   "methods": {
-    "abhss_light": {
+    "abhss_base": {
       "kind": "native",
-      "executable": "build/Release/abhss_light.exe",
-      "fallback_executables": ["build/abhss_light"],
-      "arguments": []
+      "algorithm_family": "ABHSS",
+      "configuration": "base",
+      "enabled_enhancements": [],
+      "executable": "build/abhss",
+      "fallback_executables": ["build/abhss.exe", "build/Release/abhss.exe"],
+      "arguments": ["--enhancements=none"]
     },
-    "abhss_heavy": {
+    "abhss_enhanced": {
       "kind": "native",
-      "executable": "build/Release/abhss_heavy.exe",
-      "fallback_executables": ["build/abhss_heavy"],
-      "arguments": []
-    },
-    "abhss_light_no_early": {
-      "kind": "native",
-      "executable": "build/Release/abhss_light_no_early.exe",
-      "fallback_executables": ["build/abhss_light_no_early"],
-      "arguments": []
-    },
-    "abhss_light_no_witness": {
-      "kind": "native",
-      "executable": "build/Release/abhss_light_no_witness.exe",
-      "fallback_executables": ["build/abhss_light_no_witness"],
-      "arguments": []
-    },
-    "abhss_heavy_forward": {
-      "kind": "native",
-      "executable": "build/Release/abhss_heavy_forward.exe",
-      "fallback_executables": ["build/abhss_heavy_forward"],
-      "arguments": []
+      "algorithm_family": "ABHSS",
+      "configuration": "enhanced",
+      "enabled_enhancements": ["directed-cut", "adjoint-completion"],
+      "executable": "build/abhss",
+      "fallback_executables": ["build/abhss.exe", "build/Release/abhss.exe"],
+      "arguments": ["--enhancements=all"]
     },
     "pruneddp_safe": {
       "kind": "native",
-      "executable": "build/Release/pruneddp.exe",
-      "fallback_executables": ["build/pruneddp"],
+      "executable": "build/pruneddp",
+      "fallback_executables": ["build/pruneddp.exe", "build/Release/pruneddp.exe"],
       "arguments": [
         "--state-storage=hash",
         "--mst-upper=on",
         "--lb2-pathmax=off"
       ]
     },
-    "pruneddp_strict": {
-      "kind": "native",
-      "exact_claim": false,
-      "audit_only": true,
-      "executable": "build/Release/pruneddp.exe",
-      "fallback_executables": ["build/pruneddp"],
-      "arguments": [
-        "--state-storage=hash",
-        "--mst-upper=on",
-        "--lb2-pathmax=on"
-      ]
-    },
     "dpbf": {
       "kind": "native",
       "correctness_only": true,
-      "executable": "build/Release/dpbf.exe",
-      "fallback_executables": ["build/dpbf"],
+      "executable": "build/dpbf",
+      "fallback_executables": ["build/dpbf.exe", "build/Release/dpbf.exe"],
       "arguments": []
     },
     "basic_plus_upstream": {
       "kind": "native",
       "correctness_only": true,
-      "executable": "build/Release/basic_plus.exe",
-      "fallback_executables": ["build/basic_plus"],
+      "executable": "build/basic_plus",
+      "fallback_executables": ["build/basic_plus.exe", "build/Release/basic_plus.exe"],
       "arguments": [],
       "max_g": 14
     },
     "scip_jack_7_0_3": {
       "kind": "scip_jack",
       "correctness_only": true,
-      "executable": "build_external/scip-jack-7.0.3/bin/applications/Release/scipstp.exe",
+      "executable": "build_external/scip-jack-7.0.3/bin/applications/scipstp",
       "fallback_executables": [
-        "build_external/scip-jack-7.0.3/bin/applications/scipstp",
+        "build_external/scip-jack-7.0.3/bin/applications/Release/scipstp.exe",
         "build_external/scip-jack-7.0.3/bin/Release/scipstp.exe"
       ],
       "settings": "experiments/scip-jack.set",
-      "runtime_path": ["build_external/scip-jack-7.0.3/bin/Release"],
+      "runtime_path": [
+        "build_external/scip-jack-7.0.3/lib",
+        "build_external/scip-jack-7.0.3/bin",
+        "build_external/scip-jack-7.0.3/bin/Release",
+        "build_external/install/soplex-5.0.2/lib",
+        "build_external/install/soplex-5.0.2/lib64"
+      ],
       "watchdog_grace_seconds": 30
     }
   },
   "suites": [
     {
       "id": "S0_smoke",
-      "paper_role": "secondary",
+      "paper_role": "gate",
       "role": "engineering smoke test, not a paper result",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe", "dpbf"],
+      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe", "dpbf"],
       "cases": [
         {
           "id": "S0_smoke__example",
@@ -110,11 +99,11 @@
     },
     {
       "id": "S1_steinlib_exactness_gate",
-      "paper_role": "secondary",
+      "paper_role": "gate",
       "role": "known-optimum exactness gate",
       "methods": [
-        "abhss_light",
-        "abhss_heavy",
+        "abhss_base",
+        "abhss_enhanced",
         "pruneddp_safe",
         "dpbf",
         "basic_plus_upstream",
@@ -128,87 +117,54 @@
       "id_fields": ["name"]
     },
     {
-      "id": "A_controlled_dblp",
-      "paper_role": "primary-A",
-      "role": "controlled <g,f> panel on the current official DBLP-AMiner graph-construction family",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
-      "manifest": "experiment_data/official_latest/controlled_labels/dblp/cells.json",
+      "id": "P1_monogstplus_published",
+      "paper_role": "primary-1",
+      "role": "all five MonoGST+ author graphs and every author-used query",
+      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "manifest": "experiment_data/p1_published_workloads/manifest.json",
+      "manifest_key": "cases",
+      "filter": {"source_family": "MonoGSTPlus"},
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "g", "f_target"]
+      "id_fields": ["dataset", "query_block"]
     },
     {
-      "id": "A_controlled_imdb",
-      "paper_role": "primary-A",
-      "role": "controlled <g,f> panel on the current official IMDb graph-construction family",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
-      "manifest": "experiment_data/official_latest/controlled_labels/imdb/cells.json",
+      "id": "P1_gpu4gst_published",
+      "paper_role": "primary-1",
+      "role": "all eight GPU4GST author graphs and all 300 author queries at each of g=3,5,7",
+      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "manifest": "experiment_data/p1_published_workloads/manifest.json",
+      "manifest_key": "cases",
+      "filter": {"source_family": "GPU4GST"},
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "g", "f_target"]
+      "id_fields": ["dataset", "query_block"]
     },
     {
-      "id": "B_related_cross_g",
-      "paper_role": "primary-B",
-      "role": "source-feature related-group cross-g panel on SNAP-family and analogous graphs",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
-      "manifest": "experiment_data/official_latest/related/cells.json",
+      "id": "P2_cross_g",
+      "paper_role": "primary-2",
+      "role": "g=5..16 on two small, two medium and two large author graphs",
+      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "manifest": "experiment_data/p2_cross_g/cells.json",
       "graph_field": "graph_path",
       "query_field": "panel_query_path",
       "id_fields": ["dataset", "g"]
     },
     {
-      "id": "C_dbpedia_natural",
-      "paper_role": "primary-C",
-      "role": "all component-feasible official DBpedia-Entity v2 stopped queries, including natural low and high g",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
-      "cases": [
-        {"id": "C_dbpedia_natural__g1", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g1.txt"},
-        {"id": "C_dbpedia_natural__g2", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g2.txt"},
-        {"id": "C_dbpedia_natural__g3", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g3.txt"},
-        {"id": "C_dbpedia_natural__g4", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g4.txt"},
-        {"id": "C_dbpedia_natural__g5", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g5.txt"},
-        {"id": "C_dbpedia_natural__g6", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g6.txt"},
-        {"id": "C_dbpedia_natural__g7", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g7.txt"},
-        {"id": "C_dbpedia_natural__g8", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g8.txt"},
-        {"id": "C_dbpedia_natural__g9", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g9.txt"},
-        {"id": "C_dbpedia_natural__g10", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g10.txt"},
-        {"id": "C_dbpedia_natural__g11", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g11.txt"},
-        {"id": "C_dbpedia_natural__g12", "dataset": "DBpedia-2022.12-en", "graph": "data/official-latest-20260722/dbpedia-2022.12-en", "query": "data/official-latest-20260722/dbpedia-2022.12-en/query_g12.txt"}
-      ]
-    },
-    {
-      "id": "C_linkedmdb_natural",
-      "paper_role": "primary-C",
-      "role": "fixed 200-query Meta WikiMovies natural panel with every low/high g stratum represented",
-      "methods": ["abhss_light", "abhss_heavy", "pruneddp_safe"],
-      "manifest": "experiment_data/official_latest/natural/linkedmdb/cells.json",
+      "id": "S2_controlled_gf",
+      "paper_role": "secondary",
+      "role": "controlled MonoGST+-protocol <g,f> sensitivity on DBLP and latest IMDb",
+      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "manifest": "experiment_data/s1_controlled_gf/cells.json",
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "g"]
-    },
-    {
-      "id": "S2_ablation",
-      "paper_role": "secondary",
-      "role": "small fixed pre-run mechanism panel spanning controlled, related and natural query families",
-      "methods": [
-        "abhss_light",
-        "abhss_light_no_early",
-        "abhss_light_no_witness",
-        "abhss_heavy",
-        "abhss_heavy_forward"
-      ],
-      "cases": [
-        {"id": "S2_ablation__DBLP_g10_f400", "dataset": "DBLP-AMiner-V18", "graph": "data/official-latest-20260722/dblp-aminer-v18", "query": "experiment_data/official_latest/controlled_labels/dblp/dblp_label_g10_f400.txt"},
-        {"id": "S2_ablation__IMDb_g10_f400", "dataset": "IMDb-daily-20260722", "graph": "data/official-latest-20260722/imdb-20260722", "query": "experiment_data/official_latest/controlled_labels/imdb/imdb_label_g10_f400.txt"},
-        {"id": "S2_ablation__Wikipedia_g12", "dataset": "snap-wikipedia-2018", "graph": "data/official-latest-20260722/snap-wikipedia-2018", "query": "experiment_data/official_latest/related/snap-wikipedia-2018/paper_related_g12.txt"},
-        {"id": "S2_ablation__LinkedMDB_g8", "dataset": "LinkedMDB-2012", "graph": "data/official-latest-20260722/linkedmdb", "query": "experiment_data/official_latest/natural/linkedmdb/query_g8.txt"}
-      ]
+      "id_fields": ["dataset", "g", "f_target"]
     }
   ],
   "excluded_from_formal_matrix": [
-    "all paper-author graph/interface artifacts under data/GPU4GST_* and data/{Toronto,MovieLens,DBLP,LinkedMDB,DBpedia}",
-    "synthetic controlled MovieLens queries from the retired draft matrix",
-    "heterogeneous/GPU and approximate-algorithm performance comparisons"
+    "the retired official-latest A/B/C workload",
+    "ablations until a later preregistered design is approved",
+    "approximation-only quality comparisons until a later preregistered design is approved",
+    "GPU or heterogeneous timing comparisons"
   ]
 }

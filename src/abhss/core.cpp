@@ -158,9 +158,21 @@ void BuildEarlyAnchorRows(Problem& p, EarlyAnchor& early)
 
 namespace
 {
+/**
+ * @brief 以 rent-or-buy 规则调度见证树 subset DP 上界求值。
+ *
+ * buy 是见证树节点数乘以完整 subset 合并工作；ordinary 每张 row 新增的
+ * queue pop/edge relax 作为 rent。累计 rent 达到 buy 才重新求值，避免在
+ * 上界尚无足够潜在收益时反复扫描见证树。配置差异只影响见证来源及是否
+ * 做零 rent 初次求值，调度规则本身完全共用。
+ */
 class WitnessUpperScheduler
 {
 public:
+    /**
+     * @brief 绑定查询与 ordinary 表，并按见证大小计算一次 buy 成本。
+     * @param evaluate_initial true 时在普通状态生成前立即求一次初始上界。
+     */
     WitnessUpperScheduler(Problem& problem,
                           const std::vector<Row>& ordinary,
                           bool evaluate_initial)
@@ -178,6 +190,7 @@ public:
             Evaluate();
     }
 
+    /** @brief 累加当前 row 的实际工作量，达到 buy 阈值时触发一次求值。 */
     void Account(long long row_work)
     {
         if (!enabled_)
@@ -191,6 +204,7 @@ public:
     }
 
 private:
+    /** @brief 在当前已 ready 的 ordinary row 上求见证树可行上界并收紧 incumbent。 */
     void Evaluate()
     {
         problem_.best = std::min(
@@ -205,6 +219,12 @@ private:
     bool enabled_ = false;
 };
 
+/**
+ * @brief 枚举三个 ordinary 分块与永久锚组在共同根相遇的可行解。
+ *
+ * 从实际可枚举值最少的一侧驱动，缺失状态立即拒绝。该完成式在三分块
+ * 大小达到平衡点时收紧上界，但不替代后续精确状态枚举。
+ */
 template <class Use>
 void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use)
 {
@@ -271,9 +291,9 @@ void BuildOrdinaryRows(Problem& p, EarlyAnchor* early)
     std::vector<int> seeds;
 
     const int three_block_limit = (p.nonanchor_count + 2) / 3;
-    // Queue pop/relax operations pay rent toward one witness-tree subset DP.
-    // The scheduler is shared; only Light's root-path witness receives the
-    // existing zero-rent initial evaluation, whose early incumbent is material.
+    // queue pop/relax 为一次见证树 subset DP 支付 rent。基础配置的根路径
+    // 见证需要零 rent 初次求值；开启 directed-cut 后 primal/facility 已在
+    // 预处理收紧上界，故只在后续 rent 达阈值时再次购买同一求值过程。
     WitnessUpperScheduler witness(
         p, p.ordinary, p.UsesBoundedGroupDistances());
 

@@ -92,24 +92,54 @@ def process_environment(
     extra_path_entries: Iterable[str | Path] = (),
     overrides: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Create a Windows-safe environment and prepend method runtime DLL paths."""
+    """Create a platform-safe child environment and prepend runtime paths.
+
+    Windows environment names are case-insensitive, so duplicate ``PATH``/``Path``
+    spellings must be collapsed.  POSIX names are case-sensitive: keep ``PATH``
+    exactly and also prepend the same restored third-party directories to
+    ``LD_LIBRARY_PATH`` so dynamically linked SCIP/SoPlex binaries can start.
+    """
 
     cleaned: dict[str, str] = {}
-    spelling: dict[str, str] = {}
-    for key, value in os.environ.items():
-        folded = key.casefold()
-        previous = spelling.get(folded)
-        if previous is not None:
-            cleaned.pop(previous, None)
-        canonical = "Path" if folded == "path" else key
-        spelling[folded] = canonical
-        cleaned[canonical] = value
+    path_key = "Path" if os.name == "nt" else "PATH"
+    if os.name == "nt":
+        spelling: dict[str, str] = {}
+        for key, value in os.environ.items():
+            folded = key.casefold()
+            previous = spelling.get(folded)
+            if previous is not None:
+                cleaned.pop(previous, None)
+            canonical = path_key if folded == "path" else key
+            spelling[folded] = canonical
+            cleaned[canonical] = value
+    else:
+        cleaned.update(os.environ)
     additions = [str(resolve(entry)) for entry in extra_path_entries]
     if additions:
-        cleaned["Path"] = os.pathsep.join(additions + [cleaned.get("Path", "")])
+        current_path = cleaned.get(path_key, "")
+        cleaned[path_key] = os.pathsep.join(
+            additions + ([current_path] if current_path else [])
+        )
+        if os.name != "nt":
+            current_library_path = cleaned.get("LD_LIBRARY_PATH", "")
+            cleaned["LD_LIBRARY_PATH"] = os.pathsep.join(
+                additions +
+                ([current_library_path] if current_library_path else [])
+            )
     if overrides:
         cleaned.update(overrides)
     return cleaned
+
+
+def render_command(command: Iterable[str]) -> str:
+    """用目标平台的 shell 规则只渲染日志，实际执行仍传参数列表。"""
+
+    values = list(command)
+    return (
+        subprocess.list2cmdline(values)
+        if os.name == "nt"
+        else shlex.join(values)
+    )
 
 
 def parse_probe_diagnostic(line: str) -> dict[str, Any]:
@@ -338,6 +368,12 @@ def make_base_record(
     }
     if case.expected_weight is not None:
         record["expected_weight"] = case.expected_weight
+    known_infeasible = set(
+        (case.attributes or {}).get("known_infeasible_query_indices", [])
+    )
+    record["expected_solution_status"] = (
+        "infeasible" if query.index in known_infeasible else "feasible"
+    )
     return record
 
 
@@ -383,7 +419,8 @@ def process_rss_bytes(process: subprocess.Popen[str]) -> int | None:
         statm = Path(f"/proc/{process.pid}/statm")
         if statm.exists():
             resident_pages = int(statm.read_text(encoding="ascii").split()[1])
-            return resident_pages * int(os.sysconf("SC_PAGE_SIZE"))
+            page_size = int(os.sysconf("SC_PAGE_SIZE"))
+            return resident_pages * page_size if page_size > 0 else None
     except (OSError, ValueError, AttributeError):
         return None
     return None
@@ -440,7 +477,7 @@ def run_native_range(
         log_path = run_dir / "logs" / f"{attempt_id}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("w", encoding="utf-8", newline="\n") as log:
-            log.write("COMMAND " + subprocess.list2cmdline(command) + "\n")
+            log.write("COMMAND " + render_command(command) + "\n")
             log.flush()
             attempt_started = time.monotonic()
             process = subprocess.Popen(
@@ -545,11 +582,15 @@ def run_native_range(
                     record["watchdog_query_peak_overhead_mib"] = max(
                         0, peak_rss_bytes - ready_rss_bytes
                     ) / (1024 * 1024)
+                parsed_weight = float(match.group(3))
                 record.update(
                     {
                         "status": "ok",
                         "solver_seconds": float(match.group(2)),
-                        "weight": float(match.group(3)),
+                        "weight": parsed_weight,
+                        "solution_status": (
+                            "infeasible" if parsed_weight < 0 else "feasible"
+                        ),
                         "query_memory_peak_mib": float(match.group(4)),
                         "watchdog_wall_seconds": time.monotonic() - query_started,
                         "finished_at": utc_now(),
@@ -711,7 +752,10 @@ def run_scip_case(
             timeout=watchdog,
         )
         output = completed.stdout + completed.stderr
-        log_path.write_text("COMMAND " + subprocess.list2cmdline(command) + "\n" + output, encoding="utf-8")
+        log_path.write_text(
+            "COMMAND " + render_command(command) + "\n" + output,
+            encoding="utf-8",
+        )
         status, stp_objective, seconds = parse_scip_output(output)
         adjusted = stp_objective - case.connector_cost_sum if stp_objective is not None else None
         record.update(
@@ -731,7 +775,10 @@ def run_scip_case(
         )
     except subprocess.TimeoutExpired as error:
         output = (error.stdout or "") + (error.stderr or "")
-        log_path.write_text("COMMAND " + subprocess.list2cmdline(command) + "\n" + output, encoding="utf-8")
+        log_path.write_text(
+            "COMMAND " + render_command(command) + "\n" + output,
+            encoding="utf-8",
+        )
         record.update(
             {
                 "status": "budget_exhausted" if budget_capped else "timeout",

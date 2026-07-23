@@ -1,14 +1,33 @@
 {
-  "schema_version": 1,
-  "audited_at": "2026-07-21",
+  "schema_version": 4,
+  "audited_at": "2026-07-23",
   "weight_tolerance": 1e-6,
+  "local_regression_gates": {
+    "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
+    "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
+    "zero_weight_witness": "PASS: base, directed-cut-only and enhanced all return 1",
+    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10",
+    "query_prelude_contracts": "PASS: empty, singleton, overlapping-zero, disconnected-infeasible, out-of-range vertex and g>16 cases have the declared behavior",
+    "strict_bound_closure": "PASS: a 5e-10 positive upper/lower gap is not misclassified as exact closure",
+    "illegal_adjoint_only": "PASS: public API and command line reject adjoint-completion without directed-cut"
+  },
+  "configuration_refactor_gate": {
+    "evidence": "experiments/abhss_configuration_refactor_gate.json",
+    "panel_definitions": 6,
+    "configuration_panel_comparisons": 12,
+    "objective_mismatches": 0,
+    "timeout_or_feasibility_regressions": 0,
+    "maximum_new_over_old_panel_time": 1.011842788,
+    "threshold": 1.03,
+    "result": "PASS"
+  },
   "known_optimum_panel": {
     "suite": "E0_steinlib_wrp",
     "instances": 11,
     "range_g": [11, 16],
     "results": {
-      "abhss_light": "11/11 match",
-      "abhss_heavy": "11/11 match",
+      "abhss_base": "11/11 match",
+      "abhss_enhanced": "11/11 match",
       "pruneddp_safe": "11/11 match",
       "dpbf": "11/11 match",
       "scip_jack_7_0_3": "11/11 match",
@@ -37,7 +56,7 @@
       "method": "gpu4gst_pruneddp_artifact",
       "case": "GPU4GST_Musae author g=5 panel",
       "queries": 10,
-      "result": "all weights match ABHSS-Light, ABHSS-Heavy, and pruneddp_safe",
+      "result": "all weights match ABHSS base, ABHSS enhanced, and pruneddp_safe",
       "evidence_directory": "results/paper_runs/smoke_e4_musae_g5"
     }
   ],

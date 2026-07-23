@@ -6,11 +6,19 @@ namespace gst::methods::abhss::internal
 {
 namespace
 {
+/** @brief 判断锚定 mask 是否为隐式 A(0) 或已经完成物化。 */
 bool AnchoredAvailable(const std::vector<Row>& anchored, int mask)
 {
     return !mask || anchored[mask].ready;
 }
 
+/**
+ * @brief 枚举 A(anchor_side,v)+D(ordinary_side,v) 的合法同根种子。
+ *
+ * A(0) 和 singleton D 分别直接读取组距离；有界距离必须额外检查 exact
+ * membership。多组 ordinary 只使用规范 branch，避免把可继续同根拆分的
+ * 中间值重复注入锚定递推。
+ */
 template <class Use>
 void ForEachAnchoredSum(const Problem& p,
                         const std::vector<Row>& anchored,
@@ -66,6 +74,12 @@ void ForEachAnchoredSum(const Problem& p,
         [&](int vertex, double a, double d) { use(vertex, a + d); });
 }
 
+/**
+ * @brief 用当前 A(mask,·) 与至多两张 ordinary row 结算完整 GST 上界。
+ *
+ * 先用各 row 最小值做廉价整体拒绝，再从实际候选最少的一侧驱动同根检查。
+ * `roots` 与 `anchored_distance` 只在本 row 生命周期内有效；函数不保存引用。
+ */
 void CompleteAnchoredRow(Problem& p,
                          int mask,
                          const std::vector<int>& roots,
@@ -160,8 +174,7 @@ std::vector<Row> BuildForwardAnchoredRows(
     std::vector<int> touched;
     std::vector<int> settled;
 
-    // A(0) only participates directly when g=2/3; larger instances never
-    // materialize the all-vertex anchor row.
+    // A(0) 只在 g=2/3 时直接参加完成式；更大查询绝不物化全顶点锚 row。
     if (p.half < 2)
     {
         std::vector<int> roots;
@@ -214,9 +227,8 @@ std::vector<Row> BuildForwardAnchoredRows(
                 return bound_cache[vertex];
             };
 
-            // Early A1 rows already are exact graph closures inside their
-            // certified cone.  Refilter them under the newer incumbent and
-            // run the same completion used by every ordinary forward row.
+            // early-A1 在证书 cone 内已经完成精确图闭包。这里只按更新后的
+            // incumbent 重新过滤，并调用与普通前向 row 相同的完成结算。
             if (anchored[mask].ready)
             {
                 Row precomputed = std::move(anchored[mask]);

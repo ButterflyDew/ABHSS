@@ -18,13 +18,23 @@
 
 namespace gst::methods::dual_cut
 {
-// Heavy 版使用的有向割对偶势。类中只保留冻结算法实际调用的路径：
-// changed-arc 构造、势查询、primal 见证读取和 residual 生命周期管理。
+/**
+ * @brief `DirectedCut` 增强使用的有向割对偶势与 primal 见证容器。
+ *
+ * 类中只保留冻结算法实际调用的 changed-arc 构造、势查询、primal 恢复和
+ * residual 生命周期管理。基础配置不构造该对象的数据；关闭增强即可沿同一
+ * ABHSS 入口跳过全部成员操作。
+ */
 class DualCutPotential
 {
 public:
-    // 依次为各组分配有向边容量。每轮从上一轮真正改写过的弧启动
-    // residual 最短路修复；最后在零 residual 弧上恢复一棵 primal 树。
+    /**
+     * @brief 构造全部组势、保留 residual，并恢复一棵 primal 可行树。
+     *
+     * 各组按根距离递减分配有向边容量；每轮只从此前真正改写过的弧启动
+     * residual 最短路修复。最后在零 residual 弧上恢复原图边 bitmap。
+     * 调用者可在生成 witness 后用 `ReleaseResidual` 回收 2m 临时数组。
+     */
     void BuildKeepingResidualChangedArcsWithPrimalEdges(
         const Graph& graph,
         const Query& query,
@@ -37,24 +47,26 @@ public:
             graph, query, root, residual_, primal_edge_words_);
     }
 
-    // 释放只在预处理阶段使用的 2m directed residual；势和 primal 边仍保留。
+    /** @brief 释放只在预处理使用的 2m residual；保留势和 primal 边。 */
     void ReleaseResidual()
     {
         residual_.clear();
         residual_.shrink_to_fit();
     }
 
+    /** @brief 返回仍在预处理生命周期内的有向 residual 数组只读引用。 */
     const std::vector<double>& Residual() const
     {
         return residual_;
     }
 
+    /** @brief 返回恢复出的 primal 原图边 bitmap 只读引用。 */
     const std::vector<std::uint64_t>& PrimalEdgeWords() const
     {
         return primal_edge_words_;
     }
 
-    // 返回 mask 中所有组势在 vertex 处的和，即 Heavy 的 directed-cut 下界。
+    /** @brief 返回 mask 内所有组势在 vertex 处之和，即 directed-cut 下界。 */
     double At(int vertex, int mask) const
     {
         double value = 0.0;
@@ -67,19 +79,26 @@ public:
         return value;
     }
 
+    /** @brief 读取一个原始查询组在指定顶点的单组对偶势。 */
     double GroupAt(int vertex, int group) const
     {
         return potential_[group][vertex];
     }
 
+    /** @brief 返回零 residual 弧上恢复的 primal 可行树真实边权。 */
     double PrimalUpper() const
     {
         return primal_upper_;
     }
 
 private:
-    // 固定按根到组的原始距离递减处理各组。原始组距离对未改写弧满足
-    // 三角不等式，因此第 t 轮只需检查此前势函数改变过的弧，再正常传播。
+    /**
+     * @brief 用 changed-arc 修复构造每个组的可行有向割势。
+     *
+     * 固定按根到组的原始距离递减处理各组。原始组距离对未改写弧满足三角
+     * 不等式，因此第 t 轮只检查此前势函数改变过的弧，再从违反处正常传播；
+     * 输出写入 `potential_` 与 `residual_`，不会改动输入距离表。
+     */
     void BuildChangedArcs(
         const Graph& graph,
         const Query& query,
@@ -212,8 +231,13 @@ private:
         }
     }
 
-    // 在 residual 为零的有向弧上，从 root 逐次连接尚未覆盖的组。
-    // Dijkstra 的距离仍按原边权计价，恢复出的 edge bitmap 是合法 primal 树。
+    /**
+     * @brief 在零 residual 有向弧上从 root 逐次连接尚未覆盖的组。
+     * @return 恢复出的原图边并集真实权重；无法覆盖全部组时返回正无穷。
+     *
+     * Dijkstra 仍按原边权计价，并把选中路径写入调用者持有的 edge bitmap，
+     * 因此结果是可独立复核的 primal 见证，而不是只依赖对偶值的上界数字。
+     */
     static double RecoverPrimal(
         const Graph& graph,
         const Query& query,
@@ -298,6 +322,7 @@ private:
         return cost;
     }
 
+    /** @brief 返回非零 mask 的最低位编号，用于组势位循环。 */
     static int FirstBit(int mask)
     {
 #if defined(_MSC_VER)
@@ -309,6 +334,7 @@ private:
 #endif
     }
 
+    /** @brief 将无向 edge id 与方向映射为稳定的 `[0,2m)` 有向弧编号。 */
     static int ArcIndex(int edge_id, int from, int to)
     {
         return 2 * edge_id + (from < to ? 0 : 1);

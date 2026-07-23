@@ -1,20 +1,22 @@
 # Fast Optimal Group Steiner Tree Search using GPUs 数据说明
 
-## 1. 官方下载来源与当前状态
+## 1. 作者下载来源、归档与当前状态
 
 - 论文作者仓库：<https://github.com/toziki/GPU4GST-sigmod>
 - 作者完整数据目录（OneDrive）：<https://1drv.ms/f/c/683d9dd9f262486b/Ek6Fl_brQzhDnI2cmhGIHxMBQ-L1ApeSqxwZKE4NBsDXSQ?e=3RBc8S>
-- 本地论文：[`Li 等 - 2025 - Fast Optimal Group Steiner Tree Search using GPUs.pdf`](Li%20等%20-%202025%20-%20Fast%20Optimal%20Group%20Steiner%20Tree%20Search%20using%20GPUs.pdf)
+- 论文：*Fast Optimal Group Steiner Tree Search using GPUs*（SIGMOD 2025）
 
 作者仓库的 `README.md` 规定共有 8 个数据集，每个数据集包含 8 个文件。仓库本身只提交了 Twitch，完整成品放在上述 OneDrive。
 
-截至 2026-07-17，本目录已经从作者 OneDrive 的 `GSTdata` 文件夹逐文件下载全部 64 个成品文件，总计 7,809,970,520 字节。下载时取得的 OneDrive 文件 ID、文件长度、修改时间和 QuickXorHash 保存在 `OFFICIAL_ONEDRIVE_MANIFEST.json`；本地全量 SHA-256 保存在 `SHA256SUMS.txt`。运行：
+截至 2026-07-17，研究环境曾从作者 OneDrive 的 `GSTdata` 文件夹逐文件下载全部 64 个成品文件，总计 7,809,970,520 字节。下载时取得的 OneDrive 文件 ID、文件长度、修改时间和 QuickXorHash 保存在 `OFFICIAL_ONEDRIVE_MANIFEST.json`；全量 SHA-256 保存在 `SHA256SUMS.txt`。
+
+2026-07-23 仓库清理时，原始大文件已移入根目录归档 `ABHSS_ignored_data_before_workload_redesign_20260723.tar.gz`，本目录只保留来源元数据、作者 CSV 和核验脚本；当前正式求解接口位于 `data/GPU4GST_*`。需要逐文件重新核验时，先从归档恢复原始文件，再运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File data_origin/verify_data.ps1
 ```
 
-`verify_data.ps1` 会同时检查 OneDrive 文件长度、本地 64 项 SHA-256 与作者成品内部的 CSR 结构。只调试结构检查时可以加 `-SkipSha256` 避免重复扫描 7.8 GB，但正式验收不应跳过。必须区分“下载是否完整”与“作者成品本身是否有效”：64 个文件已经与 OneDrive 元数据及本地 SHA-256 逐一匹配，但作者上传的 Orkut 两个二进制文件本身是截断的，详见第 8 节。`download_author_data.ps1` 仅作为缺文件时的官方入口提示；OneDrive 已迁移到新版个人 SharePoint，旧式文件夹直链不能可靠地由 `curl` 下载。
+`verify_data.ps1` 会同时检查 OneDrive 文件长度、64 项 SHA-256 与作者成品内部的 CSR 结构。只调试结构检查时可以加 `-SkipSha256`，但正式验收不应跳过。必须区分“下载完整”与“作者成品有效”：64 个文件与 OneDrive 元数据及 SHA-256 逐一匹配，但作者上传的 Orkut 两个二进制文件本身截断，详见第 8 节。正式接口从完整 `Orkut.in` 重建，不使用截断二进制。`download_author_data.ps1` 仅作为缺文件时的官方入口提示。
 
 各数据集在 OneDrive 中的 8 个文件总大小如下：
 
@@ -135,7 +137,7 @@ $$
 
 所以 `3.csv`、`5.csv`、`7.csv` 不是可以根据论文文字确定性重建的辅助文件，而是精确复现实验所必需的作者原始查询记录。
 
-引用 [61] 的原文给出了“相关组”的一般生成方法：构造候选组共现图，若两个组至少共享一个原图顶点则相邻；均匀随机选择根组，BFS 到能够找到足够近邻的最小深度，再从已找到的近邻中均匀抽样，并对不可行查询重新生成。当前仓库用这一定义生成独立的 `g=4..16` 扩展查询，但由于 GPU4GST 没有公开实际种子和生成代码，扩展查询不能声称是作者原始输出。冻结包中的转换协议见 [`../docs/GPU4GST_DATA.md`](../docs/GPU4GST_DATA.md)。引用 [61] 为：Shuang Yang et al., *Approximating Probabilistic Group Steiner Trees in Graphs*, PVLDB 16(2), 2022，<https://www.vldb.org/pvldb/vol16/p343-sun.pdf>。
+引用 [61] 的原文给出了“相关组”的一般生成方法：构造候选组共现图，若两个组至少共享一个原图顶点则相邻；均匀随机选择根组，BFS 到能够找到足够近邻的最小深度，再从已找到的近邻中均匀抽样，并对不可行查询重新生成。当前仓库用这一定义生成独立的 `g=5..16` 扩展查询，每格从 300 条候选固定选 5 条；但由于 GPU4GST 没有公开实际种子和生成代码，扩展查询不能声称是作者原始输出。冻结包中的转换协议见 [`docs/archive/GPU4GST_DATA.md`](../docs/archive/GPU4GST_DATA.md)。引用 [61] 为：Shuang Yang et al., *Approximating Probabilistic Group Steiner Trees in Graphs*, PVLDB 16(2), 2022，<https://www.vldb.org/pvldb/vol16/p343-sun.pdf>。
 
 ## 7. 二进制生成
 

@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-23T11:01:10.9319471Z",
+  "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm with a monotone enhancement chain, without exactness or solver-time regression",
+  "result": "PASS",
+  "policy": {
+    "weight_tolerance": 1e-6,
+    "maximum_panel_regression_fraction": 0.03,
+    "comparison_unit": "sum of solver-only query time over each predeclared panel and fixed configuration",
+    "rerun_rule": "if one panel exceeds 1.03, alternate old/new at least three times and compare medians",
+    "rerun_rule_triggered": false,
+    "graph_and_query_loading_in_solver_time": false,
+    "per_query_configuration_switching": false
+  },
+  "configuration_chain": {
+    "base": [],
+    "directed_cut_only": ["directed-cut"],
+    "enhanced": ["directed-cut", "adjoint-completion"],
+    "dependency": "adjoint-completion requires directed-cut",
+    "formal_configurations": ["base", "enhanced"],
+    "executable_count": 1
+  },
+  "build_identity": {
+    "git_base_commit": "4ac26f45ac97dffd47936b921a1729abca3513ec",
+    "compiler": "g++.exe (Rev8, Built by MSYS2 project) 15.2.0",
+    "generator": "MinGW Makefiles",
+    "build_type": "Release",
+    "optimization": "O2 plus the common Release IPO target property",
+    "pre_refactor_binaries": {
+      "base_correspondence": {
+        "old_name": "abhss_light.exe",
+        "bytes": 391299,
+        "sha256": "9c712bb25ab34a6bcda97fac29988b9b5508bb24da1bb4a23f186aa13e85106e"
+      },
+      "enhanced_correspondence": {
+        "old_name": "abhss_heavy.exe",
+        "bytes": 408676,
+        "sha256": "be8a21048808ddc5915b42f9ddbb4eb16b2faf07a55f4f5c3b03921060f24c49"
+      }
+    },
+    "timed_refactored_binary": {
+      "name": "abhss.exe",
+      "bytes": 423537,
+      "sha256": "e7dc746ef1cfce329d60296e8d4d9ac15aac147d86a227331cffd5cd1dce2e62"
+    },
+    "final_validation_binary": {
+      "name": "abhss.exe",
+      "bytes": 423537,
+      "sha256": "3f691c59c9bd173abd9b32a222c510b146978750be374299bbba7235189d3a22",
+      "post_timing_changes": "Chinese comments, the graph-I/O regression target/fixture, and removal of one unused include only; no ABHSS control-flow, data-layout, or graph-loader statement changed",
+      "final_large_graph_spot_check": "PASS"
+    }
+  },
+  "correctness": {
+    "fast_graph_io_structure": "PASS",
+    "zero_weight_witness_three_legal_configurations": "PASS",
+    "independent_exact_subset_dp_random_instances": 120,
+    "configuration_chain_round_trip": "PASS",
+    "public_api_rejects_adjoint_only": "PASS",
+    "command_line_rejects_adjoint_only": "PASS",
+    "steinlib_wrp_known_optima": "11/11 for base and enhanced",
+    "performance_panel_weight_mismatches": 0,
+    "new_timeout_or_feasibility_regressions": 0
+  },
+  "panels": [
+    {
+      "id": "steinlib_wrp11",
+      "dataset": "SteinLib-WRP",
+      "g": "11..16",
+      "queries": 11,
+      "source": "experiment_data/steinlib/index.json",
+      "source_sha256": "f3e9899df6b626b0eee94dc366b57821983f8317c8203f03694730d56888169c",
+      "instance_order": ["wrp3-11", "wrp3-12", "wrp3-13", "wrp3-14", "wrp3-15", "wrp3-16", "wrp4-11", "wrp4-13", "wrp4-14", "wrp4-15", "wrp4-16"],
+      "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "base": {
+        "old_total_seconds": 15.663659,
+        "new_total_seconds": 15.346104,
+        "new_over_old": 0.979726640,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 4.597346,
+        "new_total_seconds": 3.761492,
+        "new_over_old": 0.818187711,
+        "passed": true
+      }
+    },
+    {
+      "id": "musae_g6",
+      "dataset": "GPU4GST_Musae",
+      "g": 6,
+      "queries": 5,
+      "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
+      "source_sha256": "12f4f1c0448e3783865186532d46e6b96ea5edb7ec5658fd6830db1fa5ba83d0",
+      "weights": [340, 282, 283, 198, 184],
+      "base": {
+        "old_total_seconds": 0.340344,
+        "new_total_seconds": 0.333497,
+        "new_over_old": 0.979882119,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 0.624449,
+        "new_total_seconds": 0.619780,
+        "new_over_old": 0.992523008,
+        "passed": true
+      }
+    },
+    {
+      "id": "musae_g10",
+      "dataset": "GPU4GST_Musae",
+      "g": 10,
+      "queries": 5,
+      "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
+      "source_sha256": "cce7d24be2353e3703e8de1f044b54bcdfac05140369cc228ee1075ca5e4f5d9",
+      "weights": [291, 275, 731, 389, 365],
+      "base": {
+        "old_total_seconds": 14.650781,
+        "new_total_seconds": 14.810915,
+        "new_over_old": 1.010930066,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 2.555014,
+        "new_total_seconds": 2.445644,
+        "new_over_old": 0.957193972,
+        "passed": true
+      }
+    },
+    {
+      "id": "musae_g14",
+      "dataset": "GPU4GST_Musae",
+      "g": 14,
+      "queries": 5,
+      "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g14.txt",
+      "source_sha256": "7da2fcacc60c1a2a59cebf68d987b8b5868c2ed7ba2bbe289eb467c743db2d10",
+      "weights": [414, 580, 659, 297, 575],
+      "base": {
+        "old_total_seconds": 1080.617007,
+        "new_total_seconds": 1087.887453,
+        "new_over_old": 1.006728051,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 289.519924,
+        "new_total_seconds": 292.948647,
+        "new_over_old": 1.011842788,
+        "passed": true
+      }
+    },
+    {
+      "id": "orkut_g6",
+      "dataset": "GPU4GST_Orkut",
+      "g": 6,
+      "queries": 1,
+      "source": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g6.txt",
+      "source_sha256": "6ad223cf54860e634d42463d1d34650b02b573b3c3468ffbf6fa620ea286c2b5",
+      "query_range": "1..1",
+      "weights": [11],
+      "base": {
+        "old_total_seconds": 24.446206,
+        "new_total_seconds": 23.535858,
+        "new_over_old": 0.962761174,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 90.243451,
+        "new_total_seconds": 87.818050,
+        "new_over_old": 0.973123800,
+        "passed": true
+      }
+    },
+    {
+      "id": "reddit_g10",
+      "dataset": "GPU4GST_Reddit",
+      "g": 10,
+      "queries": 2,
+      "source": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g10.txt",
+      "source_sha256": "231b47540a4495e12086acc9cf6e69f61913801b4a5a7ee3bf98df76d2926d21",
+      "query_range": "1..2",
+      "weights": [0, 100],
+      "base": {
+        "old_total_seconds": 3.168216,
+        "new_total_seconds": 3.100777,
+        "new_over_old": 0.978713888,
+        "passed": true
+      },
+      "enhanced": {
+        "old_total_seconds": 45.452257,
+        "new_total_seconds": 40.184602,
+        "new_over_old": 0.884105755,
+        "passed": true
+      }
+    }
+  ],
+  "graph_loading": {
+    "implementation": "8 MiB buffered numeric scan; first pass stores edges and counts exact degrees; second pass reserves once and builds bidirectional adjacency in original order",
+    "semantic_fixture": "tests/fixtures/fast_graph/graph.txt",
+    "semantic_regression": "tests/graph_io_regression.cpp",
+    "orkut": {
+      "vertices": 3072441,
+      "edges": 117185083,
+      "graph_file_bytes": 2118112699,
+      "old_process_start_to_ready_seconds": {
+        "base": 565,
+        "enhanced": 566,
+        "resolution": "approximately one second, from process StartTime to the old header timestamp"
+      },
+      "timed_refactored_graph_load_seconds": {
+        "base": 26.880215,
+        "enhanced": 25.996033
+      },
+      "final_binary_spot_check": {
+        "base": {
+          "graph_load_seconds": 28.079482,
+          "query_seconds": 24.446510,
+          "weight": 11,
+          "new_over_old_query_time": 1.000012435
+        },
+        "enhanced": {
+          "graph_load_seconds": 30.867929,
+          "query_seconds": 90.984837,
+          "weight": 11,
+          "new_over_old_query_time": 1.008216516
+        },
+        "passed": true
+      },
+      "loaded_rss_mib": {
+        "old_base": 8561.383,
+        "old_enhanced": 8561.492,
+        "new_base": 6463.203,
+        "new_enhanced": 6462.746
+      },
+      "conclusion": "roughly 18x to 22x lower load latency across measured runs, with lower loaded RSS and an independently passing solver-time gate"
+    },
+    "reddit": {
+      "vertices": 4262834,
+      "edges": 12502767,
+      "graph_file_bytes": 222862160,
+      "old_graph_load_seconds_approximate": {
+        "base": 63.2,
+        "enhanced": 63.3,
+        "derivation": "external process wall time minus recorded solver query time; includes subsecond startup/output overhead"
+      },
+      "new_graph_load_seconds": {
+        "base": 3.901543,
+        "enhanced": 3.892028
+      },
+      "conclusion": "approximately 16x lower load latency, with both solver-time panels passing"
+    }
+  }
+}

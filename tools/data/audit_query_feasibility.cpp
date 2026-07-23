@@ -9,7 +9,10 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include "../../src/common/fast_numeric_reader.h"
 
 namespace fs = std::filesystem;
 
@@ -19,6 +22,7 @@ namespace
 class DisjointSet
 {
 public:
+    /** @brief 初始化 `count` 个单点分量，顶点在工具内部使用 0-based 编号。 */
     explicit DisjointSet(std::uint32_t count) : parent_(count), size_(count, 1)
     {
         for (std::uint32_t vertex = 0; vertex < count; ++vertex)
@@ -27,6 +31,7 @@ public:
         }
     }
 
+    /** @brief 迭代查找代表元并压缩整条访问路径，避免递归栈开销。 */
     std::uint32_t Find(std::uint32_t vertex)
     {
         std::uint32_t root = vertex;
@@ -43,6 +48,7 @@ public:
         return root;
     }
 
+    /** @brief 按分量大小合并两个端点；自环和重复边自然成为 no-op。 */
     void Unite(std::uint32_t left, std::uint32_t right)
     {
         left = Find(left);
@@ -83,6 +89,7 @@ struct QueryAudit
     std::vector<std::uint64_t> infeasible_indices;
 };
 
+/** @brief 对路径中的控制字符、反斜杠和引号做最小 JSON 转义。 */
 std::string JsonEscape(const std::string& text)
 {
     std::string result;
@@ -115,16 +122,25 @@ std::string JsonEscape(const std::string& text)
     return result;
 }
 
-GraphAudit ReadGraph(const fs::path& graph_path, DisjointSet*& output_dsu)
+/**
+ * @brief 单遍流式读取图、验证接口并建立分量 DSU，不物化边或邻接表。
+ *
+ * 该工具可能扫描 Orkut/IMDb，因此与 solver 共用快速数字读取器，但只保留
+ * `O(n)` 的 DSU。DSU 通过 `unique_ptr` 输出参数移交给后续查询审计，统计
+ * 值仍保持为轻量的 `GraphAudit`。
+ */
+GraphAudit ReadGraph(const fs::path& graph_path,
+                     std::unique_ptr<DisjointSet>& output_dsu)
 {
-    std::ifstream input(graph_path);
-    if (!input)
+    gst::io::FastNumericReader input(graph_path);
+    if (!input.IsOpen())
     {
         throw std::runtime_error("cannot open graph: " + graph_path.string());
     }
     std::uint64_t vertices64 = 0;
     std::uint64_t edges = 0;
-    if (!(input >> vertices64 >> edges) || vertices64 == 0 ||
+    if (!input.ReadUInt64(vertices64) || !input.ReadUInt64(edges) ||
+        vertices64 == 0 ||
         vertices64 > std::numeric_limits<std::uint32_t>::max())
     {
         throw std::runtime_error("invalid graph header: " + graph_path.string());
@@ -135,7 +151,8 @@ GraphAudit ReadGraph(const fs::path& graph_path, DisjointSet*& output_dsu)
         std::uint64_t left = 0;
         std::uint64_t right = 0;
         double weight = 0;
-        if (!(input >> left >> right >> weight))
+        if (!input.ReadUInt64(left) || !input.ReadUInt64(right) ||
+            !input.ReadDouble(weight))
         {
             throw std::runtime_error("truncated graph at edge " + std::to_string(edge + 1));
         }
@@ -143,8 +160,16 @@ GraphAudit ReadGraph(const fs::path& graph_path, DisjointSet*& output_dsu)
         {
             throw std::runtime_error("out-of-range graph endpoint");
         }
+        if (weight < 0.0)
+        {
+            throw std::runtime_error("negative graph edge weight");
+        }
         dsu->Unite(static_cast<std::uint32_t>(left - 1),
                    static_cast<std::uint32_t>(right - 1));
+    }
+    if (!input.AtEnd())
+    {
+        throw std::runtime_error("unexpected trailing graph token");
     }
 
     std::vector<std::uint32_t> component_sizes(vertices64, 0);
@@ -164,37 +189,40 @@ GraphAudit ReadGraph(const fs::path& graph_path, DisjointSet*& output_dsu)
                 std::max(audit.largest_component_vertices, size);
         }
     }
-    output_dsu = dsu.release();
+    output_dsu = std::move(dsu);
     return audit;
 }
 
+/** @brief 用已建 DSU 对一个查询文件逐组求分量交并记录无解的 1-based 索引。 */
 QueryAudit AuditQueries(const fs::path& path, std::uint32_t vertices, DisjointSet& dsu)
 {
-    std::ifstream input(path);
-    if (!input)
+    gst::io::FastNumericReader input(path);
+    if (!input.IsOpen())
     {
         throw std::runtime_error("cannot open query file: " + path.string());
     }
     QueryAudit audit;
     audit.path = path;
-    if (!(input >> audit.queries))
+    if (!input.ReadUInt64(audit.queries))
     {
         throw std::runtime_error("invalid query header: " + path.string());
     }
     for (std::uint64_t query_index = 1; query_index <= audit.queries; ++query_index)
     {
-        std::uint32_t group_count = 0;
-        if (!(input >> group_count) || group_count == 0)
+        std::uint64_t group_count64 = 0;
+        if (!input.ReadUInt64(group_count64) || group_count64 == 0 ||
+            group_count64 > std::numeric_limits<std::uint32_t>::max())
         {
             throw std::runtime_error("invalid g at query " + std::to_string(query_index));
         }
+        const auto group_count = static_cast<std::uint32_t>(group_count64);
         audit.minimum_g = std::min(audit.minimum_g, group_count);
         audit.maximum_g = std::max(audit.maximum_g, group_count);
         std::vector<std::uint32_t> common_components;
         for (std::uint32_t group = 0; group < group_count; ++group)
         {
             std::uint64_t group_size = 0;
-            if (!(input >> group_size) || group_size == 0)
+            if (!input.ReadUInt64(group_size) || group_size == 0)
             {
                 throw std::runtime_error("empty or malformed query group");
             }
@@ -203,7 +231,7 @@ QueryAudit AuditQueries(const fs::path& path, std::uint32_t vertices, DisjointSe
             for (std::uint64_t member_index = 0; member_index < group_size; ++member_index)
             {
                 std::uint64_t member = 0;
-                if (!(input >> member) || member == 0 || member > vertices)
+                if (!input.ReadUInt64(member) || member == 0 || member > vertices)
                 {
                     throw std::runtime_error("out-of-range query member");
                 }
@@ -238,6 +266,10 @@ QueryAudit AuditQueries(const fs::path& path, std::uint32_t vertices, DisjointSe
             ++audit.feasible;
         }
     }
+    if (!input.AtEnd())
+    {
+        throw std::runtime_error("unexpected trailing query token: " + path.string());
+    }
     if (audit.queries == 0)
     {
         audit.minimum_g = 0;
@@ -245,6 +277,7 @@ QueryAudit AuditQueries(const fs::path& path, std::uint32_t vertices, DisjointSe
     return audit;
 }
 
+/** @brief 将单图统计和全部查询文件审计写成可由 Python 汇总的稳定 JSON。 */
 void WriteJson(const fs::path& output_path, const fs::path& graph_path,
                const GraphAudit& graph, const std::vector<QueryAudit>& queries)
 {
@@ -287,6 +320,7 @@ void WriteJson(const fs::path& output_path, const fs::path& graph_path,
 
 }  // namespace
 
+/** @brief 命令行入口；有无解查询时返回 2，损坏输入返回 1，全部可行返回 0。 */
 int main(int argc, char** argv)
 {
     try
@@ -298,9 +332,8 @@ int main(int argc, char** argv)
         }
         const fs::path graph_path = argv[1];
         const fs::path output_path = argv[2];
-        DisjointSet* raw_dsu = nullptr;
-        const GraphAudit graph = ReadGraph(graph_path, raw_dsu);
-        std::unique_ptr<DisjointSet> dsu(raw_dsu);
+        std::unique_ptr<DisjointSet> dsu;
+        const GraphAudit graph = ReadGraph(graph_path, dsu);
         std::vector<QueryAudit> audits;
         for (int index = 3; index < argc; ++index)
         {

@@ -7,8 +7,13 @@
 namespace gst
 {
 
-// 判断当前询问是否存在可行解：
-// 若存在某个连通分量与每个组至少有一个点相交，则该询问有解。
+/**
+ * @brief 判断是否存在一个与每个查询组均相交的无向连通分量。
+ *
+ * 正式加载的图直接读取 `Graph::component_of`，复杂度由查询组成员数主导；
+ * 手工构造且未建立缓存的小图会在本次调用内回退计算分量。函数同时验证
+ * 全部查询顶点范围，空查询可行，任何空组使非空查询不可行。
+ */
 bool IsQueryFeasible(const Graph& graph, const Query& query);
 
 }  // namespace gst

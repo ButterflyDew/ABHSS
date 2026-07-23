@@ -17,9 +17,14 @@ struct SolveResult
     bool feasible = false;
 };
 
-// Thin, input-only adapter around the CPU PrunedDP++ header shipped with the
-// GPU4GST SIGMOD 2025 artifact.  The upstream algorithm source is unmodified.
+/** @brief 把统一 Graph 一次转换为 GPU4GST artifact 的 CPU 邻接表示。 */
 void PrepareGraph(const Graph& graph);
+/**
+ * @brief 调用 GPU4GST SIGMOD 2025 artifact 随附的 CPU PrunedDP++ header。
+ *
+ * adapter 只做输入/输出转换，不修改上游算法源；其整数权重和 g 上限由入口
+ * 显式检查，因此只参加适用子集校准与 correctness audit。
+ */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query);
 
 }  // namespace gpu4gst_pruneddp

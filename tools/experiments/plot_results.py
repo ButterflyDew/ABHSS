@@ -17,10 +17,10 @@ from summarize_results import geomean, load_records
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_METHODS = ("abhss_light", "abhss_heavy", "pruneddp_safe")
+DEFAULT_METHODS = ("abhss_base", "abhss_enhanced", "pruneddp_safe")
 LABELS = {
-    "abhss_light": "ABHSS-Light",
-    "abhss_heavy": "ABHSS-Heavy",
+    "abhss_base": "ABHSS-Base",
+    "abhss_enhanced": "ABHSS-Enhanced",
     "pruneddp_safe": "PrunedDP++-Safe",
 }
 

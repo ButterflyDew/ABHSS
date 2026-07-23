@@ -17,8 +17,7 @@ struct SolveResult
     bool feasible = false;
 };
 
-// Adapter around the authors' PVLDB 2021 Basic+ implementation.  Setting
-// lambda=1 and the requested ratio to 1 gives the edge-only exact mode.
+/** @brief 调用 PVLDB 2021 作者 Basic+；lambda=1、ratio=1 为纯边权精确模式。 */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query);
 
 }  // namespace basic_plus

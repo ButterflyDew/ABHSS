@@ -13,9 +13,12 @@ struct SolveResult
     bool feasible = false;
 };
 
-// Canonical Dreyfus-Wagner/DPBF recurrence for edge-weighted GST.  This
-// implementation is deliberately a transparent correctness baseline, not a
-// large-graph competitor.
+/**
+ * @brief 用规范 Dreyfus–Wagner/DPBF 递推求一条边权 GST 查询。
+ *
+ * 实现刻意保持透明并使用稠密全子集表，只作为 correctness baseline，
+ * 不定位为大图性能竞争者；超过内部 80M cell 安全上限会明确拒绝。
+ */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query);
 
 }  // namespace gst::methods::dpbf

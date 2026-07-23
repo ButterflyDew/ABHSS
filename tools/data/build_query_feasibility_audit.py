@@ -50,6 +50,7 @@ def locate_executable(requested: Path | None) -> Path:
     candidates.extend(
         [
             ROOT / "build" / "Release" / "audit_query_feasibility.exe",
+            ROOT / "build" / "audit_query_feasibility.exe",
             ROOT / "build" / "audit_query_feasibility",
         ]
     )
@@ -73,13 +74,6 @@ def load_audit_inputs(matrix_path: Path) -> dict[Path, set[Path]]:
         if not query_file.is_file():
             raise FileNotFoundError(query_file)
         grouped[graph_file].add(query_file)
-    official_root = ROOT / "data" / str(config["data_freeze"])
-    for manifest_path in official_root.glob("*/dataset_manifest.json"):
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        graph_file = (ROOT / manifest["graph"]["path"]).resolve()
-        if not graph_file.is_file():
-            raise FileNotFoundError(graph_file)
-        grouped.setdefault(graph_file, set())
     return grouped
 
 
@@ -182,6 +176,13 @@ def main() -> int:
     output_path = args.output if args.output.is_absolute() else ROOT / args.output
     executable = locate_executable(args.executable)
     grouped = load_audit_inputs(matrix_path)
+    matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+    published_pairs = defaultdict(set)
+    for case in expand_cases(matrix):
+        if case.suite.startswith("P1_"):
+            published_pairs[(case.graph_path / "graph.txt").resolve()].add(
+                case.query_path.resolve()
+            )
 
     graph_records: list[dict[str, Any]] = []
     parts_directory = ROOT / "results" / "query_feasibility_audit_parts"
@@ -224,10 +225,23 @@ def main() -> int:
             for query in graph["query_files"]
         ),
     }
+    published_infeasible = 0
+    generated_infeasible = 0
+    for graph in graph_records:
+        graph_path = (ROOT / graph["graph_path"]).resolve()
+        for query in graph["query_files"]:
+            query_path = (ROOT / query["path"]).resolve()
+            if query_path in published_pairs.get(graph_path, set()):
+                published_infeasible += int(query["infeasible"])
+            else:
+                generated_infeasible += int(query["infeasible"])
+    totals["published_workload_infeasible_retained"] = published_infeasible
+    totals["generated_or_gate_infeasible"] = generated_infeasible
     payload = {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "scope": "all unique graph/query-file pairs referenced by paper_matrix.json plus official held graph interfaces",
+        "scope": "all unique graph/query-file pairs referenced by paper_matrix.json",
+        "policy": "retain and run infeasible queries present in the exact published P1 workload; require every generated P2/S2 and correctness-gate query to be feasible",
         "matrix_path": relative(matrix_path),
         "matrix_sha256": sha256_file(matrix_path),
         "audit_executable": relative(executable),
@@ -243,9 +257,10 @@ def main() -> int:
         "audit totals: "
         f"graphs={totals['graphs']} query_files={totals['query_files']} "
         f"queries={totals['unique_query_records']} "
-        f"feasible={totals['feasible']} infeasible={totals['infeasible']}"
+        f"feasible={totals['feasible']} infeasible={totals['infeasible']} "
+        f"published_infeasible={published_infeasible} generated_infeasible={generated_infeasible}"
     )
-    return 0 if totals["infeasible"] == 0 else 2
+    return 0 if generated_infeasible == 0 else 2
 
 
 if __name__ == "__main__":

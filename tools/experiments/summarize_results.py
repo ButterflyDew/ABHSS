@@ -156,6 +156,67 @@ def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
+def summarize_datasets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aggregate every query block of a graph into one reporting row.
+
+    P1 deliberately keeps GPU4GST's g=3/5/7 files separate while running, but
+    the paper reports their combined workload.  A total is only labelled as
+    the observed total when every query completed; the capped total charges
+    one per-instance timeout limit to every unfinished query.
+    """
+
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        grouped[(record["suite"], record["dataset"], record["method"])].append(record)
+    rows: list[dict[str, Any]] = []
+    for (suite, dataset, method), group in sorted(grouped.items()):
+        solved = [record for record in group if record["status"] == "ok"]
+        solved_times = [float(record["solver_seconds"]) for record in solved]
+        timeout = float(group[0]["timeout_seconds"])
+        unfinished = len(group) - len(solved)
+        observed_total = sum(solved_times)
+        rows.append(
+            {
+                "suite": suite,
+                "dataset": dataset,
+                "method": method,
+                "query_blocks": len({record["case_id"] for record in group}),
+                "g_values": ";".join(
+                    map(str, sorted({int(record["g"]) for record in group}))
+                ),
+                "instances": len(group),
+                "solved": len(solved),
+                "timeouts": sum(record["status"] == "timeout" for record in group),
+                "errors": sum(
+                    record["status"] not in ("ok", "timeout") for record in group
+                ),
+                "completed_infeasible": sum(
+                    record.get("solution_status") == "infeasible" for record in group
+                ),
+                "feasibility_mismatches": sum(
+                    record["status"] == "ok"
+                    and record.get("solution_status") is not None
+                    and record.get("expected_solution_status") is not None
+                    and record.get("expected_solution_status")
+                    != record.get("solution_status")
+                    for record in group
+                ),
+                "all_solved": unfinished == 0,
+                "observed_total_seconds_if_all_solved": (
+                    observed_total if unfinished == 0 else None
+                ),
+                "solved_query_seconds": observed_total,
+                "capped_total_seconds": observed_total + unfinished * timeout,
+                "mean_solved_seconds": (
+                    statistics.fmean(solved_times) if solved_times else None
+                ),
+                "geomean_solved_seconds": geomean(solved_times),
+                "per_instance_timeout_seconds": timeout,
+            }
+        )
+    return rows
+
+
 def paired_rows(
     records: list[dict[str, Any]], baseline: str, contenders: list[str]
 ) -> list[dict[str, Any]]:
@@ -285,6 +346,32 @@ def quality_rows(
     return mismatches
 
 
+def feasibility_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for record in records:
+        if (
+            record.get("status") != "ok"
+            or record.get("solution_status") is None
+            or record.get("expected_solution_status") is None
+        ):
+            continue
+        if record.get("expected_solution_status") == record.get("solution_status"):
+            continue
+        rows.append(
+            {
+                "run_id": record.get("run_id", ""),
+                "suite": record["suite"],
+                "case_id": record["case_id"],
+                "query_index": record["query_index"],
+                "method": record["method"],
+                "expected_solution_status": record.get("expected_solution_status"),
+                "actual_solution_status": record.get("solution_status"),
+                "weight": record.get("weight"),
+            }
+        )
+    return rows
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, action="append", default=[])
@@ -297,7 +384,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--baseline", default="pruneddp_safe")
     parser.add_argument(
-        "--contender", action="append", default=["abhss_light", "abhss_heavy"]
+        "--contender", action="append", default=["abhss_base", "abhss_enhanced"]
     )
     parser.add_argument("--weight-tolerance", type=float, default=1e-6)
     parser.add_argument(
@@ -317,11 +404,14 @@ def main() -> int:
         raise ValueError("No records found")
 
     cell_rows = summarize_cells(records)
+    dataset_rows = summarize_datasets(records)
     paired = paired_rows(records, args.baseline, args.contender)
     mismatches = quality_rows(
         records, args.weight_tolerance, args.include_audit_methods_in_quality
     )
+    feasibility_mismatches = feasibility_rows(records)
     write_csv(output / "summary_by_cell.csv", cell_rows)
+    write_csv(output / "summary_by_dataset.csv", dataset_rows)
     write_csv(output / "paired_speedups.csv", paired)
     write_csv(
         output / "quality_mismatches.csv",
@@ -335,17 +425,34 @@ def main() -> int:
             "methods_and_weights",
         ],
     )
+    write_csv(
+        output / "feasibility_mismatches.csv",
+        feasibility_mismatches,
+        [
+            "run_id",
+            "suite",
+            "case_id",
+            "query_index",
+            "method",
+            "expected_solution_status",
+            "actual_solution_status",
+            "weight",
+        ],
+    )
     (output / "summary_metadata.json").write_text(
         json.dumps(
             {
                 "records": len(records),
                 "cells": len(cell_rows),
+                "dataset_rows": len(dataset_rows),
                 "paired_cells": len(paired),
                 "quality_mismatches": len(mismatches),
+                "feasibility_mismatches": len(feasibility_mismatches),
                 "baseline": args.baseline,
                 "contenders": args.contender,
                 "audit_methods_in_quality_check": args.include_audit_methods_in_quality,
                 "timeout_handling": "PAR-2; timeout/error contributes 2 * per-instance limit",
+                "dataset_total_handling": "observed total is reported only when all queries finish; capped total charges one per-instance limit to each unfinished query",
                 "speedup_censoring": "geomean uses only mutually solved pairs; timeout directions reported separately",
             },
             indent=2,
@@ -355,9 +462,10 @@ def main() -> int:
         encoding="utf-8",
     )
     print(
-        f"Summarized {len(records)} records; {len(mismatches)} weight mismatches -> {output}"
+        f"Summarized {len(records)} records; {len(mismatches)} weight mismatches, "
+        f"{len(feasibility_mismatches)} feasibility mismatches -> {output}"
     )
-    return 1 if mismatches else 0
+    return 1 if mismatches or feasibility_mismatches else 0
 
 
 if __name__ == "__main__":

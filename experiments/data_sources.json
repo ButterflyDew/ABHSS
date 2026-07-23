@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "freeze_id": "published-workloads-plus-imdb-20260722",
+  "sources": [
+    {
+      "id": "MonoGSTPlus-author-workload",
+      "paper": "A Practical Sublinear Approximation for Group Steiner Tree",
+      "paper_status": "accepted by VLDB 2026; not public at the 2026-07-23 freeze",
+      "source_status": "private author-supplied processed graph/query interfaces; manuscript/source material is not Git-tracked",
+      "datasets": ["Toronto", "MovieLens", "DBLP", "LinkedMDB", "DBpedia"],
+      "graph_policy": "exact processed author graph interfaces",
+      "query_policy": "exact complete author query.txt files",
+      "public_precursor_artifact": "https://github.com/YahuiSun/GroupSteinerTree",
+      "public_precursor_caveat": "useful provenance context only; it is not asserted to be byte-identical to the five final MonoGST+ inputs",
+      "identity_manifest": "experiment_data/p1_published_workloads/manifest.json",
+      "identity_confidence": "high for the local frozen interfaces because final SHA-256 values are recorded; public independent acquisition remains unresolved",
+      "redistribution": "blocking before public artifact: obtain author permission or publish author-approved acquisition instructions and hashes"
+    },
+    {
+      "id": "GPU4GST-author-workload",
+      "paper": "Fast Optimal Group Steiner Tree Search using GPUs",
+      "paper_doi": "https://doi.org/10.1145/3769792",
+      "repository": "https://github.com/toziki/GPU4GST-sigmod",
+      "datasets": ["Musae", "Twitch", "Github", "Youtube", "DBLP", "Orkut", "LiveJournal", "Reddit"],
+      "graph_policy": "exact processed author .in and .g products converted without changing graph semantics",
+      "query_policy": "all first 300 author CSV rows at each of g=3,5,7",
+      "source_manifest": "data_origin/OFFICIAL_ONEDRIVE_MANIFEST.json",
+      "source_hashes": "data_origin/SHA256SUMS.txt",
+      "converter": "tools/gpu4gst_data/prepare_gpu4gst.cpp",
+      "identity_manifest": "experiment_data/p1_published_workloads/manifest.json",
+      "identity_confidence": "high for author-product identity: OneDrive metadata, source hashes and converted-interface hashes are recorded",
+      "redistribution": "repository/data-package redistribution terms are not explicit; publish acquisition instructions and hashes unless permission is obtained"
+    },
+    {
+      "id": "GPU4GST-cross-g-extension",
+      "paper_protocol": "related-group co-occurrence BFS from Approximating Probabilistic Group Steiner Trees in Graphs",
+      "protocol_paper": "https://www.vldb.org/pvldb/vol16/p343-sun.pdf",
+      "graphs": ["Musae", "Twitch", "Youtube", "DBLP", "Orkut", "Reddit"],
+      "g_values": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "source_candidates_per_cell": 300,
+      "selected_queries_per_cell": 5,
+      "candidate_generator_base_seed": 2025,
+      "panel_selection_seed": 20260723,
+      "selection": "five log1p(realized mean group-size) rank strata; one stable-hash query per stratum",
+      "generator": "tools/gpu4gst_data/prepare_gpu4gst.cpp",
+      "selector": "tools/data/build_gpu_query_panels.py",
+      "manifest": "experiment_data/p2_cross_g/cells.json",
+      "claim_boundary": "method-faithful newly generated extension with new seeds and input-only panel selection; not a recovery of any published query sample"
+    },
+    {
+      "id": "IMDb-latest-20260722",
+      "official_page": "https://developer.imdb.com/non-commercial-datasets/",
+      "snapshot_date": "2026-07-22",
+      "raw_files": [
+        "https://datasets.imdbws.com/title.basics.tsv.gz",
+        "https://datasets.imdbws.com/title.principals.tsv.gz",
+        "https://datasets.imdbws.com/name.basics.tsv.gz"
+      ],
+      "graph_transform": "one title or person per vertex; undirected title-person principal edges with positive unit weight; dense 1-based IDs",
+      "builder": "tools/data/build_imdb_graph.cpp",
+      "dataset_manifest": "data/official-latest-20260722/imdb-20260722/dataset_manifest.json",
+      "use": "secondary controlled <g,f> experiment only",
+      "license_note": "IMDb non-commercial dataset terms apply",
+      "claim_boundary": "dated official sensitivity graph, not the unavailable PrunedDP++ 2016 IMDb snapshot"
+    },
+    {
+      "id": "controlled-gf",
+      "graphs": ["DBLP-MonoGSTPlus", "IMDb-latest-20260722"],
+      "g_values": [6, 10, 14],
+      "f_values": [200, 400, 800, 1600, 3200],
+      "queries_per_cell": 5,
+      "base_seed": 20260723,
+      "protocol": "MonoGST+: independent rounded N(f,(0.15f)^2) sizes clamped to [0.5f,1.5f], then uniform vertices without replacement within each group",
+      "reference_generator": "data/generate_queries_for_noGPU4GST.py",
+      "generator": "tools/data/generate_controlled_queries.py",
+      "manifest": "experiment_data/s1_controlled_gf/cells.json",
+      "adaptation": "retain the supplied sampling rule while changing the preregistered g/f grid and using five rather than ten queries per cell"
+    }
+  ]
+}

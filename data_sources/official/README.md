@@ -1,58 +1,27 @@
-# Official-upstream benchmark freeze
+# IMDb 2026-07-22 官方冻结
 
-The formal replacement dataset is named `official-latest-20260722`.  Its
-machine-readable source catalog is
-[`experiments/official_sources.json`](../../experiments/official_sources.json).
-It applies the following non-negotiable rules:
+当前正式矩阵中，只有 S2 的 IMDb 图需要从最新官方源独立构建。P1/P2 使用 MonoGST+ 与 GPU4GST 作者实验数据，不再由本目录的通用官方下载流程替换。
 
-1. graph bytes come from the graph owner's official distribution endpoint;
-2. a mutable `latest` endpoint is downloaded once and identified thereafter by
-   its SHA-256, size, retrieval time and HTTP metadata;
-3. source query collections are retained independently of graph identity;
-4. synthetic queries are regenerated from a cited, versioned protocol and a
-   predeclared seed;
-5. a missing official source or underspecified construction causes exclusion,
-   never fallback to a paper repository's processed graph.
+冻结名为 `IMDb-latest-20260722`。原始来源是 IMDb non-commercial daily exports：
 
-## Download
+- `title.basics.tsv.gz`
+- `title.principals.tsv.gz`
+- `name.basics.tsv.gz`
 
-The large payloads are ignored by Git.  The completed hashes and response
-metadata are written to the tracked `download_manifest.json` next to `raw/`.
-Interrupted files use the suffix `.part` and are resumed when supported.
-If a redownload no longer matches an existing freeze-manifest entry, the new
-response is moved to `.mismatch-<hash>` and the command fails without changing
-the manifest. A newer upstream snapshot requires a new freeze ID.
-On Windows the downloader defaults to `curl.exe` with Schannel so HTTPS is
-validated against the Windows trust store; it never disables certificate
-verification.  `--backend urllib` is available on hosts whose Python CA store
-is correctly configured.
+下载 URL、响应信息、字节数与 SHA-256 固定在：
 
-```powershell
-python tools/data/download_official_sources.py --tier core
-python tools/data/download_official_sources.py --tier extended
-python tools/data/download_official_sources.py --tier full
+- `experiments/official_sources.json`
+- `data_sources/official/official-latest-20260722/download_manifest.json`
+
+原始压缩包和展开文件由 Git 忽略。Linux 恢复三个已冻结文件后运行：
+
+```bash
+make tools JOBS=16
+python3 tools/data/prepare_imdb_dataset.py --replace-existing
 ```
 
-An exact dataset can instead be selected with a repeatable `--dataset` option.
-The converter never reads a URL directly; it reads only a file present in this
-freeze and verifies it against the download manifest first.
+Windows 可用 `cmake --build build --config Release --target build_imdb_graph` 编译转换器，再把上面的 `python3` 改为 `python`。
 
-## Directory contract
+转换结果位于 `data/official-latest-20260722/imdb-20260722/graph.txt`：title 和 person 为两类顶点，`title.principals` 形成权重为 1 的无向边，最终使用稠密 1-based ID。`dataset_manifest.json` 固定原始文件哈希、转换规则与最终点边数/图哈希。
 
-```text
-data_sources/official/official-latest-20260722/
-  download_manifest.json       tracked raw-file hashes and HTTP metadata
-  raw/                         ignored official downloads
-  extracted/                   ignored deterministic extraction products
-  work/                        ignored conversion scratch space
-
-data/official-latest-20260722/<dataset>/
-  graph.txt                    ignored solver interface graph
-  query*.txt                   ignored solver interface queries
-  candidate_groups.txt         ignored normalized source groups
-  dataset_manifest.json        tracked construction, counts and hashes
-```
-
-The old `data/` directories and `data_origin/` audit remain available only to
-reproduce the earlier engineering probe.  They are not inputs to the new formal
-matrix.
+IMDb URL 是 mutable `latest`。不得把日后下载的新内容写回同一 freeze ID；新内容必须使用新日期、新 manifest，并完整重跑 S2。数据受 IMDb non-commercial 条款约束，不能仅因本地存在而上传到公开 artifact。

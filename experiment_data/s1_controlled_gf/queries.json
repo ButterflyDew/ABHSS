@@ -1,0 +1,3002 @@
+[
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12338062915571189345,
+    "f_realized": 207.66666666666666,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      216,
+      249,
+      208,
+      187,
+      205,
+      181
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 9311445524269401539,
+    "f_realized": 196.66666666666666,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      208,
+      183,
+      249,
+      144,
+      221,
+      175
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 5188411335253226682,
+    "f_realized": 196.16666666666666,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      224,
+      204,
+      201,
+      193,
+      187,
+      168
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 13496797737319767496,
+    "f_realized": 184.16666666666666,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      187,
+      171,
+      204,
+      185,
+      172,
+      186
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 2652925473753168905,
+    "f_realized": 205.33333333333334,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      181,
+      160,
+      199,
+      219,
+      214,
+      259
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 17814516157580001849,
+    "f_realized": 381.3333333333333,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      376,
+      404,
+      266,
+      416,
+      423,
+      403
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 8504588964886848421,
+    "f_realized": 442.6666666666667,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      483,
+      404,
+      431,
+      367,
+      432,
+      539
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 6554651660715835185,
+    "f_realized": 362.0,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      429,
+      360,
+      374,
+      263,
+      403,
+      343
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 6410445655910471363,
+    "f_realized": 412.1666666666667,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      339,
+      428,
+      301,
+      540,
+      437,
+      428
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 13539847387831172416,
+    "f_realized": 370.6666666666667,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      407,
+      345,
+      370,
+      304,
+      362,
+      436
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 15868225977483861808,
+    "f_realized": 848.3333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      975,
+      654,
+      916,
+      969,
+      807,
+      769
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 4342517618190520566,
+    "f_realized": 748.1666666666666,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      614,
+      866,
+      651,
+      689,
+      878,
+      791
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7474383804701596656,
+    "f_realized": 769.3333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      729,
+      671,
+      545,
+      874,
+      848,
+      949
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 9957394306145205967,
+    "f_realized": 792.0,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      871,
+      720,
+      817,
+      820,
+      935,
+      589
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7308314332484442243,
+    "f_realized": 692.1666666666666,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      681,
+      717,
+      706,
+      560,
+      744,
+      745
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3635168425726866612,
+    "f_realized": 1560.5,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1655,
+      1331,
+      1880,
+      1521,
+      1265,
+      1711
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 481035437460557352,
+    "f_realized": 1587.5,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1648,
+      1867,
+      1733,
+      1221,
+      1677,
+      1379
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 17120259789170170750,
+    "f_realized": 1422.5,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1585,
+      1276,
+      1914,
+      1079,
+      1304,
+      1377
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 487339027023914162,
+    "f_realized": 1529.0,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1530,
+      1691,
+      1516,
+      1576,
+      1382,
+      1479
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7876093568377675523,
+    "f_realized": 1572.1666666666667,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1603,
+      1091,
+      1702,
+      1724,
+      1457,
+      1856
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 139353093922590332,
+    "f_realized": 3303.8333333333335,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      3209,
+      3690,
+      2725,
+      4346,
+      2796,
+      3057
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12208087406418388435,
+    "f_realized": 3495.5,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      4157,
+      3213,
+      2682,
+      3062,
+      3761,
+      4098
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3867800585394179164,
+    "f_realized": 2851.3333333333335,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      2293,
+      2524,
+      2768,
+      3725,
+      2671,
+      3127
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 2285043997566427444,
+    "f_realized": 3197.0,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      2889,
+      3115,
+      3016,
+      3064,
+      4103,
+      2995
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 2445052416855852783,
+    "f_realized": 3197.3333333333335,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      2329,
+      3484,
+      3366,
+      3814,
+      2977,
+      3214
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 9787484924351015413,
+    "f_realized": 206.7,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      145,
+      161,
+      209,
+      206,
+      274,
+      219,
+      214,
+      235,
+      201,
+      203
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7192906293896893176,
+    "f_realized": 196.4,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      161,
+      172,
+      176,
+      197,
+      175,
+      215,
+      200,
+      191,
+      235,
+      242
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 2997363737168451836,
+    "f_realized": 211.8,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      155,
+      179,
+      275,
+      233,
+      194,
+      218,
+      216,
+      254,
+      241,
+      153
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 8627427005045704471,
+    "f_realized": 195.8,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      201,
+      200,
+      187,
+      204,
+      180,
+      198,
+      185,
+      202,
+      168,
+      233
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 4858624630285551367,
+    "f_realized": 201.2,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      229,
+      189,
+      220,
+      186,
+      196,
+      127,
+      209,
+      246,
+      198,
+      212
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 10007116630052548731,
+    "f_realized": 364.7,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      249,
+      403,
+      410,
+      436,
+      286,
+      395,
+      396,
+      395,
+      264,
+      413
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7259670163717113304,
+    "f_realized": 381.8,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      365,
+      395,
+      452,
+      336,
+      325,
+      354,
+      424,
+      465,
+      359,
+      343
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 14738553237640510112,
+    "f_realized": 365.2,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      321,
+      356,
+      342,
+      347,
+      406,
+      371,
+      211,
+      447,
+      367,
+      484
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 10846803453563564868,
+    "f_realized": 427.1,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      384,
+      463,
+      376,
+      554,
+      427,
+      457,
+      387,
+      405,
+      451,
+      367
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7902027578503707986,
+    "f_realized": 423.2,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      441,
+      455,
+      411,
+      512,
+      440,
+      481,
+      269,
+      456,
+      356,
+      411
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 9798255934822814775,
+    "f_realized": 751.0,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      755,
+      498,
+      709,
+      464,
+      932,
+      929,
+      693,
+      1048,
+      774,
+      708
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 4160053155673172874,
+    "f_realized": 775.9,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      603,
+      816,
+      604,
+      767,
+      889,
+      794,
+      649,
+      836,
+      731,
+      1070
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1321482185452090068,
+    "f_realized": 831.7,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      978,
+      651,
+      879,
+      721,
+      944,
+      767,
+      1010,
+      793,
+      748,
+      826
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 13086405381870952273,
+    "f_realized": 804.1,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      981,
+      746,
+      888,
+      592,
+      765,
+      770,
+      865,
+      889,
+      692,
+      853
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 14507781236835457732,
+    "f_realized": 835.2,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      798,
+      885,
+      1008,
+      952,
+      890,
+      888,
+      559,
+      781,
+      926,
+      665
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 11479090918917934075,
+    "f_realized": 1629.0,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1714,
+      1701,
+      1670,
+      1355,
+      1620,
+      1740,
+      1476,
+      1630,
+      1936,
+      1448
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1234776477984750161,
+    "f_realized": 1526.3,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1487,
+      1467,
+      1833,
+      1331,
+      1599,
+      1564,
+      1245,
+      1512,
+      1658,
+      1567
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12926414135246776725,
+    "f_realized": 1461.1,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1614,
+      1383,
+      1575,
+      1353,
+      1949,
+      1138,
+      1453,
+      1574,
+      1191,
+      1381
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7001243302296408959,
+    "f_realized": 1574.6,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1273,
+      1937,
+      1297,
+      1898,
+      1511,
+      1037,
+      1752,
+      2179,
+      1550,
+      1312
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12095328102504993030,
+    "f_realized": 1514.2,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1476,
+      1319,
+      1615,
+      1203,
+      1695,
+      1407,
+      1618,
+      1680,
+      1344,
+      1785
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 17377303935982671313,
+    "f_realized": 3322.0,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3237,
+      3298,
+      3335,
+      2789,
+      3302,
+      3058,
+      3425,
+      3337,
+      3959,
+      3480
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 7243995234374392284,
+    "f_realized": 3307.3,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3668,
+      3787,
+      2670,
+      3212,
+      3900,
+      2548,
+      3345,
+      3089,
+      3265,
+      3589
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 4878373514687421438,
+    "f_realized": 3266.6,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3694,
+      3172,
+      3417,
+      2962,
+      2887,
+      3337,
+      2617,
+      4337,
+      2762,
+      3481
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1242495449884680525,
+    "f_realized": 3145.4,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      2042,
+      2882,
+      3404,
+      3451,
+      3418,
+      3700,
+      3029,
+      4059,
+      2931,
+      2538
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 4556206637879561843,
+    "f_realized": 3028.1,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3286,
+      3651,
+      2857,
+      2318,
+      3337,
+      2768,
+      2738,
+      3049,
+      3399,
+      2878
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1132003493218934703,
+    "f_realized": 192.78571428571428,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      185,
+      200,
+      159,
+      210,
+      183,
+      205,
+      223,
+      201,
+      211,
+      187,
+      174,
+      195,
+      215,
+      151
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 662769548949765022,
+    "f_realized": 182.57142857142858,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      192,
+      203,
+      219,
+      183,
+      179,
+      188,
+      183,
+      121,
+      144,
+      209,
+      173,
+      210,
+      152,
+      200
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 14414819646791287945,
+    "f_realized": 199.07142857142858,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      185,
+      190,
+      139,
+      166,
+      224,
+      220,
+      221,
+      231,
+      178,
+      191,
+      221,
+      219,
+      188,
+      214
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 8403377151645019511,
+    "f_realized": 205.71428571428572,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      198,
+      232,
+      193,
+      222,
+      172,
+      222,
+      270,
+      204,
+      175,
+      157,
+      263,
+      165,
+      170,
+      237
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 15305482556874696037,
+    "f_realized": 194.35714285714286,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      186,
+      197,
+      199,
+      201,
+      197,
+      192,
+      247,
+      204,
+      185,
+      182,
+      161,
+      195,
+      205,
+      170
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 11079877657284688053,
+    "f_realized": 404.85714285714283,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      362,
+      399,
+      456,
+      352,
+      511,
+      408,
+      390,
+      462,
+      433,
+      397,
+      361,
+      315,
+      333,
+      489
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 14848140481073528770,
+    "f_realized": 382.2142857142857,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      424,
+      393,
+      332,
+      303,
+      392,
+      341,
+      308,
+      424,
+      382,
+      509,
+      380,
+      402,
+      393,
+      368
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 10378993341389550973,
+    "f_realized": 388.07142857142856,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      309,
+      358,
+      425,
+      459,
+      344,
+      437,
+      431,
+      453,
+      410,
+      362,
+      373,
+      308,
+      402,
+      362
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12169530908150982258,
+    "f_realized": 438.35714285714283,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      421,
+      432,
+      408,
+      359,
+      439,
+      428,
+      446,
+      414,
+      571,
+      421,
+      405,
+      488,
+      439,
+      466
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 14066001729399417896,
+    "f_realized": 420.2142857142857,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      406,
+      402,
+      382,
+      484,
+      412,
+      429,
+      486,
+      426,
+      446,
+      412,
+      326,
+      418,
+      422,
+      432
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3790345456142629433,
+    "f_realized": 822.8571428571429,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      962,
+      828,
+      668,
+      873,
+      767,
+      920,
+      809,
+      770,
+      852,
+      915,
+      897,
+      820,
+      608,
+      831
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 16339550055107062311,
+    "f_realized": 801.5714285714286,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      879,
+      660,
+      685,
+      740,
+      789,
+      909,
+      844,
+      887,
+      851,
+      617,
+      785,
+      894,
+      825,
+      857
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 18003001972100525712,
+    "f_realized": 781.4285714285714,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      839,
+      881,
+      604,
+      772,
+      812,
+      744,
+      849,
+      1124,
+      979,
+      595,
+      644,
+      908,
+      551,
+      638
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1220991958906947047,
+    "f_realized": 809.3571428571429,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      764,
+      859,
+      760,
+      967,
+      819,
+      846,
+      836,
+      839,
+      752,
+      573,
+      871,
+      655,
+      898,
+      892
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 5250686985752613745,
+    "f_realized": 788.6428571428571,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      678,
+      735,
+      842,
+      837,
+      821,
+      647,
+      785,
+      765,
+      951,
+      666,
+      903,
+      675,
+      840,
+      896
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12007566113289175107,
+    "f_realized": 1605.2857142857142,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1641,
+      1570,
+      1467,
+      1737,
+      1648,
+      1785,
+      1252,
+      1403,
+      1505,
+      1607,
+      1449,
+      1799,
+      2198,
+      1413
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3392225954749227349,
+    "f_realized": 1612.5,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1782,
+      1500,
+      1698,
+      1998,
+      1737,
+      1084,
+      1911,
+      1791,
+      1538,
+      1681,
+      1272,
+      1604,
+      1742,
+      1237
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3724443102627697351,
+    "f_realized": 1638.0714285714287,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1966,
+      1625,
+      1542,
+      1617,
+      1083,
+      1730,
+      1229,
+      1868,
+      1957,
+      1416,
+      1907,
+      1604,
+      1450,
+      1939
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 12894498124013778677,
+    "f_realized": 1591.2142857142858,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1891,
+      1961,
+      1393,
+      1570,
+      1638,
+      1775,
+      1186,
+      1505,
+      1423,
+      1596,
+      1285,
+      1364,
+      1943,
+      1747
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 15110110492524716559,
+    "f_realized": 1594.357142857143,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1253,
+      1432,
+      1766,
+      1518,
+      1997,
+      1917,
+      1340,
+      1388,
+      1940,
+      1734,
+      1075,
+      1436,
+      1547,
+      1978
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 10778298239550881948,
+    "f_realized": 3332.5714285714284,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3529,
+      3635,
+      3421,
+      3621,
+      3411,
+      2575,
+      3449,
+      2920,
+      2976,
+      3121,
+      3375,
+      3528,
+      3336,
+      3759
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 3580297522972926533,
+    "f_realized": 3502.1428571428573,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3332,
+      3645,
+      3513,
+      3476,
+      3854,
+      2766,
+      3354,
+      3325,
+      2933,
+      3531,
+      3538,
+      3439,
+      4328,
+      3996
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 5441301943121687920,
+    "f_realized": 3213.9285714285716,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      2168,
+      2830,
+      3385,
+      3603,
+      3146,
+      3629,
+      4299,
+      3567,
+      3142,
+      2550,
+      3040,
+      3200,
+      3154,
+      3282
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 11149222719291177667,
+    "f_realized": 3244.5,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3117,
+      3333,
+      3340,
+      3231,
+      2783,
+      3014,
+      2691,
+      3715,
+      3060,
+      3709,
+      4037,
+      3802,
+      2503,
+      3088
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "DBLP-MonoGSTPlus",
+    "derived_seed": 1712490994991794538,
+    "f_realized": 3324.4285714285716,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3294,
+      3680,
+      3454,
+      3139,
+      3148,
+      3361,
+      4112,
+      3586,
+      3284,
+      3132,
+      3732,
+      3327,
+      2371,
+      2922
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 17108379006652080513,
+    "f_realized": 202.5,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      176,
+      226,
+      244,
+      172,
+      197,
+      200
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 18028483646841601218,
+    "f_realized": 177.0,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      193,
+      155,
+      176,
+      194,
+      195,
+      149
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 17946883121198604655,
+    "f_realized": 200.83333333333334,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      156,
+      224,
+      215,
+      177,
+      228,
+      205
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 1066324310296493138,
+    "f_realized": 180.66666666666666,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      198,
+      188,
+      206,
+      138,
+      171,
+      183
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16741934208734947612,
+    "f_realized": 194.83333333333334,
+    "f_target": 200,
+    "g": 6,
+    "group_sizes": [
+      239,
+      190,
+      190,
+      198,
+      202,
+      150
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 1438898602331041624,
+    "f_realized": 382.3333333333333,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      378,
+      429,
+      391,
+      330,
+      306,
+      460
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 18374283023957284417,
+    "f_realized": 398.3333333333333,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      284,
+      457,
+      413,
+      482,
+      378,
+      376
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5560960418834559237,
+    "f_realized": 412.3333333333333,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      402,
+      368,
+      544,
+      347,
+      340,
+      473
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 12274852131763381197,
+    "f_realized": 414.0,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      427,
+      524,
+      372,
+      413,
+      374,
+      374
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 12942252487069804259,
+    "f_realized": 397.0,
+    "f_target": 400,
+    "g": 6,
+    "group_sizes": [
+      415,
+      380,
+      354,
+      446,
+      431,
+      356
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 14031522238086492437,
+    "f_realized": 797.8333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      509,
+      749,
+      1000,
+      959,
+      767,
+      803
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 18408012992975905139,
+    "f_realized": 911.3333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      1045,
+      873,
+      912,
+      781,
+      902,
+      955
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2019952459985091789,
+    "f_realized": 847.0,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      970,
+      852,
+      853,
+      650,
+      870,
+      887
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 11658433792927420859,
+    "f_realized": 836.8333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      796,
+      954,
+      745,
+      909,
+      815,
+      802
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2823068151133510929,
+    "f_realized": 803.8333333333334,
+    "f_target": 800,
+    "g": 6,
+    "group_sizes": [
+      698,
+      849,
+      913,
+      740,
+      698,
+      925
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 9109816479997268689,
+    "f_realized": 1655.1666666666667,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1684,
+      1700,
+      1523,
+      1850,
+      1784,
+      1390
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3115895487829943944,
+    "f_realized": 1587.3333333333333,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1660,
+      1612,
+      2048,
+      1474,
+      1274,
+      1456
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 12080527910397500737,
+    "f_realized": 1670.8333333333333,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1697,
+      1734,
+      1488,
+      1905,
+      1567,
+      1634
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 13950701724895670216,
+    "f_realized": 1464.1666666666667,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1336,
+      1588,
+      1289,
+      1177,
+      1583,
+      1812
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 13453201710050848934,
+    "f_realized": 1572.3333333333333,
+    "f_target": 1600,
+    "g": 6,
+    "group_sizes": [
+      1754,
+      1527,
+      1456,
+      1703,
+      1705,
+      1289
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 10358469231390065974,
+    "f_realized": 3097.6666666666665,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      2996,
+      2803,
+      2970,
+      3127,
+      2956,
+      3734
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6633558212066245932,
+    "f_realized": 3168.3333333333335,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      3058,
+      2921,
+      2830,
+      3262,
+      3575,
+      3364
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 4379976854230121614,
+    "f_realized": 3188.1666666666665,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      3191,
+      3493,
+      3816,
+      2876,
+      2434,
+      3319
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2606290855527175002,
+    "f_realized": 3087.0,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      2759,
+      3173,
+      2827,
+      4062,
+      2750,
+      2951
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 8198166844025868325,
+    "f_realized": 3036.8333333333335,
+    "f_target": 3200,
+    "g": 6,
+    "group_sizes": [
+      3132,
+      2864,
+      3267,
+      3865,
+      2311,
+      2782
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16564938745031127378,
+    "f_realized": 198.7,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      225,
+      206,
+      229,
+      144,
+      194,
+      195,
+      195,
+      239,
+      197,
+      163
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 13970362637493532394,
+    "f_realized": 198.7,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      223,
+      173,
+      219,
+      196,
+      190,
+      190,
+      257,
+      172,
+      178,
+      189
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 14070303802013242058,
+    "f_realized": 203.5,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      140,
+      180,
+      239,
+      199,
+      191,
+      218,
+      239,
+      223,
+      229,
+      177
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3655126951997164192,
+    "f_realized": 197.8,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      240,
+      174,
+      196,
+      205,
+      219,
+      178,
+      214,
+      190,
+      156,
+      206
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3582379633932692647,
+    "f_realized": 201.8,
+    "f_target": 200,
+    "g": 10,
+    "group_sizes": [
+      193,
+      169,
+      248,
+      194,
+      192,
+      224,
+      224,
+      203,
+      160,
+      211
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2253192496098634212,
+    "f_realized": 397.9,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      450,
+      416,
+      455,
+      364,
+      395,
+      381,
+      429,
+      337,
+      361,
+      391
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6604395542731839983,
+    "f_realized": 405.9,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      449,
+      361,
+      450,
+      412,
+      437,
+      465,
+      374,
+      240,
+      421,
+      450
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2527358881818139706,
+    "f_realized": 435.3,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      464,
+      446,
+      433,
+      422,
+      484,
+      406,
+      500,
+      502,
+      319,
+      377
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 11517531013648517375,
+    "f_realized": 413.5,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      378,
+      389,
+      483,
+      403,
+      351,
+      407,
+      489,
+      291,
+      453,
+      491
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3694083695378858623,
+    "f_realized": 402.2,
+    "f_target": 400,
+    "g": 10,
+    "group_sizes": [
+      392,
+      385,
+      399,
+      372,
+      417,
+      383,
+      445,
+      438,
+      344,
+      447
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16164440506406447990,
+    "f_realized": 806.5,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      830,
+      835,
+      534,
+      1010,
+      784,
+      989,
+      793,
+      808,
+      768,
+      714
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 10115641020477602974,
+    "f_realized": 849.4,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      569,
+      803,
+      1084,
+      920,
+      887,
+      991,
+      560,
+      996,
+      769,
+      915
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 11896827204538972226,
+    "f_realized": 763.2,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      796,
+      898,
+      844,
+      782,
+      537,
+      621,
+      875,
+      726,
+      822,
+      731
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6093955929471334900,
+    "f_realized": 809.5,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      682,
+      772,
+      1061,
+      823,
+      637,
+      822,
+      709,
+      828,
+      933,
+      828
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 14714107677172956400,
+    "f_realized": 760.5,
+    "f_target": 800,
+    "g": 10,
+    "group_sizes": [
+      792,
+      902,
+      688,
+      991,
+      749,
+      746,
+      592,
+      794,
+      579,
+      772
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 8253506038101761131,
+    "f_realized": 1498.0,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1210,
+      1357,
+      1727,
+      1274,
+      1836,
+      1737,
+      1602,
+      1373,
+      1362,
+      1502
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16833946059480446073,
+    "f_realized": 1551.1,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1530,
+      1318,
+      1533,
+      1511,
+      1695,
+      1353,
+      1634,
+      1244,
+      1610,
+      2083
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5490132495325462160,
+    "f_realized": 1691.1,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1823,
+      1284,
+      1665,
+      1525,
+      1452,
+      1641,
+      1877,
+      2036,
+      1962,
+      1646
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 10196412163161399841,
+    "f_realized": 1595.1,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1430,
+      1547,
+      1154,
+      1522,
+      1773,
+      1724,
+      1601,
+      1849,
+      1772,
+      1579
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6905380709894236328,
+    "f_realized": 1594.5,
+    "f_target": 1600,
+    "g": 10,
+    "group_sizes": [
+      1673,
+      1340,
+      1826,
+      999,
+      1900,
+      1673,
+      1460,
+      1377,
+      1943,
+      1754
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 2516109958702083941,
+    "f_realized": 3304.8,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3221,
+      3234,
+      3300,
+      3648,
+      2891,
+      3513,
+      3253,
+      2716,
+      3421,
+      3851
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 17222440838645421514,
+    "f_realized": 3184.6,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3299,
+      3125,
+      3134,
+      3164,
+      3555,
+      3185,
+      3501,
+      2658,
+      3368,
+      2857
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5070955784178074150,
+    "f_realized": 3333.3,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      3091,
+      3037,
+      3408,
+      3437,
+      2673,
+      3279,
+      3012,
+      3286,
+      3891,
+      4219
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 7732626018745984583,
+    "f_realized": 3072.1,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      2043,
+      2420,
+      3748,
+      2946,
+      3085,
+      3256,
+      2825,
+      3507,
+      3725,
+      3166
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 7476725881979116585,
+    "f_realized": 3150.9,
+    "f_target": 3200,
+    "g": 10,
+    "group_sizes": [
+      2958,
+      3140,
+      3667,
+      2757,
+      2515,
+      2566,
+      4422,
+      3544,
+      2565,
+      3375
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16952698479802584730,
+    "f_realized": 210.64285714285714,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      261,
+      176,
+      221,
+      190,
+      230,
+      223,
+      149,
+      254,
+      183,
+      176,
+      239,
+      195,
+      250,
+      202
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5450919536639532929,
+    "f_realized": 196.07142857142858,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      217,
+      224,
+      220,
+      158,
+      198,
+      265,
+      154,
+      219,
+      212,
+      186,
+      203,
+      130,
+      160,
+      199
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6022843446332676423,
+    "f_realized": 207.78571428571428,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      220,
+      196,
+      244,
+      247,
+      194,
+      186,
+      203,
+      217,
+      224,
+      220,
+      146,
+      211,
+      231,
+      170
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 7374114958016514494,
+    "f_realized": 203.92857142857142,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      198,
+      208,
+      234,
+      190,
+      215,
+      192,
+      170,
+      187,
+      219,
+      203,
+      212,
+      167,
+      196,
+      264
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 14672793505472420723,
+    "f_realized": 189.85714285714286,
+    "f_target": 200,
+    "g": 14,
+    "group_sizes": [
+      184,
+      239,
+      226,
+      233,
+      123,
+      171,
+      155,
+      155,
+      151,
+      203,
+      201,
+      247,
+      199,
+      171
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 1686774334037769828,
+    "f_realized": 426.92857142857144,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      402,
+      360,
+      441,
+      476,
+      401,
+      451,
+      351,
+      409,
+      490,
+      377,
+      533,
+      466,
+      385,
+      435
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 1089546871556184823,
+    "f_realized": 397.2142857142857,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      383,
+      355,
+      450,
+      316,
+      452,
+      359,
+      349,
+      407,
+      411,
+      444,
+      367,
+      508,
+      437,
+      323
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 12906894420300240843,
+    "f_realized": 425.57142857142856,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      576,
+      317,
+      384,
+      440,
+      489,
+      387,
+      374,
+      447,
+      364,
+      482,
+      351,
+      527,
+      430,
+      390
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 10910104200046049753,
+    "f_realized": 367.5,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      406,
+      324,
+      334,
+      398,
+      408,
+      469,
+      371,
+      325,
+      326,
+      362,
+      329,
+      354,
+      358,
+      381
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3803450290918021047,
+    "f_realized": 410.35714285714283,
+    "f_target": 400,
+    "g": 14,
+    "group_sizes": [
+      352,
+      377,
+      497,
+      488,
+      416,
+      371,
+      447,
+      293,
+      501,
+      406,
+      359,
+      396,
+      327,
+      515
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 12931780200412539646,
+    "f_realized": 816.3571428571429,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      664,
+      823,
+      710,
+      748,
+      748,
+      839,
+      892,
+      934,
+      785,
+      956,
+      823,
+      913,
+      722,
+      872
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 11335386391111460218,
+    "f_realized": 821.7142857142857,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      752,
+      875,
+      1010,
+      868,
+      912,
+      667,
+      977,
+      851,
+      869,
+      737,
+      846,
+      565,
+      796,
+      779
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 16118019797231697882,
+    "f_realized": 786.6428571428571,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      1038,
+      776,
+      814,
+      730,
+      673,
+      851,
+      888,
+      628,
+      960,
+      923,
+      701,
+      650,
+      826,
+      555
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 986737956083525757,
+    "f_realized": 772.5,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      705,
+      850,
+      862,
+      922,
+      794,
+      776,
+      861,
+      799,
+      635,
+      787,
+      610,
+      697,
+      671,
+      846
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5520596576701780248,
+    "f_realized": 824.9285714285714,
+    "f_target": 800,
+    "g": 14,
+    "group_sizes": [
+      783,
+      697,
+      808,
+      861,
+      751,
+      1200,
+      737,
+      728,
+      742,
+      780,
+      836,
+      997,
+      773,
+      856
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 3800193352542057052,
+    "f_realized": 1665.7857142857142,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      2239,
+      1125,
+      1554,
+      1772,
+      1645,
+      1986,
+      1539,
+      1536,
+      1884,
+      1913,
+      942,
+      1777,
+      1846,
+      1563
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 4649902295331464011,
+    "f_realized": 1595.142857142857,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1544,
+      1590,
+      1098,
+      1928,
+      1692,
+      1468,
+      1971,
+      1552,
+      1919,
+      1796,
+      1503,
+      1118,
+      1560,
+      1593
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 15928035882242468225,
+    "f_realized": 1543.4285714285713,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1460,
+      1397,
+      1534,
+      1071,
+      1698,
+      2006,
+      1530,
+      1374,
+      1695,
+      1627,
+      1426,
+      2129,
+      1197,
+      1464
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 14706723538225372145,
+    "f_realized": 1653.7142857142858,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1253,
+      1709,
+      1359,
+      1640,
+      1827,
+      1627,
+      1499,
+      1963,
+      1761,
+      1621,
+      1552,
+      1583,
+      1725,
+      2033
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 18326803931550257064,
+    "f_realized": 1647.857142857143,
+    "f_target": 1600,
+    "g": 14,
+    "group_sizes": [
+      1782,
+      1472,
+      1403,
+      2091,
+      1517,
+      1538,
+      1774,
+      1568,
+      1636,
+      1753,
+      1311,
+      1648,
+      1702,
+      1875
+    ],
+    "query_index": 5
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 5017158294545462481,
+    "f_realized": 3055.785714285714,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3071,
+      2147,
+      2917,
+      3065,
+      3320,
+      3136,
+      3427,
+      2746,
+      3693,
+      2619,
+      3494,
+      2424,
+      3421,
+      3301
+    ],
+    "query_index": 1
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 6416138498574044663,
+    "f_realized": 3120.785714285714,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3209,
+      2364,
+      3926,
+      3250,
+      3833,
+      3153,
+      2886,
+      3249,
+      2755,
+      2685,
+      3169,
+      3460,
+      2813,
+      2939
+    ],
+    "query_index": 2
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 13275930405298247211,
+    "f_realized": 3386.8571428571427,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3894,
+      3709,
+      3590,
+      4166,
+      3272,
+      3684,
+      2189,
+      2994,
+      2821,
+      3893,
+      3349,
+      3436,
+      3277,
+      3142
+    ],
+    "query_index": 3
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 17470555304206686765,
+    "f_realized": 3069.9285714285716,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      3287,
+      2841,
+      3333,
+      3845,
+      2988,
+      3712,
+      2561,
+      2806,
+      3559,
+      2715,
+      2857,
+      2857,
+      2818,
+      2800
+    ],
+    "query_index": 4
+  },
+  {
+    "dataset": "IMDb-latest-20260722",
+    "derived_seed": 18411495257576246668,
+    "f_realized": 3250.4285714285716,
+    "f_target": 3200,
+    "g": 14,
+    "group_sizes": [
+      2734,
+      3560,
+      2751,
+      3101,
+      3544,
+      3516,
+      3715,
+      3122,
+      3267,
+      3630,
+      2922,
+      3331,
+      3564,
+      2749
+    ],
+    "query_index": 5
+  }
+]

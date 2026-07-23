@@ -20,9 +20,8 @@ struct PrunedDpOptions
 {
     StateStorage state_storage = StateStorage::Hash;
     bool use_mst_upper_bound = true;
-    // Safe exact default: keep the raw admissible lower bound and reopen a
-    // state when a cheaper g-value is found.  The paper-pathmax behaviour is
-    // still available explicitly through --lb2-pathmax=on for reproduction.
+    // Safe 精确默认值保留原始 admissible 下界，并在发现更小 g-value 时
+    // reopen 状态。论文 pathmax 行为仍可用 --lb2-pathmax=on 显式复现。
     bool enforce_lb2_pathmax = false;
 };
 

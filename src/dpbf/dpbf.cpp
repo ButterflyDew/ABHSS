@@ -19,6 +19,7 @@ constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
 using QueueEntry = std::pair<double, int>;
 
+/** @brief 对一个 rooted subset row 做多源 Dijkstra 图闭包。 */
 void ShortestPathClosure(const Graph& graph, std::vector<double>& distance)
 {
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> queue;
@@ -48,6 +49,7 @@ void ShortestPathClosure(const Graph& graph, std::vector<double>& distance)
 }
 }  // namespace
 
+/** @brief 实现公开的稠密全子集 correctness 求解入口。 */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query)
 {
     const int group_count = static_cast<int>(query.groups.size());
@@ -82,8 +84,8 @@ SolveResult SolveOneQuery(const Graph& graph, const Query& query)
     const int full_mask = state_count - 1;
     for (int mask = 1; mask <= full_mask; ++mask)
     {
-        // Join two rooted partial trees.  Processing only one of each
-        // unordered submask pair halves the work without changing the DP.
+        // 合并两个同根部分树；每对无序子 mask 只处理一次，工作量减半且
+        // 不改变 DP 递推。
         for (int left = (mask - 1) & mask; left != 0; left = (left - 1) & mask)
         {
             const int right = mask ^ left;
@@ -97,8 +99,7 @@ SolveResult SolveOneQuery(const Graph& graph, const Query& query)
             }
         }
 
-        // Growing a rooted partial tree along shortest paths completes the
-        // standard DPBF recurrence for nonnegative edge weights.
+        // 沿最短路扩展 rooted 部分树，完成非负边权下的标准 DPBF 递推。
         ShortestPathClosure(graph, dp[mask]);
     }
 

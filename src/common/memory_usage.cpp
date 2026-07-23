@@ -31,10 +31,10 @@ ProcessMemoryUsage GetProcessMemoryUsage()
         usage.peak_rss_bytes = static_cast<std::uint64_t>(pmc.PeakWorkingSetSize);
     }
 #elif defined(__linux__)
-    long page_size = sysconf(_SC_PAGESIZE);
+    const long page_size = sysconf(_SC_PAGESIZE);
     std::ifstream statm("/proc/self/statm");
     std::uint64_t pages = 0;
-    if (statm)
+    if (statm && page_size > 0)
     {
         std::uint64_t ignored = 0;
         statm >> ignored >> pages;

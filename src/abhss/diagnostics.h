@@ -12,12 +12,16 @@
 
 namespace gst::methods::abhss::internal
 {
-// Probe-only timing and row accounting live in one header so formal binaries
-// compile the whole path away.  Light, Heavy and Heavy-Forward consequently
-// expose identical phase fields without paying clocks or counters in paper runs.
+/**
+ * @brief 只在 probe 编译中工作的阶段计时器。
+ *
+ * 未定义 `GST_ENABLE_PROBE_DIAGNOSTICS` 时构造与 `Seconds` 都编译为空路径，
+ * 正式二进制不会因基础/增强配置的阶段记录支付时钟读取成本。
+ */
 class ProbeTimer
 {
 public:
+    /** @brief 在诊断编译中记录 steady-clock 起点；正式编译不保存字段。 */
     ProbeTimer()
     {
 #if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
@@ -25,6 +29,7 @@ public:
 #endif
     }
 
+    /** @brief 返回构造后的秒数；正式编译固定返回 -1 表示未采样。 */
     double Seconds() const
     {
 #if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
@@ -41,12 +46,22 @@ private:
 #endif
 };
 
+/** @brief 从冻结增强开关返回稳定的配置族 probe 名。 */
 inline const char* ProbeFamilyMethod(const Problem& problem)
 {
-    return problem.UsesBoundedGroupDistances() ? "abhss_light_family"
-                                               : "abhss_heavy_family";
+    if (problem.UsesAdjointCompletion())
+        return "abhss_config_enhanced";
+    if (problem.UsesDirectedCut())
+        return "abhss_config_directed_cut_only";
+    return "abhss_config_base";
 }
 
+/**
+ * @brief 以统一键值格式输出一个 ABHSS 工程 probe 事件。
+ *
+ * 可选统计 ready row 数、标量数、层号和实际工作量。整个函数在正式编译中
+ * 仅保留 `(void)`，确保诊断能力不会改变论文计时路径。
+ */
 inline void EmitAbhssProbe(const char* method,
                            const char* phase,
                            const Problem& problem,

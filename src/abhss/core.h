@@ -5,6 +5,13 @@
 
 namespace gst::methods::abhss::internal
 {
+/**
+ * @brief 基础配置在 ordinary D2 前预生成的锚定 singleton 证书集合。
+ *
+ * 每个 ready singleton row 在 cutoff cone 内保存精确 A1；cone 外用
+ * `cutoff - continuation` 恢复安全下界。`first/second` 缓存每个顶点上
+ * 最大的两个 singleton future，以降低 ordinary 热循环的重复扫描。
+ */
 struct EarlyAnchor
 {
     double cutoff = fp::kInf;
@@ -12,17 +19,18 @@ struct EarlyAnchor
     std::vector<unsigned char> first;
     std::vector<unsigned char> second;
 
-    // 读取提前 A1 精确值；cone 外位置返回由 continuation 导出的证书下界。
+    /** @brief 读取 early-A1；cone 外返回由 continuation 推导的证书下界。 */
     double Value(const Problem& problem, int bit, int vertex) const;
-    // 返回未覆盖 singleton 中最大的 anchor-aware future，并维护 top-two 精确组索引。
+    /** @brief 返回未覆盖 singleton 的最大 anchor-aware future 并维护 top-two。 */
     double Future(const Problem& problem, int remaining, int vertex);
 };
 
-// Light 在 ordinary D2 之前生成所有有界 A1，后续正式 A 格直接复用。
+/** @brief 基础配置在 ordinary D2 前生成全部有界 A1，供下界和前向格复用。 */
 void BuildEarlyAnchorRows(Problem& problem, EarlyAnchor& early);
-// 按 |S| 递增生成 D(S,v)，并只发布不可继续同根拆分的 branch。
+/** @brief 按 |S| 递增生成 D(S,v)，仅发布不可继续同根拆分的规范 branch。 */
 void BuildOrdinaryRows(Problem& problem, EarlyAnchor* early);
 
+/** @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。 */
 inline long long BinarySearchCost(size_t size)
 {
     long long cost = 1;
@@ -31,6 +39,12 @@ inline long long BinarySearchCost(size_t size)
     return cost;
 }
 
+/**
+ * @brief 枚举一张普通值 row 与另一张 branch row 的同顶点交集。
+ *
+ * 函数按可预测比较次数在“双指针”“枚举 branch 后二分”“枚举 value 后
+ * 二分”之间选择；三条路径只改变常数，不改变 row 表示或状态语义。
+ */
 template <class Use>
 void ForEachRowBranchIntersection(const Row& values,
                                   const Row& branches,
@@ -95,6 +109,12 @@ void ForEachRowBranchIntersection(const Row& values,
     }
 }
 
+/**
+ * @brief 枚举两个 ordinary 状态在同一顶点均有值的位置。
+ *
+ * singleton 通过 GroupRow 的精确 membership 检查，多组 row 通过较小一侧
+ * 驱动二分；空侧表示零代价，不物化专门的 D(0) row。
+ */
 template <class Use>
 void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
 {
@@ -139,6 +159,12 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
     }
 }
 
+/**
+ * @brief 枚举 accumulator 值与规范 branch 的同根合并候选。
+ *
+ * 对 singleton 特化为一次组距离 membership；其余情况调用统一 row 交集，
+ * 保证 ordinary D 的 canonical split 不会在后续层重复计数。
+ */
 template <class Use>
 void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use)
 {

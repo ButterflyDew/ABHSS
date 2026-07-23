@@ -1,19 +1,21 @@
 # GPU4GST 数据准备工具
 
-`prepare_gpu4gst` 将 `data_origin` 中 GPU4GST 作者发布的数据转换为当前仓库可以直接读取的目录。完整的数据来源和查询协议见 [`../../docs/GPU4GST_DATA.md`](../../docs/GPU4GST_DATA.md)。
+`prepare_gpu4gst` 将 `data_origin` 中 GPU4GST 作者发布的数据转换为当前仓库可以直接读取的目录。当前论文来源和查询协议见 [`../../docs/EXPERIMENT_PLAN.md`](../../docs/EXPERIMENT_PLAN.md)，逐文件历史细节见 [`../../docs/archive/GPU4GST_DATA.md`](../../docs/archive/GPU4GST_DATA.md)。
 
 ## 构建与运行
 
-```powershell
-cmake -S . -B build
-cmake --build build --config Release --target prepare_gpu4gst
-.\build\Release\prepare_gpu4gst.exe `
-  data_origin data all --seed 2025 --queries 300 --min-g 4 --max-g 16
+Linux：
+
+```bash
+make tools JOBS=16
+./build/prepare_gpu4gst data_origin data all --seed 2025 --queries 300 --min-g 5 --max-g 16
 ```
+
+Windows Visual Studio 构建时，可执行文件通常为 `build/Release/prepare_gpu4gst.exe`；位置参数和选项完全相同。
 
 第三个位置参数可以从 `all` 改为 `Musae`、`Twitch`、`Github`、`Youtube`、`DBLP`、`Orkut`、`LiveJournal` 或 `Reddit`。已存在且头部匹配的 `graph.txt` 默认复用；只有明确需要重写图时才加 `--force-graph`。
 
-`--queries` 只控制独立生成的 `query_g<g>.txt` 数量；作者 `query_author_g3/g5/g7.txt` 始终逐行转换 CSV 的前 300 条，与论文实验脚本的 `0..299` 范围一致。使用非默认 `--min-g/--max-g` 做局部调试时应指定新的输出根目录，避免旧目录中其他 `g` 文件与新 manifest 混在一起。
+`--queries` 只控制 P2 独立生成的 `query_g<g>.txt` 候选数量；正式 panel 再由 `tools/data/build_gpu_query_panels.py` 每格固定选择 5 条。作者 P1 的 `query_author_g3/g5/g7.txt` 始终逐行转换 CSV 的前 300 条，与论文实验脚本的 `0..299` 范围一致。使用非默认 `--min-g/--max-g` 做局部调试时应指定新的输出根目录，避免旧目录中其他 `g` 文件与新 manifest 混在一起。
 
 ## 工具保证
 

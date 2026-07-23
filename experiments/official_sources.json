@@ -1,284 +1,35 @@
 {
-  "schema_version": 1,
-  "freeze_id": "official-latest-20260722",
-  "freeze_date": "2026-07-22",
-  "policy": {
-    "graph_rule": "newest snapshot exposed by the graph owner's official distribution endpoint on the freeze date",
-    "query_rule": "use the source query collection when one exists; otherwise re-run the cited paper's synthetic protocol with a recorded seed",
-    "query_validity_rule": "before solver timing, retain a mapped query only if at least one graph connected component intersects every query group; preserve every excluded source row and reason in the audit manifest",
-    "identity_rule": "a dataset identity is source snapshot plus ordered transformation specification plus raw and interface SHA-256 hashes",
-    "author_artifact_rule": "paper GitHub/OneDrive graph products are audit-only and never inputs to this freeze",
-    "mutable_source_rule": "a mutable latest URL is downloaded once and converted only from the frozen local hash",
-    "failed_source_rule": "a source is excluded rather than silently replaced when the official endpoint or a deterministic construction is unavailable"
-  },
+  "schema_version": 2,
+  "freeze_id": "imdb-20260722",
   "download_root": "data_sources/official/official-latest-20260722/raw",
-  "interface_root": "data/official-latest-20260722",
+  "interface_root": "data/official-latest-20260722/imdb-20260722",
   "datasets": [
     {
-      "id": "SNAP-Wikipedia-2018",
+      "id": "IMDb-latest-20260722",
       "status": "include",
-      "tier": "core",
-      "official_page": "https://snap.stanford.edu/data/wikipedia-article-networks.html",
-      "snapshot": "English Wikipedia, December 2018",
-      "files": [
-        {
-          "role": "graph_and_vertex_features",
-          "url": "https://snap.stanford.edu/data/wikipedia.zip",
-          "path": "snap-wikipedia/wikipedia.zip"
-        }
-      ],
-      "transform": "Disjoint union of Chameleon, Crocodile and Squirrel; remove self-loops; canonicalize and deduplicate undirected edges; each observed feature ID is a candidate group; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "SNAP-Twitch-2018",
-      "status": "include",
-      "tier": "core",
-      "official_page": "https://snap.stanford.edu/data/twitch-social-networks.html",
-      "snapshot": "May 2018",
-      "files": [
-        {
-          "role": "graph_and_vertex_features",
-          "url": "https://snap.stanford.edu/data/twitch.zip",
-          "path": "snap-twitch/twitch.zip"
-        }
-      ],
-      "transform": "Disjoint union of DE, ENGB, ES, FR, PTBR and RU; canonicalize undirected edges; each observed shared feature ID is a candidate group; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "SNAP-GitHub-2019",
-      "status": "include",
-      "tier": "core",
-      "official_page": "https://snap.stanford.edu/data/github-social.html",
-      "snapshot": "June 2019",
-      "files": [
-        {
-          "role": "graph_and_vertex_features",
-          "url": "https://snap.stanford.edu/data/git_web_ml.zip",
-          "path": "snap-github/git_web_ml.zip"
-        }
-      ],
-      "transform": "Canonicalize undirected edges; each observed feature ID is a candidate group; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "SNAP-YouTube",
-      "status": "include",
-      "tier": "core",
-      "official_page": "https://snap.stanford.edu/data/com-Youtube.html",
-      "snapshot": "official SNAP static snapshot available on 2026-07-22",
-      "files": [
-        {
-          "role": "graph",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-youtube.ungraph.txt.gz",
-          "path": "snap-youtube/com-youtube.ungraph.txt.gz"
-        },
-        {
-          "role": "candidate_groups",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-youtube.top5000.cmty.txt.gz",
-          "path": "snap-youtube/com-youtube.top5000.cmty.txt.gz"
-        }
-      ],
-      "transform": "Use the official largest connected component and official top-5000 community file without author-side filtering; preserve official vertex IDs through an explicit dense mapping; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "SNAP-Orkut",
-      "status": "include",
-      "tier": "full",
-      "official_page": "https://snap.stanford.edu/data/com-Orkut.html",
-      "snapshot": "official SNAP static snapshot available on 2026-07-22",
-      "files": [
-        {
-          "role": "graph",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.ungraph.txt.gz",
-          "path": "snap-orkut/com-orkut.ungraph.txt.gz"
-        },
-        {
-          "role": "candidate_groups",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-orkut.top5000.cmty.txt.gz",
-          "path": "snap-orkut/com-orkut.top5000.cmty.txt.gz"
-        }
-      ],
-      "transform": "Use the official largest connected component and official top-5000 community file without author-side filtering; preserve official vertex IDs through an explicit dense mapping; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "SNAP-LiveJournal",
-      "status": "include",
-      "tier": "full",
-      "official_page": "https://snap.stanford.edu/data/com-LiveJournal.html",
-      "snapshot": "official SNAP static snapshot available on 2026-07-22",
-      "files": [
-        {
-          "role": "graph",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.ungraph.txt.gz",
-          "path": "snap-livejournal/com-lj.ungraph.txt.gz"
-        },
-        {
-          "role": "candidate_groups",
-          "url": "https://snap.stanford.edu/data/bigdata/communities/com-lj.top5000.cmty.txt.gz",
-          "path": "snap-livejournal/com-lj.top5000.cmty.txt.gz"
-        }
-      ],
-      "transform": "Use the official largest connected component and official top-5000 community file without author-side filtering; preserve official vertex IDs through an explicit dense mapping; edge weight is floor(100 times Jaccard neighborhood distance).",
-      "queries": "related-group co-occurrence BFS, g=4..16, seed=20260722"
-    },
-    {
-      "id": "MovieLens-32M",
-      "status": "include",
-      "tier": "core",
-      "official_page": "https://grouplens.org/datasets/movielens/",
-      "snapshot": "MovieLens 32M, generated 2023-10-13 and released May 2024",
-      "files": [
-        {
-          "role": "ratings_movies_and_tags",
-          "url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip",
-          "path": "movielens-32m/ml-32m.zip"
-        },
-        {
-          "role": "upstream_md5",
-          "url": "https://files.grouplens.org/datasets/movielens/ml-32m.zip.md5",
-          "path": "movielens-32m/ml-32m.zip.md5"
-        }
-      ],
-      "transform": "A vertex is a movie; connect two movies iff at least one user rated both 5.0, deduplicate the undirected pair and assign unit edge weight; each genre is a source candidate group.",
-      "queries": "Use the 20 official genre groups as source features. Generate related-group queries by co-occurrence BFS for g=4..16, then select a fixed 10-query-per-cell panel stratified by realized mean group size without solver feedback. MovieLens is part of experiment B, not the controlled <g,f> experiment."
-    },
-    {
-      "id": "LinkedMDB-2012",
-      "status": "include",
-      "tier": "extended",
-      "official_page": "https://www.cs.toronto.edu/~oktie/linkedmdb/",
-      "snapshot": "linkedmdb-latest-dump.zip served by the official project; upstream file dated 2012-02-10",
-      "files": [
-        {
-          "role": "rdf_graph",
-          "url": "https://www.cs.toronto.edu/~oktie/linkedmdb/linkedmdb-latest-dump.zip",
-          "path": "linkedmdb/linkedmdb-latest-dump.zip"
-        },
-        {
-          "role": "source_queries",
-          "url": "https://parl.ai/downloads/wikimovies/wikimovies.tar.gz",
-          "path": "wikimovies/wikimovies.tar.gz",
-          "expected_bytes": 57070041,
-          "expected_sha256": "ed062b49922b602ebee6073f58951bf38c4772a8b53d46682f3ff80ed57de948"
-        }
-      ],
-      "query_provenance_page": "https://github.com/facebookresearch/ParlAI/blob/main/parlai/tasks/wikimovies/build.py",
-      "retired_original_query_archive": {
-        "url": "https://thespermwhale.com/jaseweston/babi/movieqa.tar.gz",
-        "expected_bytes": 57070041,
-        "expected_sha256": "ed062b49922b602ebee6073f58951bf38c4772a8b53d46682f3ff80ed57de948",
-        "freeze_note": "The original endpoint had a hostname-invalid TLS certificate and its HTTP endpoint returned 404 on 2026-07-22; it is provenance-only, not a downloaded input."
-      },
-      "transform": "Discard rdf:type and every triple whose object is not a URI. Preserve every remaining URI-URI triple as one undirected edge (parallel edges are retained). Its weight is ln(1 + freq(predicate)), where frequency is counted over the frozen dump. This exactly reconstructs all 69 non-type relation weights in the prior LinkedMDB interface graph. Candidate groups are lower-cased tokens from rdfs:label literals.",
-      "queries": "Use Meta ParlAI's official WikiMovies mirror, whose 57,070,041-byte archive has the exact SHA-256 published for the retired original URL. Pool the train/dev/test questions, remove punctuation and the frozen English stopword list as in the cited practical paper, map remaining tokens to LinkedMDB label groups, apply the common-component validity gate, and select a fixed seed-20260722 sample of at most 200 feasible source rows without conditioning on solver behavior. Every feasible natural g, including low and high g, remains in the primary natural-query experiment.",
-      "formal_query_status": "include_official_meta_mirror"
-    },
-    {
-      "id": "DBpedia-2022.12-en",
-      "status": "include",
-      "tier": "extended",
-      "official_page": "https://www.dbpedia.org/blog/dbpedia-snapshot-2022-12-release/",
-      "snapshot": "DBpedia 2022.12.01 English mapping-based objects and labels",
-      "files": [
-        {
-          "role": "rdf_graph",
-          "url": "https://downloads.dbpedia.org/repo/dbpedia/mappings/mappingbased-objects/2022.12.01/mappingbased-objects_lang=en.ttl.bz2",
-          "path": "dbpedia-2022.12/mappingbased-objects_lang=en.ttl.bz2"
-        },
-        {
-          "role": "labels",
-          "url": "https://downloads.dbpedia.org/repo/dbpedia/generic/labels/2022.12.01/labels_lang=en.ttl.bz2",
-          "path": "dbpedia-2022.12/labels_lang=en.ttl.bz2"
-        },
-        {
-          "role": "source_queries",
-          "url": "https://raw.githubusercontent.com/iai-group/DBpedia-Entity/master/collection/v2/queries-v2.txt",
-          "path": "dbpedia-entity-v2/queries-v2.txt"
-        },
-        {
-          "role": "source_queries_officially_stopped",
-          "url": "https://iai-group.github.io/DBpedia-Entity/collection/v2/queries-v2_stopped.txt",
-          "path": "dbpedia-entity-v2/queries-v2_stopped.txt"
-        }
-      ],
-      "transform": "Discard rdf:type and every triple whose object is not a URI. Preserve every remaining URI-URI triple as one undirected edge (parallel edges are retained). Its weight is ln(1 + freq(predicate)), following the same relation-informativeness protocol verified exactly on LinkedMDB. Candidate groups are lower-cased tokens from English rdfs:label literals.",
-      "queries": "Use the official queries-v2_stopped.txt text, not a repository-invented stopword list. Preserve all source IDs in the audit manifest; after the common-component validity gate, the primary natural-query experiment contains all 464 feasible rows at g=1..12, including every naturally occurring low- and high-g row. The exact 438-query KeyKG subset remains a separately identified legacy-paper protocol until its exclusion rule is recovered."
-    },
-    {
-      "id": "IMDb-daily-20260722",
-      "status": "include",
-      "tier": "core",
+      "tier": "secondary-controlled",
       "official_page": "https://developer.imdb.com/non-commercial-datasets/",
       "snapshot": "mutable daily non-commercial export retrieved and frozen on 2026-07-22",
       "files": [
-        {"role": "titles", "url": "https://datasets.imdbws.com/title.basics.tsv.gz", "path": "imdb-20260722/title.basics.tsv.gz"},
-        {"role": "title_people", "url": "https://datasets.imdbws.com/title.principals.tsv.gz", "path": "imdb-20260722/title.principals.tsv.gz"},
-        {"role": "people", "url": "https://datasets.imdbws.com/name.basics.tsv.gz", "path": "imdb-20260722/name.basics.tsv.gz"}
-      ],
-      "transform": "Build a title-person bipartite multigraph with one unit-weight edge per frozen title.principals row. Assign dense identifiers at first title/person occurrence. Candidate labels are lower-case ASCII alphanumeric tokens from titleType, primaryTitle, originalTitle, genres, primaryName and primaryProfession, deduplicated per vertex; retain real labels with frequency 50..4800 so the controlled sweep can cover f=100..3200 without extrapolating beyond the source labels.",
-      "queries": "Experiment A uses real source labels only: g=4..16 at f=400 and f in {100,200,400,800,1600,3200} at g=10, with 10 fixed-seed queries per unique cell and every realized group size recorded.",
-      "comparability_note": "Only the PrunedDP++ graph-construction family is replicated. This is a current official IMDb graph, not the unavailable 2016 snapshot; the parameter grid and query count are this paper's design and the dataset is reported under a distinct name."
-    },
-    {
-      "id": "DBLP-AMiner-V18",
-      "status": "include",
-      "tier": "core",
-      "official_page": "https://open.aminer.cn/open/article?id=655db2202ab17a072284bc0c",
-      "snapshot": "DBLP-Citation-network V18, object last modified 2025-07-14",
-      "files": [
         {
-          "role": "papers_authors_topics",
-          "url": "https://opendata.aminer.cn/dataset/DBLP-Citation-network-V18.zip",
-          "path": "aminer-dblp-v18/DBLP-Citation-network-V18.zip",
-          "expected_bytes": 5333638549
-        }
-      ],
-      "transform": "Reconstruct the heterogeneous keyword-search graph implied by the PrunedDP++ DBLP case study from the full official AMiner record stream: one vertex per paper and distinct author identity; one positive unit edge for each paper-author relation and each in-snapshot paper citation. Candidate labels are lower-case ASCII alphanumeric tokens from paper titles, source keywords, venues, document types and author names, deduplicated per vertex and retained at frequency 50..4800. Record missing-author-ID fallback identities and every count; do not substitute the Practical-paper coauthor graph or an author repository product. The unavailable 2016 bytes cannot be claimed identical, so the formal name is DBLP-AMiner-V18.",
-      "queries": "Experiment A uses real source labels only: g=4..16 at f=400 and f in {100,200,400,800,1600,3200} at g=10, with 10 fixed-seed queries per unique cell and every realized group size recorded. This follows the PrunedDP++ graph semantics while deliberately using this paper's parameter grid and sample count."
-    },
-    {
-      "id": "Toronto-current",
-      "status": "include",
-      "tier": "extended",
-      "official_page": "https://open.toronto.ca/dataset/toronto-centreline-tcl/",
-      "snapshot": "Toronto Centreline V2 resource d562d003-d8eb-4b4b-bbdc-8fe694299a21, modified 2026-07-21; Cultural Hotspot POI resource 4d16d132-fe2d-4f79-8269-9ef942d599a8, modified 2026-02-20; EPSG:2952 CSV exports",
-      "files": [
-        {
-          "role": "complete_road_centreline",
-          "url": "https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/1d079757-377b-4564-82df-eb5638583bfb/resource/d562d003-d8eb-4b4b-bbdc-8fe694299a21/download/centreline-version-2-2952.csv",
-          "path": "toronto-current/centreline-version-2-2952.csv",
-          "expected_bytes": 37006166
+          "role": "titles",
+          "url": "https://datasets.imdbws.com/title.basics.tsv.gz",
+          "path": "imdb-20260722/title.basics.tsv.gz"
         },
         {
-          "role": "source_candidate_groups",
-          "url": "https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/c7be2ee7-d317-4a28-8cbe-bff1ce116b46/resource/4d16d132-fe2d-4f79-8269-9ef942d599a8/download/points-of-interest-2952.csv",
-          "path": "toronto-current/points-of-interest-2952.csv",
-          "expected_bytes": 1085155
+          "role": "title_people",
+          "url": "https://datasets.imdbws.com/title.principals.tsv.gz",
+          "path": "imdb-20260722/title.principals.tsv.gz"
+        },
+        {
+          "role": "people",
+          "url": "https://datasets.imdbws.com/name.basics.tsv.gz",
+          "path": "imdb-20260722/name.basics.tsv.gz"
         }
       ],
-      "transform": "Use the complete current Centreline V2 export, retain rows with two valid intersection endpoints, assign dense IDs to all retained intersections, collapse duplicate undirected endpoint pairs to their minimum positive polyline length, and round that EPSG:2952 metric length to a positive integer number of millimetres. Map every Cultural Hotspot POI point to its nearest retained intersection in EPSG:2952; prefixed Interests and Neighbourhood values are source candidate groups, and the exact nearest-distance distribution is audited. No traffic vertex weight is folded into an edge weight because the present solver model is edge-weighted GST.",
-      "queries": "Related-group co-occurrence BFS over official POI category groups, g=4..16, fixed seed 20260722; fixed formal panel selected without solver feedback. This current-source dataset is named Toronto-current and is not claimed byte-identical to the 2021 paper graph."
-    },
-    {
-      "id": "SteinLib-WRP",
-      "status": "include_existing_official",
-      "tier": "core",
-      "official_page": "https://steinlib.zib.de/testset.php",
-      "snapshot": "WRP3 and WRP4 archives already frozen under data_sources/steinlib",
-      "files": [],
-      "transform": "Use tools/data/convert_steinlib.py; retain only structurally valid converted GST instances with g<=16 and cross-check against the published optimum."
-    },
-    {
-      "id": "Reddit-Pushshift",
-      "status": "exclude",
-      "tier": "none",
-      "official_page": "https://pushshift.io/",
-      "files": [],
-      "reason": "The cited paper omits the crawl interval, graph construction, keyword extraction, filtering and ID mapping; no deterministic official-source reconstruction is defined."
+      "transform": "Build the frozen title-person bipartite graph with one positive unit edge per title.principals row and dense 1-based identifiers.",
+      "queries": "Secondary <g,f> queries use the MonoGST+ Gaussian-size and uniform-vertex protocol; they do not use IMDb labels.",
+      "comparability_note": "This is a current official IMDb freeze for sensitivity analysis, not the unavailable PrunedDP++ 2016 snapshot."
     }
   ]
 }

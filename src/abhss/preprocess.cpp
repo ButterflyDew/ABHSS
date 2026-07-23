@@ -9,6 +9,7 @@ namespace gst::methods::abhss::internal
 {
 namespace
 {
+/** @brief 统计 64 位 membership word 中的置位数，用于 sparse GroupRow rank。 */
 int Popcount64(std::uint64_t bits)
 {
     int count = 0;
@@ -20,11 +21,21 @@ int Popcount64(std::uint64_t bits)
     return count;
 }
 
+/** @brief 将无向边及方向映射为稳定的有向 residual 弧编号。 */
 int ArcIndex(int edge_id, int from, int to)
 {
     return 2 * edge_id + (from < to ? 0 : 1);
 }
 
+/**
+ * @brief 把一组原图边重根为无父指针环的真实见证树。
+ * @param fallback_root 只用于保证空边集合仍至少含一个候选顶点。
+ * @param anchor_group 根必须取自的永久锚组。
+ *
+ * 函数在选中边诱导子图上用严格改进 Dijkstra 建父指针。零权等距候选保留
+ * 第一个合法父亲，防止已经 settled 的祖先被重新挂到后代而形成环；最后
+ * 额外验证所有见证顶点均从锚根可达。
+ */
 WitnessTree BuildWitnessFromEdges(const Graph& graph,
                                   const Query& query,
                                   const std::vector<int>& edge_ids,
@@ -90,12 +101,9 @@ WitnessTree BuildWitnessFromEdges(const Graph& graph,
         for (const auto& [v, weight] : adjacency[u])
         {
             const double next = value + weight;
-            // A strict improvement is essential here.  Re-parenting an
-            // equal-distance vertex across a zero-weight edge can point a
-            // settled ancestor back to its descendant, create a parent cycle,
-            // and enqueue the same final key twice.  Heap/adjacency order is
-            // already deterministic, so equal candidates keep the first
-            // valid predecessor.
+            // 必须严格改进。零权边上的等距重挂可能把 settled 祖先指回后代，
+            // 形成父指针环并重复弹出相同最终 key。堆和邻接顺序已经确定，
+            // 因此等距候选保留第一个合法前驱即可。
             if (next < distance[v])
             {
                 distance[v] = next;
@@ -107,10 +115,8 @@ WitnessTree BuildWitnessFromEdges(const Graph& graph,
     }
     if (reached != static_cast<int>(tree.vertex.size()))
     {
-        // Keep enough evidence in the exceptional path to distinguish an
-        // actually disconnected edge set from duplicate equal-distance heap
-        // pops.  This path is never executed by a valid witness and therefore
-        // has no effect on formal timing.
+        // 异常路径保留足够证据，用来区分选边确实不连通和等距 key 重复弹出。
+        // 合法见证不会进入此分支，因此这些统计不影响正式计时。
         std::vector<unsigned char> seen(tree.vertex.size());
         std::vector<int> stack{root};
         seen[root] = 1;
@@ -140,6 +146,7 @@ WitnessTree BuildWitnessFromEdges(const Graph& graph,
 }
 }  // namespace
 
+/** @brief 对递增稀疏 row 做二分读取，缺失顶点统一返回 `fp::kInf`。 */
 double RowValue(const Row& row, int vertex)
 {
     const auto it = std::lower_bound(row.vertex.begin(), row.vertex.end(), vertex);
@@ -148,6 +155,7 @@ double RowValue(const Row& row, int vertex)
     return row.value[static_cast<size_t>(it - row.vertex.begin())];
 }
 
+/** @brief 屏蔽完整、有界 dense 和有界 ranked-bitmap 三种组距离布局。 */
 double GroupRow::operator[](int v) const
 {
     if (!bounded || dense)
@@ -162,6 +170,7 @@ double GroupRow::operator[](int v) const
     return value[index];
 }
 
+/** @brief 判断读取值是否为真实最短路，而不是有界表的 cutoff 证书。 */
 bool GroupRow::IsExact(int v) const
 {
     if (!bounded)
@@ -173,11 +182,18 @@ bool GroupRow::IsExact(int v) const
            ((bits[word] >> (v & 63)) & std::uint64_t{1});
 }
 
+/** @brief 返回可安全参加精确合并的顶点数，供交集驱动器比较工作量。 */
 size_t GroupRow::ExactSize(int n) const
 {
     return bounded ? exact_count : static_cast<size_t>(n);
 }
 
+/**
+ * @brief 在零权连通分量覆盖超图上计算全局下界和候选代表根。
+ *
+ * 覆盖数为 1 时可直接证明零代价可行；否则结合最小正边权给出不超过任意
+ * 可行树的连接代价。返回根只用于构造上界，不影响下界有效性。
+ */
 ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
 {
     ComponentCover result;
@@ -271,6 +287,12 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     return result;
 }
 
+/**
+ * @brief 从各组规范终端构造最短路树边并集，选择真实代价最小的根。
+ *
+ * 该上界在 Base 中先于 bounded Dijkstra 建立安全 cutoff；增强配置可跳过
+ * 这项固定成本并由完整距离、dual primal 上界接管。
+ */
 double BuildCanonicalSptUpper(const Graph& graph, const Query& query, int& best_root)
 {
     const int g = static_cast<int>(query.groups.size());
@@ -355,6 +377,12 @@ double BuildCanonicalSptUpper(const Graph& graph, const Query& query, int& best_
     return best;
 }
 
+/**
+ * @brief 为全部组执行多源 Dijkstra，并构造统一 GroupRow。
+ *
+ * bounded 模式只 settle 严格小于 cutoff 的顶点，随后比较 dense bounded 与
+ * ranked-bitmap 的实际字节数；完整模式保存 n 个真实距离供 directed-cut。
+ */
 GroupTable BuildGroupDistances(const Graph& graph,
                                const Query& query,
                                bool bounded,
@@ -443,6 +471,7 @@ GroupTable BuildGroupDistances(const Graph& graph,
     return table;
 }
 
+/** @brief 扫描所有共同根的组距离和，返回最小合法 star 上界并更新根。 */
 double RootStarUpper(const GroupTable& distance, int n, int& root)
 {
     if (distance.empty())
@@ -466,6 +495,7 @@ double RootStarUpper(const GroupTable& distance, int n, int& root)
     return best;
 }
 
+/** @brief 用 subset DP 构建每个组子集、每对固定端点的最短 Hamilton path。 */
 void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
 {
     group_count_ = static_cast<int>(metric.size());
@@ -521,6 +551,7 @@ void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
     }
 }
 
+/** @brief 把当前顶点接到预计算路径两端，返回剩余 mask 的 admissible tour 下界。 */
 double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) const
 {
     if (!mask)
@@ -543,6 +574,12 @@ double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) cons
     return value * 0.5;
 }
 
+/**
+ * @brief 恢复候选根到各组的最短路，按 edge id 去重并选择最便宜边并集。
+ *
+ * 恢复只使用 GroupRow 中的精确 predecessor cone；最终边并集必须连通并覆盖
+ * 所有组，故其去重边权是合法上界且可进一步重根为 witness。
+ */
 RootPathUnion BuildRootPathUnion(const Graph& graph,
                                  const Query& query,
                                  const GroupTable& distance,
@@ -629,6 +666,7 @@ RootPathUnion BuildRootPathUnion(const Graph& graph,
     return best;
 }
 
+/** @brief 将 Base 的根路径边并集转为永久锚组根下的无环 witness。 */
 WitnessTree BuildRootPathWitness(const Graph& graph,
                                  const Query& query,
                                  const RootPathUnion& paths,
@@ -638,6 +676,7 @@ WitnessTree BuildRootPathWitness(const Graph& graph,
         graph, query, paths.edge_ids, paths.root, anchor_group);
 }
 
+/** @brief 将 directed-cut primal bitmap 展开为 edge id，再构造同格式 witness。 */
 WitnessTree BuildDualWitness(const Graph& graph,
                              const Query& query,
                              const std::vector<std::uint64_t>& edge_words,
@@ -651,6 +690,12 @@ WitnessTree BuildDualWitness(const Graph& graph,
     return BuildWitnessFromEdges(graph, query, edges, root, anchor_group);
 }
 
+/**
+ * @brief 在真实 witness 树上组合已 ready 的 ordinary rooted 子树并求可行上界。
+ *
+ * 树边代价只沿父子关系加入一次；缺失 ordinary 状态保持无穷，因此任何返回
+ * 有限值都对应原图中的真实连通覆盖，而不会把 lower bound 当作解。
+ */
 double EvaluateWitnessTree(const WitnessTree& tree,
                            const Problem& p,
                            const std::vector<Row>& ordinary)
@@ -727,6 +772,12 @@ double EvaluateWitnessTree(const WitnessTree& tree,
     return dp[root][p.full_mask];
 }
 
+/**
+ * @brief 在 directed-cut primal 设施点上构造可行支撑度量并做小型 subset DP。
+ *
+ * residual 与 primal bitmap 只在增强预处理阶段有效；函数返回后调用者即可
+ * 释放 residual，不让 O(m) 临时数组进入 ordinary 主阶段。
+ */
 double BuildPrimalFacilityUpper(const Problem& p,
                                 const std::vector<double>& residual,
                                 const std::vector<std::uint64_t>& edge_words)
@@ -866,6 +917,7 @@ double BuildPrimalFacilityUpper(const Problem& p,
     return best;
 }
 
+/** @brief 先检查顶点缓存的全局最远组，未命中再扫描剩余原始组 mask。 */
 double FarthestRemaining(const Problem& p, int vertex, int original_mask)
 {
     if (!original_mask)
@@ -880,12 +932,14 @@ double FarthestRemaining(const Problem& p, int vertex, int original_mask)
     return value;
 }
 
+/** @brief 从零开始计算 farthest/tour/可选 directed-cut 的统一 future 下界。 */
 double FutureBound(const Problem& p, int vertex, int original_mask)
 {
     return FutureBound(
         p, vertex, original_mask, FarthestRemaining(p, vertex, original_mask));
 }
 
+/** @brief 复用已通过廉价检查的 farthest，再计算较贵 tour 与可选 dual。 */
 double FutureBound(const Problem& p,
                    int vertex,
                    int original_mask,
@@ -898,6 +952,7 @@ double FutureBound(const Problem& p,
     return value;
 }
 
+/** @brief 统一读取 D(0)=0、singleton 组距离和多组 ordinary 稀疏 row。 */
 double OrdinaryValue(const Problem& p, int mask, int vertex)
 {
     if (!mask)
@@ -907,11 +962,18 @@ double OrdinaryValue(const Problem& p, int mask, int vertex)
     return RowValue(p.ordinary[mask], vertex);
 }
 
+/** @brief singleton 天然可用；多组状态必须显式 `ready`，空 mask 不算 ordinary。 */
 bool OrdinaryAvailable(const Problem& p, int mask)
 {
     return mask && (p.popcount[mask] == 1 || p.ordinary[mask].ready);
 }
 
+/**
+ * @brief 建立一次查询的全部公共数据，并按增强开关增加 stronger certificates。
+ *
+ * 执行顺序固定为分量下界、组距离/根上界、锚映射、tour，再选择 Base 根路径
+ * witness 或 DirectedCut dual/primal。任意阶段上下界闭合都安全提前返回。
+ */
 bool PrepareProblem(Problem& p)
 {
     p.g = static_cast<int>(p.query.groups.size());
@@ -933,7 +995,10 @@ bool PrepareProblem(Problem& p)
         bounded_distances ? p.best : fp::kInf);
     const double star = RootStarUpper(p.group_distance, p.graph.n, p.root);
     p.best = std::min(p.best, star);
-    if (p.best == 0.0 || fp::Le(p.best, p.component_cover.lower))
+    // 上下界闭合是精确性终止条件，不能用 epsilon 把一个很小但为正的 gap
+    // 当作 0。容差只允许用于恢复真实路径；恢复失败最多削弱上界，不会证明
+    // 最优性。这里使用解析后 double 值的原始顺序比较。
+    if (p.best == 0.0 || p.best <= p.component_cover.lower)
         return true;
 
     std::vector<int> roots{p.root};
@@ -943,7 +1008,7 @@ bool PrepareProblem(Problem& p)
     p.root_path_union = BuildRootPathUnion(
         p.graph, p.query, p.group_distance, roots);
     p.best = std::min(p.best, p.root_path_union.upper);
-    if (fp::Le(p.best, p.component_cover.lower))
+    if (p.best <= p.component_cover.lower)
         return true;
 
     p.anchor_group = 0;
@@ -1018,7 +1083,7 @@ bool PrepareProblem(Problem& p)
 
     p.ordinary.assign(p.subset_count, {});
     p.ordinary_minimum.assign(p.subset_count, fp::kInf);
-    return fp::Le(p.best, p.component_cover.lower);
+    return p.best <= p.component_cover.lower;
 }
 
 }  // namespace gst::methods::abhss::internal

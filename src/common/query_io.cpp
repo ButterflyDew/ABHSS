@@ -15,8 +15,8 @@ std::string ResolveQueryFile(const std::string& graph_folder, const std::string&
     const fs::path folder_path = fs::path(graph_folder);
     if (!query_selector.empty())
     {
-        // Paper panels live outside the (often very large) graph directory.
-        // Accept an explicit file path before trying the legacy selectors.
+        // 论文 panel 通常位于很大的图目录之外，因此先接受显式文件路径，
+        // 再尝试兼容旧命名选择器。
         const fs::path explicit_path = fs::path(query_selector);
         if (fs::exists(explicit_path) && fs::is_regular_file(explicit_path))
         {
@@ -84,7 +84,7 @@ std::vector<Query> LoadQueriesFromFolder(const std::string& graph_folder, const 
     {
         int g = 0;
         fin >> g;
-        if (!fin)
+        if (!fin || g < 0)
         {
             throw std::runtime_error("Invalid group count in query " + std::to_string(qi));
         }
@@ -109,6 +109,12 @@ std::vector<Query> LoadQueriesFromFolder(const std::string& graph_folder, const 
             }
         }
         queries.push_back(std::move(query));
+    }
+    std::string trailing;
+    if (fin >> trailing)
+    {
+        throw std::runtime_error("Unexpected trailing token in query file: " +
+                                 query_path.string());
     }
     return queries;
 }

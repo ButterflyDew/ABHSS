@@ -1,0 +1,782 @@
+{
+  "cases": [
+    {
+      "dataset": "Toronto-MonoGSTPlus",
+      "g_counts": {
+        "5": 40,
+        "6": 40,
+        "7": 40,
+        "8": 40
+      },
+      "graph_path": "data/Toronto",
+      "known_infeasible_query_indices": [],
+      "queries": 160,
+      "query_block": "all",
+      "query_path": "data/Toronto/query.txt",
+      "query_sha256": "a056b0c1c9ac9ec3de11146bcc1843f5b0d0297e0b593bef46fe69a522562296",
+      "selection": "all author-used queries; no sampling",
+      "source_family": "MonoGSTPlus"
+    },
+    {
+      "dataset": "MovieLens-MonoGSTPlus",
+      "g_counts": {
+        "5": 40,
+        "6": 40,
+        "7": 40,
+        "8": 40
+      },
+      "graph_path": "data/MovieLens",
+      "known_infeasible_query_indices": [],
+      "queries": 160,
+      "query_block": "all",
+      "query_path": "data/MovieLens/query.txt",
+      "query_sha256": "87c880ed69b333cdb2ca9168937c3cefd75d4da937ef4334f30f1aaa626142d9",
+      "selection": "all author-used queries; no sampling",
+      "source_family": "MonoGSTPlus"
+    },
+    {
+      "dataset": "DBLP-MonoGSTPlus",
+      "g_counts": {
+        "5": 40,
+        "6": 40,
+        "7": 40,
+        "8": 40
+      },
+      "graph_path": "data/DBLP",
+      "known_infeasible_query_indices": [],
+      "queries": 160,
+      "query_block": "all",
+      "query_path": "data/DBLP/query.txt",
+      "query_sha256": "b71cfc941c26f7611a42de71a1fc803d86564d7ab3c56a3500e512c1c4af7db9",
+      "selection": "all author-used queries; no sampling",
+      "source_family": "MonoGSTPlus"
+    },
+    {
+      "dataset": "LinkedMDB-MonoGSTPlus",
+      "g_counts": {
+        "1": 20,
+        "10": 15,
+        "2": 23,
+        "3": 18,
+        "4": 19,
+        "5": 20,
+        "6": 24,
+        "7": 22,
+        "8": 19,
+        "9": 20
+      },
+      "graph_path": "data/LinkedMDB",
+      "known_infeasible_query_indices": [
+        3,
+        12,
+        14,
+        27,
+        29,
+        33,
+        43,
+        46,
+        49,
+        51,
+        53,
+        54,
+        56,
+        61,
+        69,
+        74,
+        76,
+        84,
+        91,
+        92,
+        115,
+        118,
+        122,
+        125,
+        131,
+        139,
+        146,
+        150,
+        153,
+        155,
+        157,
+        159,
+        160,
+        163,
+        168,
+        173,
+        181,
+        182,
+        187,
+        189,
+        193,
+        194,
+        195,
+        196,
+        197,
+        200
+      ],
+      "queries": 200,
+      "query_block": "all",
+      "query_path": "data/LinkedMDB/query.txt",
+      "query_sha256": "40a29d22953388a38a75276632393564c725f3b23e9fa56ad3971038361ce7d3",
+      "selection": "all author-used queries; no sampling",
+      "source_family": "MonoGSTPlus"
+    },
+    {
+      "dataset": "DBpedia-MonoGSTPlus",
+      "g_counts": {
+        "1": 4,
+        "10": 2,
+        "2": 90,
+        "3": 107,
+        "4": 103,
+        "5": 65,
+        "6": 31,
+        "7": 22,
+        "8": 9,
+        "9": 5
+      },
+      "graph_path": "data/DBpedia",
+      "known_infeasible_query_indices": [
+        59,
+        107,
+        169,
+        174,
+        201,
+        209,
+        226,
+        287,
+        437
+      ],
+      "queries": 438,
+      "query_block": "all",
+      "query_path": "data/DBpedia/query.txt",
+      "query_sha256": "a6f7508135969bb561075f2bc22e3769f769189f50425dcfc0509e1691882c5d",
+      "selection": "all author-used queries; no sampling",
+      "source_family": "MonoGSTPlus"
+    },
+    {
+      "dataset": "Musae-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Musae",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Musae/query_author_g3.txt",
+      "query_sha256": "36cd1b0d65f956bde7ce986717256ca2edce40c882b4e9cd9ea475a64fd6e3b9",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Musae-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Musae",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Musae/query_author_g5.txt",
+      "query_sha256": "944c46c4aea8637c19f67ec5bea9d8b7ffe33ad74a24db969f33bc5d6383e880",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Musae-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Musae",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Musae/query_author_g7.txt",
+      "query_sha256": "d1e7b73fca7eb52ab42dd553f0dc31237982426646ea96e34e9e9b2fbf710c38",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Twitch-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Twitch",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Twitch/query_author_g3.txt",
+      "query_sha256": "011cc10277b6a135845d778a0fc869b8ea67dfd3798ff623cacb737b8ae47b13",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Twitch-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Twitch",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Twitch/query_author_g5.txt",
+      "query_sha256": "0ec28b853c4f1f807dabe3f670f8aea4e1d3c6e153f4dafb2934eda9e0aace6c",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Twitch-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Twitch",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Twitch/query_author_g7.txt",
+      "query_sha256": "b03798197bc5860252507e88d0de676c16b5f354f63d2229e2d12880bea9f937",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Github-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Github",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Github/query_author_g3.txt",
+      "query_sha256": "59935a72c6f043bd9d8daeb87ad37bfff81e100cab7465e76d8e425ff387430e",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Github-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Github",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Github/query_author_g5.txt",
+      "query_sha256": "a6f5e05b670a40649acb010043b84c50c581d06884d0317ba54a883ad244c8ac",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Github-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Github",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Github/query_author_g7.txt",
+      "query_sha256": "99e29d47680249f9cc0bae9b1398ce44a8b2a2b6f01628905209971a24db97aa",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Youtube-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Youtube",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Youtube/query_author_g3.txt",
+      "query_sha256": "b2a32048538e148440e2c6367726631194288f52f2026a8a2914ecb00e7ed7c3",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Youtube-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Youtube",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Youtube/query_author_g5.txt",
+      "query_sha256": "5398ac27be495ec3e304676f80ee7a158fa524cf7ac082fb4807b81407daa0c8",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Youtube-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Youtube",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Youtube/query_author_g7.txt",
+      "query_sha256": "442e6fc543a9eb812e810282581fb61aca2543b279f07f52171bdf37d5c5b46b",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "DBLP-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_DBLP",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_DBLP/query_author_g3.txt",
+      "query_sha256": "92c3151ee9aa9721db82f24bd18b531612477c704a10a19c9dbc5f0048a0efcb",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "DBLP-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_DBLP",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_DBLP/query_author_g5.txt",
+      "query_sha256": "b63f930a42727a7221e9db9f5bdae675dc68f2a9c7fad6c590d7eabef14df997",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "DBLP-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_DBLP",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_DBLP/query_author_g7.txt",
+      "query_sha256": "2be9be88ea543a022fb2bfd3c68b9066ae1ce398324a25aa2e84a544544afaae",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Orkut-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Orkut",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Orkut/query_author_g3.txt",
+      "query_sha256": "fc12a32dd4e2ceea88fa9211ac554379b7bd2e9c7ecb7f75f6941adbf8cdb5c6",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Orkut-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Orkut",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Orkut/query_author_g5.txt",
+      "query_sha256": "5aa1216669936fb82b3a1263361acf304f1a58518932923d2032898a2f63936a",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Orkut-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Orkut",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Orkut/query_author_g7.txt",
+      "query_sha256": "52d3e76406f28a8a7b5c16a52e596a8fa8d678e1bc23829d70b1d4743ae7e752",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "LiveJournal-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_LiveJournal",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_LiveJournal/query_author_g3.txt",
+      "query_sha256": "0e470ceec30f6919f10f2a1c291abb2cc56c0b7609286d624557098a44e6267d",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "LiveJournal-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_LiveJournal",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_LiveJournal/query_author_g5.txt",
+      "query_sha256": "83d8369ee6d25522bee71fbc99f5708e507f93efdf7453fcde1fc9cc51556799",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "LiveJournal-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_LiveJournal",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_LiveJournal/query_author_g7.txt",
+      "query_sha256": "c29b89529cc32638a516c7cad4e4d0dd0b22734c1f12ea358dd1baa28698eda4",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Reddit-GPU4GST",
+      "g_counts": {
+        "3": 300
+      },
+      "graph_path": "data/GPU4GST_Reddit",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g3",
+      "query_path": "data/GPU4GST_Reddit/query_author_g3.txt",
+      "query_sha256": "e52fdc51b0de341ba6999081061b7cedaec8bbd586e413824d2c916defda7e45",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Reddit-GPU4GST",
+      "g_counts": {
+        "5": 300
+      },
+      "graph_path": "data/GPU4GST_Reddit",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g5",
+      "query_path": "data/GPU4GST_Reddit/query_author_g5.txt",
+      "query_sha256": "829707c4949d1fc3bd7c1cd3924dc2b34b838be8ea7764771fc90c1cb73a1d0b",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    },
+    {
+      "dataset": "Reddit-GPU4GST",
+      "g_counts": {
+        "7": 300
+      },
+      "graph_path": "data/GPU4GST_Reddit",
+      "known_infeasible_query_indices": [],
+      "queries": 300,
+      "query_block": "g7",
+      "query_path": "data/GPU4GST_Reddit/query_author_g7.txt",
+      "query_sha256": "f878faf471ec5e83f9ca5f9f637a364a50dde2182c2507da63cee753550f42ff",
+      "selection": "all first-300 author CSV rows used by the paper; no sampling",
+      "source_family": "GPU4GST"
+    }
+  ],
+  "datasets": [
+    {
+      "dataset": "Toronto-MonoGSTPlus",
+      "edges": 68353,
+      "graph_bytes": 1742789,
+      "graph_path": "data/Toronto",
+      "graph_sha256": "4d82fe13e05168bf918c4f4cce3ee5fd189cd32b437c62d9a70255e98fa177b1",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": null,
+      "paper_edges": 68353,
+      "paper_vertices": 46073,
+      "query_blocks": [
+        "all"
+      ],
+      "query_family": "synthetic <g,f>",
+      "query_records": 160,
+      "source_family": "MonoGSTPlus",
+      "source_reference": "A Practical Sublinear Approximation for Group Steiner Tree (VLDB 2026 accepted manuscript)",
+      "vertices": 46073
+    },
+    {
+      "dataset": "MovieLens-MonoGSTPlus",
+      "edges": 35323774,
+      "graph_bytes": 583167718,
+      "graph_path": "data/MovieLens",
+      "graph_sha256": "e52d22f1208a84020d6c51f1a5bebb9792f59bd29b9f2764e320c8d989919c9b",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": null,
+      "paper_edges": 35323774,
+      "paper_vertices": 62423,
+      "query_blocks": [
+        "all"
+      ],
+      "query_family": "synthetic <g,f>",
+      "query_records": 160,
+      "source_family": "MonoGSTPlus",
+      "source_reference": "A Practical Sublinear Approximation for Group Steiner Tree (VLDB 2026 accepted manuscript)",
+      "vertices": 62423
+    },
+    {
+      "dataset": "DBLP-MonoGSTPlus",
+      "edges": 12786329,
+      "graph_bytes": 349842976,
+      "graph_path": "data/DBLP",
+      "graph_sha256": "f3f60f5b3ed6689ac573b15946254cf3421fa9d76be4b0e70dcd6aed99e5e0e9",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": null,
+      "paper_edges": 12786329,
+      "paper_vertices": 2497782,
+      "query_blocks": [
+        "all"
+      ],
+      "query_family": "synthetic <g,f>",
+      "query_records": 160,
+      "source_family": "MonoGSTPlus",
+      "source_reference": "A Practical Sublinear Approximation for Group Steiner Tree (VLDB 2026 accepted manuscript)",
+      "vertices": 2497782
+    },
+    {
+      "dataset": "LinkedMDB-MonoGSTPlus",
+      "edges": 2132796,
+      "graph_bytes": 61182798,
+      "graph_path": "data/LinkedMDB",
+      "graph_sha256": "2fa246f176b941a543baa0b49ed504ec9ddca4f7c0736707b67bfe557c3a1357",
+      "known_infeasible_queries": 46,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": null,
+      "paper_edges": 2132796,
+      "paper_vertices": 1326784,
+      "query_blocks": [
+        "all"
+      ],
+      "query_family": "WikiMovies natural",
+      "query_records": 200,
+      "source_family": "MonoGSTPlus",
+      "source_reference": "A Practical Sublinear Approximation for Group Steiner Tree (VLDB 2026 accepted manuscript)",
+      "vertices": 1326784
+    },
+    {
+      "dataset": "DBpedia-MonoGSTPlus",
+      "edges": 18338729,
+      "graph_bytes": 529521446,
+      "graph_path": "data/DBpedia",
+      "graph_sha256": "320e1a264d64e3f08fc01b25e9b0f730b7c488ee81488396be3cb4e33b8beb0c",
+      "known_infeasible_queries": 9,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": null,
+      "paper_edges": 18338729,
+      "paper_vertices": 5887296,
+      "query_blocks": [
+        "all"
+      ],
+      "query_family": "DBpedia-Entity v2 natural",
+      "query_records": 438,
+      "source_family": "MonoGSTPlus",
+      "source_reference": "A Practical Sublinear Approximation for Group Steiner Tree (VLDB 2026 accepted manuscript)",
+      "vertices": 5887296
+    },
+    {
+      "dataset": "Musae-GPU4GST",
+      "edges": 400497,
+      "graph_bytes": 5546002,
+      "graph_path": "data/GPU4GST_Musae",
+      "graph_sha256": "291b2a6da265bdb008840f8cd906eaa5f00d3ab414d75b5bf4dfe7ecd33b8770",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 13183,
+      "paper_edges": 400497,
+      "paper_vertices": 19109,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 19109
+    },
+    {
+      "dataset": "Twitch-GPU4GST",
+      "edges": 429113,
+      "graph_bytes": 6065103,
+      "graph_path": "data/GPU4GST_Twitch",
+      "graph_sha256": "73b7df2979497861e60980bb807408582238f214a2a3e5038aa55c82dd4b1ae4",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 3163,
+      "paper_edges": 429113,
+      "paper_vertices": 34118,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 34118
+    },
+    {
+      "dataset": "Github-GPU4GST",
+      "edges": 289003,
+      "graph_bytes": 3957744,
+      "graph_path": "data/GPU4GST_Github",
+      "graph_sha256": "698250271ac559ae80d137f0a85824f190b7f2d73eb4efb386d9918b187d9737",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 4005,
+      "paper_edges": 289003,
+      "paper_vertices": 37700,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 37700
+    },
+    {
+      "dataset": "Youtube-GPU4GST",
+      "edges": 2987624,
+      "graph_bytes": 46934223,
+      "graph_path": "data/GPU4GST_Youtube",
+      "graph_sha256": "848647c1a0a83b447efa7acd4a4026be0a7fc1cb12417c518eb3aab4ed3cf6c0",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 8385,
+      "paper_edges": 2987624,
+      "paper_vertices": 1134890,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 1134890
+    },
+    {
+      "dataset": "DBLP-GPU4GST",
+      "edges": 12786329,
+      "graph_bytes": 221444650,
+      "graph_path": "data/GPU4GST_DBLP",
+      "graph_sha256": "841ddb99c7be2d65c9a629cd7c014883e8f24ca177e996e1efa221266629a82e",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": false,
+      "paper_candidate_groups": 127726,
+      "paper_edges": 12786329,
+      "paper_vertices": 2423455,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 2497782
+    },
+    {
+      "dataset": "Orkut-GPU4GST",
+      "edges": 117185083,
+      "graph_bytes": 2118112699,
+      "graph_path": "data/GPU4GST_Orkut",
+      "graph_sha256": "6ba1ab21d33146c11d99ef83031f3ec284b0d8b4ddf975d66c4a0cbf08db1f00",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": false,
+      "paper_candidate_groups": 6288363,
+      "paper_edges": 117185083,
+      "paper_vertices": 3072440,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 3072441
+    },
+    {
+      "dataset": "LiveJournal-GPU4GST",
+      "edges": 34681189,
+      "graph_bytes": 603443180,
+      "graph_path": "data/GPU4GST_LiveJournal",
+      "graph_sha256": "40832d9d12c30d37f70f23b91a85a94cf15ca3b808b2806b2612be9c476f0de7",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 664414,
+      "paper_edges": 34681189,
+      "paper_vertices": 3997962,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 3997962
+    },
+    {
+      "dataset": "Reddit-GPU4GST",
+      "edges": 12502767,
+      "graph_bytes": 222862160,
+      "graph_path": "data/GPU4GST_Reddit",
+      "graph_sha256": "c5efd7f630f1756edf2da9a27132c10924d5250e7c585b62b460be2fdb710ca8",
+      "known_infeasible_queries": 0,
+      "matches_paper_vertex_edge_counts": true,
+      "paper_candidate_groups": 1146657,
+      "paper_edges": 12502767,
+      "paper_vertices": 4262834,
+      "query_blocks": [
+        "g3",
+        "g5",
+        "g7"
+      ],
+      "query_family": "author related-group queries",
+      "query_records": 900,
+      "source_family": "GPU4GST",
+      "source_reference": "https://github.com/toziki/GPU4GST-sigmod",
+      "vertices": 4262834
+    }
+  ],
+  "paper_role": "P1 published-workload reproduction",
+  "reporting_unit": "dataset; query blocks and g are retained only for audit",
+  "schema_version": 1,
+  "selection": "all queries from both papers",
+  "totals": {
+    "datasets": 13,
+    "executable_query_blocks": 29,
+    "known_infeasible_queries_retained": 55,
+    "queries": 8318
+  }
+}

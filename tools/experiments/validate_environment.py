@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the frozen official-source paper environment before long runs."""
+"""Validate the frozen P1/P2/S2 paper matrix before a long run."""
 
 from __future__ import annotations
 
@@ -9,473 +9,326 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
-from typing import Any, Iterable
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FREEZE_ID = "official-latest-20260722"
-REQUIRED_SLUGS = {
-    "snap-wikipedia-2018",
-    "snap-twitch-2018",
-    "snap-github-2019",
-    "snap-youtube",
-    "snap-orkut",
-    "snap-livejournal",
-    "movielens-32m",
-    "linkedmdb",
-    "dbpedia-2022.12-en",
-    "imdb-20260722",
-    "dblp-aminer-v18",
-    "toronto-current",
+PRIMARY_METHODS = {"abhss_base", "abhss_enhanced", "pruneddp_safe"}
+P1_DATASETS = {
+    "Toronto-MonoGSTPlus",
+    "MovieLens-MonoGSTPlus",
+    "DBLP-MonoGSTPlus",
+    "LinkedMDB-MonoGSTPlus",
+    "DBpedia-MonoGSTPlus",
+    "Musae-GPU4GST",
+    "Twitch-GPU4GST",
+    "Github-GPU4GST",
+    "Youtube-GPU4GST",
+    "DBLP-GPU4GST",
+    "Orkut-GPU4GST",
+    "LiveJournal-GPU4GST",
+    "Reddit-GPU4GST",
 }
-PANEL_EXPECTATIONS = (
-    ("experiment_data/official_latest/controlled_labels/dblp/cells.json", 18, 180),
-    ("experiment_data/official_latest/controlled_labels/imdb/cells.json", 18, 180),
-    ("experiment_data/official_latest/related/cells.json", 104, 1040),
-    ("experiment_data/official_latest/natural/linkedmdb/cells.json", 12, 200),
-)
+P2_SIZE_CLASSES = {
+    "Musae-GPU4GST": "small",
+    "Twitch-GPU4GST": "small",
+    "Youtube-GPU4GST": "medium",
+    "DBLP-GPU4GST": "medium",
+    "Orkut-GPU4GST": "large",
+    "Reddit-GPU4GST": "large",
+}
+S2_DATASETS = {"DBLP-MonoGSTPlus", "IMDb-latest-20260722"}
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while block := source.read(4 * 1024 * 1024):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def load_json(relative: str | Path) -> Any:
-    return json.loads((ROOT / relative).read_text(encoding="utf-8"))
+def load_json(path: str | Path) -> Any:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = ROOT / candidate
+    return json.loads(candidate.read_text(encoding="utf-8"))
 
 
 def load_runner() -> Any:
     path = ROOT / "tools" / "experiments" / "run_experiments.py"
-    spec = importlib.util.spec_from_file_location("paper_runner", path)
+    spec = importlib.util.spec_from_file_location("abhss_runner", path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot import {path}")
+        raise RuntimeError("cannot load experiment runner")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
 
-def check_hash_record(
-    record: dict[str, Any], failures: list[str], label: str, *, hash_file: bool
-) -> None:
-    path = ROOT / str(record["path"])
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while block := source.read(8 * 1024 * 1024):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def graph_header(graph_dir: Path) -> tuple[int, int]:
+    with (graph_dir / "graph.txt").open("r", encoding="utf-8") as source:
+        fields = source.readline().split()
+    if len(fields) != 2:
+        raise ValueError(f"invalid graph header: {graph_dir / 'graph.txt'}")
+    return int(fields[0]), int(fields[1])
+
+
+def check_hash(path: Path, expected: str | None, failures: list[str], label: str) -> None:
     if not path.is_file():
-        failures.append(f"missing {label}: {record['path']}")
+        failures.append(f"missing {label}: {path}")
         return
-    if record.get("bytes") is not None and path.stat().st_size != int(record["bytes"]):
-        failures.append(f"size mismatch for {label}: {record['path']}")
-    if hash_file and sha256(path).casefold() != str(record["sha256"]).casefold():
-        failures.append(f"SHA-256 mismatch for {label}: {record['path']}")
+    if expected and sha256(path) != expected:
+        failures.append(f"{label} hash mismatch: {path}")
 
 
-def check_named_hash(
-    path_text: str,
-    expected: str,
-    failures: list[str],
-    label: str,
-    *,
-    hash_file: bool,
-) -> None:
-    path = ROOT / path_text
-    if not path.is_file():
-        failures.append(f"missing {label}: {path_text}")
-    elif hash_file and sha256(path).casefold() != expected.casefold():
-        failures.append(f"SHA-256 mismatch for {label}: {path_text}")
-
-
-def panel_rows(path: Path) -> list[dict[str, Any]]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    return payload if isinstance(payload, list) else payload["cells"]
-
-
-def query_file_records(row: dict[str, Any]) -> Iterable[tuple[str, str]]:
-    for path_key, hash_key in (
-        ("query_path", "query_sha256"),
-        ("panel_query_path", "panel_query_sha256"),
-        ("group_ids_path", "group_ids_sha256"),
-    ):
-        if row.get(path_key) and row.get(hash_key):
-            yield str(row[path_key]), str(row[hash_key])
-
-
-def validate_dataset_manifest(
-    manifest_path: Path,
-    download_hashes: set[str],
-    failures: list[str],
-    *,
-    deep: bool,
-) -> dict[str, Any]:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("freeze_id") != FREEZE_ID:
-        failures.append(f"wrong freeze in {manifest_path.relative_to(ROOT)}")
-    if manifest.get("slug") != manifest_path.parent.name:
-        failures.append(f"slug/path mismatch in {manifest_path.relative_to(ROOT)}")
-
-    graph = manifest["graph"]
-    check_hash_record(graph, failures, "interface graph", hash_file=deep)
-    candidate = manifest.get("candidate_groups")
-    if candidate:
-        check_hash_record(candidate, failures, "candidate groups", hash_file=deep)
-    for query in manifest.get("query_pools", []):
-        check_hash_record(query, failures, "query pool", hash_file=deep)
-        group_ids_path = str(query["path"]).removesuffix(".txt") + ".group_ids.txt"
-        if query.get("group_ids_sha256"):
-            check_named_hash(
-                group_ids_path,
-                str(query["group_ids_sha256"]),
-                failures,
-                "query group-ID trace",
-                hash_file=deep,
-            )
-
-    for name, record in manifest.get("auxiliary_hashes", {}).items():
-        check_hash_record(
-            {"path": (manifest_path.parent / name).relative_to(ROOT).as_posix(), **record},
-            failures,
-            "interface auxiliary file",
-            hash_file=deep,
-        )
-    for raw in manifest.get("raw_files", []):
-        if str(raw["sha256"]).casefold() not in download_hashes:
-            failures.append(
-                f"raw hash in {manifest_path.relative_to(ROOT)} is absent from download manifest"
-            )
-    return manifest
+def suite(config: dict[str, Any], suite_id: str) -> dict[str, Any]:
+    return next(row for row in config["suites"] if row["id"] == suite_id)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--skip-binaries", action="store_true")
-    parser.add_argument("--skip-query-scan", action="store_true")
     parser.add_argument(
-        "--deep-snapshot",
+        "--deep",
         action="store_true",
-        help="rehash all official raw/interface/panel files (large and intentionally slow)",
+        help="also hash every multi-gigabyte P1 graph",
+    )
+    parser.add_argument(
+        "--require-binaries",
+        action="store_true",
+        help="require every executable, including optional third-party correctness gates",
+    )
+    parser.add_argument(
+        "--require-performance-binaries",
+        action="store_true",
+        help="require only ABHSS Base/Enhanced and PrunedDP++-Safe performance binaries",
     )
     args = parser.parse_args()
-
     failures: list[str] = []
-    lock = load_json("experiments/environment_lock.json")
+    warnings: list[str] = []
+
     config = load_json("experiments/paper_matrix.json")
-    catalog = load_json("experiments/official_sources.json")
-    download = load_json(
-        "data_sources/official/official-latest-20260722/download_manifest.json"
-    )
-    snapshot = load_json("experiments/data_snapshot.json")
-    feasibility_audit = load_json("experiments/query_feasibility_audit.json")
-
-    if lock.get("schema_version") != 2 or lock.get("data_freeze") != FREEZE_ID:
-        failures.append("environment lock does not select the official 2026-07-22 freeze")
-    if config.get("data_freeze") != FREEZE_ID:
-        failures.append("paper matrix does not select the official 2026-07-22 freeze")
-    if float(config["timeout_seconds"]) != 10000:
-        failures.append("paper_matrix timeout is not 10,000 seconds")
+    if config.get("schema_version") != 4:
+        failures.append("paper_matrix schema_version must be 4")
+    if config.get("submission_target") != "SIGMOD or VLDB":
+        failures.append("submission target changed")
     if config.get("primary_baseline") != "pruneddp_safe":
-        failures.append("paper_matrix primary baseline is not pruneddp_safe")
-    safe_arguments = config["methods"]["pruneddp_safe"].get("arguments", [])
-    if "--lb2-pathmax=off" not in safe_arguments:
-        failures.append("primary PrunedDP++ baseline is not in safe reopen mode")
-    if config["methods"]["pruneddp_strict"].get("exact_claim") is not False:
-        failures.append("paper-pathmax audit is not marked exact_claim=false")
-    excluded = " ".join(config.get("excluded_from_formal_matrix", [])).casefold()
-    if "author" not in excluded or "gpu4gst" not in excluded:
-        failures.append("paper matrix does not explicitly exclude author graph artifacts")
+        failures.append("primary baseline must be pruneddp_safe")
+    if float(config.get("timeout_seconds", 0)) != 10_000:
+        failures.append("per-query timeout must be 10,000 seconds")
 
-    if catalog.get("freeze_id") != FREEZE_ID:
-        failures.append("official source catalog has the wrong freeze ID")
-    states = {row["id"]: row["status"] for row in catalog["datasets"]}
-    if states.get("LinkedMDB-2012") != "include":
-        failures.append("LinkedMDB graph and official-mirror natural queries are not included")
-    if states.get("IMDb-daily-20260722") != "include":
-        failures.append("current IMDb snapshot is not included in primary experiment A")
-    if states.get("DBLP-AMiner-V18") != "include" or states.get("Toronto-current") != "include":
-        failures.append("DBLP-AMiner or Toronto-current is not included in the formal matrix")
-
-    for source in lock.get("required_source_archives", []):
-        path = ROOT / source["path"]
-        if not path.is_file():
-            failures.append(f"missing known-optimum source archive: {source['path']}")
-        elif sha256(path).casefold() != str(source["sha256"]).casefold():
-            failures.append(f"source archive hash mismatch: {source['path']}")
-
-    if snapshot.get("freeze_id") != FREEZE_ID:
-        failures.append("data snapshot has the wrong freeze ID")
-    check_hash_record(snapshot["catalog"], failures, "catalog snapshot", hash_file=True)
-    check_hash_record(
-        snapshot["download_manifest"], failures, "download-manifest snapshot", hash_file=True
-    )
-    for record in snapshot.get("interface_datasets", []):
-        check_hash_record(record, failures, "interface-manifest snapshot", hash_file=True)
-    for record in snapshot.get("paper_panels", []):
-        check_hash_record(record, failures, "paper-panel manifest snapshot", hash_file=True)
-    check_hash_record(
-        snapshot["known_optimum_panel"],
-        failures,
-        "known-optimum manifest snapshot",
-        hash_file=True,
-    )
-
-    raw_root = ROOT / "data_sources" / "official" / FREEZE_ID / "raw"
-    download_hashes: set[str] = set()
-    for row in download["files"]:
-        download_hashes.add(str(row["sha256"]).casefold())
-        check_hash_record(
-            {
-                "path": (raw_root / row["path"]).relative_to(ROOT).as_posix(),
-                "bytes": row["bytes"],
-                "sha256": row["sha256"],
-            },
-            failures,
-            "official raw download",
-            hash_file=args.deep_snapshot,
-        )
-
-    interface_root = ROOT / "data" / FREEZE_ID
-    manifest_paths = sorted(interface_root.glob("*/dataset_manifest.json"))
-    slugs = {path.parent.name for path in manifest_paths}
-    if slugs != REQUIRED_SLUGS:
-        failures.append(
-            f"interface dataset set mismatch: missing={sorted(REQUIRED_SLUGS - slugs)} "
-            f"extra={sorted(slugs - REQUIRED_SLUGS)}"
-        )
-    dataset_manifests: dict[str, dict[str, Any]] = {}
-    for path in manifest_paths:
-        dataset_manifests[path.parent.name] = validate_dataset_manifest(
-            path, download_hashes, failures, deep=args.deep_snapshot
-        )
-
-    imdb_manifest = dataset_manifests.get("imdb-20260722", {})
-    imdb_normalization = imdb_manifest.get("source_normalization") or {}
-    imdb_vertices = int(imdb_manifest.get("graph", {}).get("vertices", -1))
-    if (
-        int(imdb_normalization.get("title_vertices", -1))
-        + int(imdb_normalization.get("person_vertices", -1))
-        != imdb_vertices
-    ):
-        failures.append("IMDb title/person vertex counts do not sum to graph n")
-    if (
-        int(imdb_normalization.get("title_vertices_with_metadata", -1))
-        + int(imdb_normalization.get("person_vertices_with_metadata", -1))
-        + int(imdb_normalization.get("vertices_without_metadata", -1))
-        != imdb_vertices
-    ):
-        failures.append("IMDb metadata-coverage counts do not sum to graph n")
-
-    dbpedia_queries = load_json(
-        "data/official-latest-20260722/dbpedia-2022.12-en/source_query_manifest.json"
-    )
-    counts = {int(row["g"]): int(row["queries"]) for row in dbpedia_queries["generated_pools"]}
-    expected_counts = {1: 5, 2: 76, 3: 80, 4: 59, 5: 60, 6: 71, 7: 54, 8: 27, 9: 14, 10: 13, 11: 2, 12: 3}
-    if int(dbpedia_queries.get("source_queries", -1)) != 467 or counts != expected_counts:
-        failures.append("DBpedia official source-query mapping count changed")
-    if int(dbpedia_queries.get("mapped_queries_in_requested_g_range", -1)) != 466:
-        failures.append("DBpedia source mapping no longer contains 466 nonempty-group queries")
-    if int(dbpedia_queries.get("feasible_queries_in_requested_g_range", -1)) != 464:
-        failures.append("DBpedia component-feasible count is not 464")
-    exclusions = dbpedia_queries.get("component_infeasible_queries", [])
-    if {
-        (row.get("source_query_id"), int(row.get("source_query_index", -1)))
-        for row in exclusions
-    } != {("INEX_XER-109", 124), ("QALD2_tr-17", 234)}:
-        failures.append("DBpedia component-infeasible source-query audit changed")
-    if sum(counts.get(g, 0) for g in range(1, 13)) != 464:
-        failures.append("DBpedia primary g=1..12 panel is not exactly 464 feasible source queries")
-    for row in dbpedia_queries["generated_pools"]:
-        for path_text, expected in query_file_records(row):
-            check_named_hash(
-                path_text,
-                expected,
-                failures,
-                "DBpedia source-query pool",
-                hash_file=args.deep_snapshot,
-            )
-
-    for relative, expected_cells, expected_queries in PANEL_EXPECTATIONS:
-        path = ROOT / relative
-        rows = panel_rows(path)
-        query_count = sum(
-            int(row.get("queries", row.get("selected_queries", 0))) for row in rows
-        )
-        if len(rows) != expected_cells or query_count != expected_queries:
-            failures.append(
-                f"manifest count mismatch: {relative} has {len(rows)} cells/{query_count} queries"
-            )
-        for row in rows:
-            for path_text, expected in query_file_records(row):
-                check_named_hash(
-                    path_text,
-                    expected,
-                    failures,
-                    "formal panel payload",
-                    hash_file=args.deep_snapshot,
-                )
-
-    controlled_expected = {
-        (g, 400) for g in range(4, 17)
-    } | {(10, f) for f in (100, 200, 800, 1600, 3200)}
-    for relative in (
-        "experiment_data/official_latest/controlled_labels/dblp/cells.json",
-        "experiment_data/official_latest/controlled_labels/imdb/cells.json",
-    ):
-        rows = panel_rows(ROOT / relative)
-        cells = {(int(row["g"]), int(row["f_target"])) for row in rows}
-        if cells != controlled_expected or any(int(row["queries"]) != 10 for row in rows):
-            failures.append(f"controlled A grid changed: {relative}")
-        for row in rows:
-            target = float(row["f_target"])
-            if (
-                float(row["f_realized_min"]) < 0.98 * target
-                or float(row["f_realized_max"]) > 1.02 * target
-            ):
-                failures.append(
-                    f"controlled A realized f exceeds +/-2%: {relative} g={row['g']} f={row['f_target']}"
-                )
-
-    related_rows = panel_rows(
-        ROOT / "experiment_data/official_latest/related/cells.json"
-    )
-    related_datasets = {
-        "snap-wikipedia-2018",
-        "snap-twitch-2018",
-        "snap-github-2019",
-        "snap-youtube",
-        "snap-orkut",
-        "snap-livejournal",
-        "movielens-32m",
-        "toronto-current",
+    base_method = config["methods"].get("abhss_base", {})
+    enhanced_method = config["methods"].get("abhss_enhanced", {})
+    expected_chain = {
+        "base": [],
+        "directed_cut_only": ["directed-cut"],
+        "enhanced": ["directed-cut", "adjoint-completion"],
+        "dependency": "adjoint-completion requires directed-cut",
+        "formal_configurations": ["base", "enhanced"],
     }
     if (
-        {str(row["dataset"]) for row in related_rows} != related_datasets
-        or {(str(row["dataset"]), int(row["g"])) for row in related_rows}
-        != {(dataset, g) for dataset in related_datasets for g in range(4, 17)}
-        or any(int(row["selected_queries"]) != 10 for row in related_rows)
+        config.get("abhss_configuration_chain") != expected_chain
+        or base_method.get("algorithm_family") != "ABHSS"
+        or enhanced_method.get("algorithm_family") != "ABHSS"
+        or base_method.get("executable") != enhanced_method.get("executable")
+        or base_method.get("arguments") != ["--enhancements=none"]
+        or enhanced_method.get("arguments") != ["--enhancements=all"]
+        or base_method.get("enabled_enhancements") != []
+        or enhanced_method.get("enabled_enhancements")
+        != ["directed-cut", "adjoint-completion"]
     ):
-        failures.append("related B dataset/g grid changed")
+        failures.append(
+            "ABHSS base/enhanced must be fixed configurations of one executable"
+        )
 
-    linked_rows = panel_rows(
-        ROOT / "experiment_data/official_latest/natural/linkedmdb/cells.json"
-    )
-    linked_quotas = {1: 20, 2: 20, 3: 20, 4: 20, 5: 20, 6: 20, 7: 20, 8: 25, 9: 26, 10: 6, 11: 2, 12: 1}
-    if {int(row["g"]): int(row["queries"]) for row in linked_rows} != linked_quotas:
-        failures.append("LinkedMDB natural low/high-g quota panel changed")
+    for suite_id in (
+        "P1_monogstplus_published",
+        "P1_gpu4gst_published",
+        "P2_cross_g",
+        "S2_controlled_gf",
+    ):
+        if set(suite(config, suite_id)["methods"]) != PRIMARY_METHODS:
+            failures.append(f"{suite_id} primary method set changed")
 
-    wrp = load_json("experiment_data/steinlib/index.json")
-    if sum(bool(row.get("converted")) for row in wrp) != 11:
-        failures.append("SteinLib panel does not contain exactly 11 known-optimum instances")
+    p1 = load_json("experiment_data/p1_published_workloads/manifest.json")
+    p1_cases = p1.get("cases", [])
+    p1_datasets = p1.get("datasets", [])
+    if (
+        len(p1_cases) != 29
+        or len(p1_datasets) != 13
+        or int(p1.get("totals", {}).get("queries", -1)) != 8_318
+    ):
+        failures.append("P1 must contain 13 datasets, 29 blocks and 8,318 queries")
+    if {row["dataset"] for row in p1_datasets} != P1_DATASETS:
+        failures.append("P1 dataset identities changed")
+    if len([name for name in P1_DATASETS if name.startswith("DBLP-")]) != 2:
+        failures.append("the two P1 DBLP identities were not kept distinct")
+
+    graph_by_dataset = {row["dataset"]: row for row in p1_datasets}
+    for row in p1_datasets:
+        graph_dir = ROOT / row["graph_path"]
+        graph = graph_dir / "graph.txt"
+        if not graph.is_file():
+            failures.append(f"missing P1 graph: {graph}")
+            continue
+        try:
+            if graph_header(graph_dir) != (int(row["vertices"]), int(row["edges"])):
+                failures.append(f"P1 graph header changed: {row['dataset']}")
+        except (OSError, ValueError) as error:
+            failures.append(str(error))
+        if args.deep:
+            check_hash(graph, row.get("graph_sha256"), failures, str(row["dataset"]))
+
+    p1_query_total = 0
+    for row in p1_cases:
+        query = ROOT / row["query_path"]
+        if not query.is_file():
+            failures.append(f"missing P1 query block: {query}")
+            continue
+        check_hash(query, row.get("query_sha256"), failures, str(row["dataset"]))
+        p1_query_total += int(row["queries"])
+        if row["dataset"] not in graph_by_dataset:
+            failures.append(f"P1 case has unknown dataset: {row['dataset']}")
+    if p1_query_total != 8_318:
+        failures.append("P1 case query total changed")
+
+    p2 = load_json("experiment_data/p2_cross_g/cells.json")
+    p2_grid = {(row["dataset"], int(row["g"])) for row in p2}
+    expected_p2_grid = {
+        (dataset, g) for dataset in P2_SIZE_CLASSES for g in range(5, 17)
+    }
+    if len(p2) != 72 or p2_grid != expected_p2_grid:
+        failures.append("P2 must be the frozen six-dataset g=5..16 grid")
+    if any(
+        int(row["source_queries"]) != 300
+        or int(row["selected_queries"]) != 5
+        or row.get("size_class") != P2_SIZE_CLASSES.get(row["dataset"])
+        or int(row.get("candidate_generator_base_seed", -1)) != 2025
+        or int(row.get("panel_selection_seed", -1)) != 20260723
+        for row in p2
+    ):
+        failures.append("P2 source count, size class, seed or five-query rule changed")
+    for row in p2:
+        for path_field, hash_field, label in (
+            ("source_query_path", "source_query_sha256", "P2 source query"),
+            ("source_group_ids_path", "source_group_ids_sha256", "P2 source group IDs"),
+            ("panel_query_path", "panel_query_sha256", "P2 panel query"),
+            ("group_ids_path", "group_ids_sha256", "P2 panel group IDs"),
+        ):
+            check_hash(
+                ROOT / row[path_field], row.get(hash_field), failures, label
+            )
+
+    s2 = load_json("experiment_data/s1_controlled_gf/cells.json")
+    expected_s2_grid = {
+        (dataset, g, f)
+        for dataset in S2_DATASETS
+        for g in (6, 10, 14)
+        for f in (200, 400, 800, 1600, 3200)
+    }
+    actual_s2_grid = {
+        (row["dataset"], int(row["g"]), int(row["f_target"])) for row in s2
+    }
+    if len(s2) != 30 or actual_s2_grid != expected_s2_grid:
+        failures.append("S2 controlled <g,f> grid changed")
+    if any(int(row["queries"]) != 5 for row in s2):
+        failures.append("S2 must retain five queries per cell")
+    for row in s2:
+        check_hash(
+            ROOT / row["query_path"],
+            row.get("query_sha256"),
+            failures,
+            "S2 query",
+        )
 
     runner = load_runner()
     cases = runner.expand_cases(config)
-    total_tasks = 0
-    query_cache: dict[Path, list[Any]] = {}
-    used_methods: set[str] = set()
+    primary_query_tasks = 0
+    case_counts: dict[str, int] = {}
     for case in cases:
-        if not case.graph_path.is_dir() or not (case.graph_path / "graph.txt").is_file():
-            failures.append(f"invalid graph folder for case {case.case_id}: {case.graph_path}")
+        case_counts[case.suite] = case_counts.get(case.suite, 0) + 1
+        graph = case.graph_path / "graph.txt"
+        if not graph.is_file():
+            failures.append(f"case graph missing: {graph}")
             continue
         if not case.query_path.is_file():
-            failures.append(f"missing query file for case {case.case_id}: {case.query_path}")
+            failures.append(f"case query missing: {case.query_path}")
             continue
-        if case.stp_path is not None and not case.stp_path.is_file():
-            failures.append(f"missing STP source for case {case.case_id}: {case.stp_path}")
-        if args.skip_query_scan:
-            selected_count = 1
-        else:
-            if case.query_path not in query_cache:
-                query_cache[case.query_path] = runner.read_query_metadata(case.query_path)
-            queries = [
-                query
-                for query in query_cache[case.query_path]
-                if (case.min_g is None or query.g >= case.min_g)
-                and (case.max_g is None or query.g <= case.max_g)
-            ]
-            selected_count = len(queries)
-            if not queries:
-                failures.append(f"case has no selected queries: {case.case_id}")
-        for method_name in case.methods:
-            used_methods.add(method_name)
-            method = config["methods"][method_name]
-            max_g = method.get("max_g")
-            if args.skip_query_scan or max_g is None:
-                total_tasks += selected_count
-            else:
-                total_tasks += sum(query.g <= int(max_g) for query in queries)
+        try:
+            queries = runner.read_query_metadata(case.query_path)
+        except (OSError, ValueError) as error:
+            failures.append(str(error))
+            continue
+        selected = [
+            row
+            for row in queries
+            if (case.min_g is None or row.g >= case.min_g)
+            and (case.max_g is None or row.g <= case.max_g)
+        ]
+        if case.suite.startswith("P1_") or case.suite in {
+            "P2_cross_g",
+            "S2_controlled_gf",
+        }:
+            primary_query_tasks += len(selected) * len(case.methods)
 
-    matrix_path = ROOT / "experiments" / "paper_matrix.json"
-    if feasibility_audit.get("matrix_sha256") != sha256(matrix_path):
-        failures.append("query-feasibility audit was not built from the current paper matrix")
-    audit_graph_paths: set[str] = set()
-    audit_pairs: set[tuple[str, str]] = set()
-    audit_query_records = 0
-    audit_feasible = 0
-    audit_infeasible = 0
-    for graph in feasibility_audit.get("graphs", []):
-        graph_path_text = str(graph["graph_path"])
-        graph_path = ROOT / graph_path_text
-        audit_graph_paths.add(graph_path_text)
-        if not graph_path.is_file():
-            failures.append(f"missing graph in query-feasibility audit: {graph_path_text}")
-        elif args.deep_snapshot and sha256(graph_path) != str(graph["graph_sha256"]):
-            failures.append(f"graph hash mismatch in query-feasibility audit: {graph_path_text}")
-        for query in graph.get("query_files", []):
-            query_path_text = str(query["path"])
-            query_path = ROOT / query_path_text
-            audit_pairs.add((graph_path_text, query_path_text))
-            audit_query_records += int(query["queries"])
-            audit_feasible += int(query["feasible"])
-            audit_infeasible += int(query["infeasible"])
-            if not query_path.is_file():
-                failures.append(f"missing query in feasibility audit: {query_path_text}")
-            elif args.deep_snapshot and sha256(query_path) != str(query["sha256"]):
-                failures.append(f"query hash mismatch in feasibility audit: {query_path_text}")
-    expected_pairs = {
-        (
-            (case.graph_path / "graph.txt").relative_to(ROOT).as_posix(),
-            case.query_path.relative_to(ROOT).as_posix(),
+    if case_counts.get("P1_monogstplus_published") != 5:
+        failures.append("P1 MonoGST+ must expand to five executable blocks")
+    if case_counts.get("P1_gpu4gst_published") != 24:
+        failures.append("P1 GPU4GST must expand to 24 executable blocks")
+    if case_counts.get("P2_cross_g") != 72:
+        failures.append("P2 must expand to 72 cells")
+    if case_counts.get("S2_controlled_gf") != 30:
+        failures.append("S2 must expand to 30 cells")
+    if primary_query_tasks != 26_484:
+        failures.append(
+            f"primary/secondary performance task total is {primary_query_tasks}, expected 26,484"
         )
-        for case in cases
-    }
-    expected_graph_paths = {graph for graph, _query in expected_pairs}
-    expected_graph_paths.update(
-        str(record["graph"]["path"]) for record in dataset_manifests.values()
-    )
-    if audit_pairs != expected_pairs:
-        failures.append("query-feasibility audit graph/query pair set differs from the matrix")
-    if audit_graph_paths != expected_graph_paths:
-        failures.append("query-feasibility audit does not cover every formal or held official graph")
-    totals = feasibility_audit.get("totals", {})
-    if (
-        int(totals.get("graphs", -1)) != len(audit_graph_paths)
-        or int(totals.get("query_files", -1)) != len(audit_pairs)
-        or int(totals.get("unique_query_records", -1)) != audit_query_records
-        or int(totals.get("feasible", -1)) != audit_feasible
-        or int(totals.get("infeasible", -1)) != audit_infeasible
-    ):
-        failures.append("query-feasibility audit totals are internally inconsistent")
-    if audit_infeasible != 0 or audit_feasible != audit_query_records:
-        failures.append("formal query panel contains a component-infeasible query")
 
-    if not args.skip_binaries:
-        for method_name in sorted(used_methods):
-            path = runner.executable_path(config["methods"][method_name])
-            if not path.is_file():
-                failures.append(f"missing binary for {method_name}: {path}")
-
-    if args.deep_snapshot:
-        print(
-            f"Deep-hashed {len(download['files'])} raw downloads, "
-            f"{len(manifest_paths)} official interfaces and all formal panel payloads"
+    if args.require_binaries or args.require_performance_binaries:
+        required_methods = (
+            config["methods"].items()
+            if args.require_binaries
+            else (
+                (name, config["methods"][name])
+                for name in sorted(PRIMARY_METHODS)
+            )
         )
-    print(f"Validated {len(cases)} cases and {total_tasks} per-instance method tasks")
+        for name, method in required_methods:
+            executable = runner.executable_path(method)
+            if not executable.is_file():
+                failures.append(f"missing executable for {name}: {executable}")
+
+    feasibility = ROOT / "experiments" / "query_feasibility_audit.json"
+    if not feasibility.is_file():
+        warnings.append(
+            "query_feasibility_audit.json is absent; regenerate the common-component gate before formal timing"
+        )
+    else:
+        audit = load_json(feasibility)
+        totals = audit.get("totals", {})
+        if audit.get("matrix_sha256") != sha256(
+            ROOT / "experiments" / "paper_matrix.json"
+        ):
+            failures.append("query-feasibility audit was built for another matrix")
+        if int(totals.get("generated_or_gate_infeasible", -1)) != 0:
+            failures.append("a generated or correctness-gate query is infeasible")
+        if int(totals.get("published_workload_infeasible_retained", -1)) != 55:
+            failures.append(
+                "the 55 audited infeasible MonoGST+ natural queries were changed or dropped"
+            )
+        if int(totals.get("unique_query_records", -1)) != 8_840:
+            failures.append("query-feasibility audit query total changed")
+
+    for warning in warnings:
+        print(f"WARNING: {warning}")
     if failures:
-        print("Environment validation FAILED:")
         for failure in failures:
-            print(f"  - {failure}")
+            print(f"FAIL: {failure}")
         return 1
-    print("Environment validation PASSED")
+    print(
+        f"Validated {len(cases)} cases and {primary_query_tasks} performance tasks "
+        f"(P1=8,318, P2=360, S2=150 queries across three methods)"
+    )
     return 0
 
 

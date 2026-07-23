@@ -12,8 +12,8 @@
 #include <utility>
 #include <vector>
 
-// The artifact headers use unqualified STL names.  Keep their original
-// convention confined to this adapter translation unit.
+// artifact header 使用未限定的 STL 名称；只在本 adapter translation unit
+// 内兼容它的原始约定。
 using namespace std;
 
 #include <graph_v_of_v_idealID/graph_v_of_v_idealID.h>
@@ -29,6 +29,7 @@ namespace gpu4gst_pruneddp
 {
 namespace
 {
+/** @brief 无损检查并转换 artifact 只接受的非负 int 边权。 */
 int ExactIntegerWeight(double value)
 {
     const double rounded = std::round(value);
@@ -45,6 +46,7 @@ const Graph* cached_source = nullptr;
 graph_v_of_v_idealID cached_input_graph;
 }  // namespace
 
+/** @brief 缓存当前 Graph 的一次性 artifact 表示，避免每条查询重复转换。 */
 void PrepareGraph(const Graph& graph)
 {
     if (cached_source == &graph)
@@ -59,6 +61,7 @@ void PrepareGraph(const Graph& graph)
     cached_source = &graph;
 }
 
+/** @brief 转换组成员并调用未修改的 GPU4GST CPU PrunedDP++。 */
 SolveResult SolveOneQuery(const Graph& graph, const Query& query)
 {
     const int group_count = static_cast<int>(query.groups.size());
@@ -72,8 +75,8 @@ SolveResult SolveOneQuery(const Graph& graph, const Query& query)
 
     PrepareGraph(graph);
 
-    // Despite its type name, the artifact reader constructs a one-directional
-    // vector of group membership lists (it does not add reverse edges).
+    // 虽然类型名包含 graph，作者读取器实际构造的是单向组成员列表，
+    // 不添加反向边；adapter 必须保持这一输入语义。
     graph_v_of_v_idealID group_graph(static_cast<size_t>(group_count));
     std::unordered_set<int> compulsory_groups;
     for (int group = 0; group < group_count; ++group)

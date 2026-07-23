@@ -14,6 +14,7 @@ Thumbs.db
 /results/
 /tmp/
 /.tmp_*/
+/ABHSS_ignored_data_before_workload_redesign_*.tar.gz
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -34,12 +35,10 @@ __pycache__/
 # generator, and per-dataset provenance manifests in Git.
 /data/*
 !/data/example/
-!/data/hack_dpbf_vs_test4/
 !/data/generate_queries_for_noGPU4GST.py
 !/data/*/
 /data/*/*
 !/data/example/**
-!/data/hack_dpbf_vs_test4/**
 !/data/*/dataset_manifest.json
 
 # Downloaded source graphs and CSR payloads. The README, manifests, hashes,
@@ -49,15 +48,15 @@ __pycache__/
 /data_origin/*.bin
 /data_origin/*.pdf
 
-# The related-query panel is deterministically regenerable from the frozen
-# selection JSON; its expanded text files account for roughly 239 MiB.
-/experiment_data/gpu4gst_panel/**/*.txt
+# Expanded paper queries are deterministic products of the tracked manifests
+# and generators.  Keep their selection metadata, not duplicated vertex lists.
+/experiment_data/p2_cross_g/**/*.txt
+/experiment_data/s1_controlled_gf/**/*.txt
 
 # Vendored dependencies include unlicensed author repositories, Boost, SCIP,
 # build products, and a nested Git object pack. Publish acquisition metadata
 # instead of redistributing those trees.
-/third_party/*
-!/third_party/README.md
+/third_party/
 
 # Local paper copies include copyrighted publications and an unpublished
 # manuscript. Documentation cites them but the public repository must not.
@@ -90,13 +89,3 @@ __pycache__/
 !/data/official-*/*/source_query_manifest.json
 !/data/official-*/*/build_manifest.json
 !/data/official-*/*/build_stats.json
-
-# Official paper panels are deterministic expansions of the tracked JSON/CSV
-# selection manifests and generators; do not publish their large text payloads.
-/experiment_data/official_latest/**/*.txt
-
-# Retired draft panels are intentionally outside the A/B/C paper matrix. Keep
-# them locally for engineering archaeology without publishing contradictory
-# manifests alongside the frozen formal panels.
-/experiment_data/official_latest/controlled/
-/experiment_data/official_latest/imdb_label_frequency/

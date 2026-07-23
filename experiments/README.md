@@ -1,27 +1,32 @@
-# Frozen experiment configuration
+# 冻结实验控制文件
 
-This directory is the tracked control plane for the SIGMOD/VLDB experiment artifact. Large source archives, converted graphs, queries and result records are intentionally ignored; their identities are pinned here by hashes and manifests.
+本目录是 SIGMOD/VLDB 实验的机器可读控制面。大图、展开后的查询和运行结果由 Git 忽略；所有正式输入都由这里的策略文件及 `experiment_data` 中的 manifest 固定身份。
 
-| File | Purpose |
+| 文件 | 作用 |
 |---|---|
-| `paper_matrix.json` | executable A/B/C primary matrix plus secondary gates and ablation |
-| `official_sources.json` | official URLs, snapshot names, source roles and exact transforms |
-| `data_snapshot.json` | hashes and counts for raw downloads, interfaces and fixed panels |
-| `query_feasibility_audit.json` | common-component gate for every graph/query pair in the matrix |
-| `environment_lock.json` | timeout, scope, required correctness dependencies and reporting contract |
-| `probe_15h_plan.json` | predeclared 15-hour feasibility-probe strata and diagnostic policy |
-| `correctness_audit.json` | known-optimum and PrunedDP++ reproduction evidence |
-| `graph_identity_audit.json` | same-name graph policy and LinkedMDB reconstruction evidence |
-| `scip-jack.set` | single-thread SCIP-Jack correctness-gate settings |
+| `paper_matrix.json` | 当前可执行矩阵：P1、P2、S2 与 correctness gates |
+| `data_sources.json` | MonoGST+、GPU4GST、IMDb 和查询生成的来源总表 |
+| `official_sources.json` | 仅 IMDb 2026-07-22 官方冻结的下载与转换定义 |
+| `query_feasibility_audit.json` | 当前矩阵每个图/查询对的共同分量审计 |
+| `environment_lock.json` | 方法、timeout、计时、报告与第三方版本契约 |
+| `correctness_audit.json` | 已知最优值、零权边和 PrunedDP++ 复现证据 |
+| `abhss_configuration_refactor_gate.json` | 单入口重构前后的小图、高 `g`、大图求解与加载非退化证据 |
+| `scip-jack.set` | SCIP-Jack 单线程正确性 gate 配置 |
 
-The primary experiment families are:
+当前正式性能矩阵：
 
-- A: controlled real-label `<g,f>` panels on DBLP-AMiner-V18 and IMDb-daily-20260722;
-- B: related-group cross-`g` panels on six SNAP graphs, MovieLens-32M and Toronto-current;
-- C: all feasible natural DBpedia queries and a fixed 200-query LinkedMDB/WikiMovies panel, including natural low and high `g`.
+- P1：MonoGST+ 五图与 GPU4GST 八图的完整作者 workload，13 个图身份、8,318 条查询；
+- P2：六张 GPU4GST 作者图上的 `g=5..16`，每格 5 条，共 360 条；
+- S2：DBLP-MonoGSTPlus 与 IMDb-latest-20260722 上的 `<g,f>`，共 150 条；
+- 计时项：同一 `abhss` 二进制的 Base、全增强配置，以及 PrunedDP++-Safe，均为单计算线程、每查询 10,000 秒。
 
-The only formal performance methods are ABHSS-Light, ABHSS-Heavy and PrunedDP++-Safe, all single-compute-thread with a 10,000-second solver deadline. Light and Heavy remain separate; no per-instance best-of-two is permitted.
+消融、近似解质量、GPU/异构速度和旧 15 小时探针不属于当前冻结。改变矩阵、图、查询或生成器后，必须重建所有对应 manifest 与 `query_feasibility_audit.json`。Linux 正式性能环境先运行：
 
-Before a long run, rebuild `query_feasibility_audit.json` and `data_snapshot.json`, then run `tools/experiments/validate_environment.py --deep-snapshot`. A changed matrix intentionally invalidates the old feasibility audit until it is regenerated.
+```bash
+make validate-paper-binaries
+python3 tools/experiments/validate_environment.py --deep --require-performance-binaries
+```
 
-Old author-repository graph/query products, synthetic MovieLens controls, GPU/heterogeneous timing and approximate-only quality comparisons are excluded from the formal matrix. They may remain locally for parser or provenance audits but must not enter aggregate tables.
+`--require-performance-binaries` 只要求论文三项计时实际使用的两个二进制 `abhss` 和 `pruneddp`。恢复 Basic+ 与 SCIP-Jack 并执行 SteinLib 六方正确性核验时，才改用 `make validate-all-binaries`；两种模式不可混写。
+
+完整口径见 [`../docs/EXPERIMENT_PLAN.md`](../docs/EXPERIMENT_PLAN.md)，执行步骤见 [`../RUN.md`](../RUN.md)。

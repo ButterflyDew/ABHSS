@@ -1,34 +1,78 @@
 {
-  "schema_version": 2,
-  "frozen_at": "2026-07-22",
-  "data_freeze": "official-latest-20260722",
-  "paper_scope": "single-compute-thread exact undirected edge-weighted GST",
+  "schema_version": 4,
+  "frozen_at": "2026-07-23",
+  "data_freeze": "published-workloads-plus-imdb-20260722",
+  "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
   "paper_timeout_seconds_per_instance": 10000,
   "graph_load_watchdog_seconds": 1800,
   "primary_exact_baseline": "pruneddp_safe",
-  "official_catalog": "experiments/official_sources.json",
-  "download_manifest": "data_sources/official/official-latest-20260722/download_manifest.json",
-  "data_snapshot": "experiments/data_snapshot.json",
+  "paper_matrix": "experiments/paper_matrix.json",
+  "p1_manifest": "experiment_data/p1_published_workloads/manifest.json",
+  "p2_manifest": "experiment_data/p2_cross_g/cells.json",
+  "controlled_manifest": "experiment_data/s1_controlled_gf/cells.json",
   "formal_policy": {
-    "graphs": "only frozen downloads from graph-owner official distribution endpoints",
-    "source_queries": "use the official source collection when available",
-    "synthetic_queries": "rerun the cited protocol with fixed seeds before any solver timing",
-    "query_validity": "retain only queries for which one connected component intersects every group; audit excluded source rows before timing",
-    "author_artifacts": "engineering audit only; excluded from paper timing tables",
-    "same_name_graphs": "never merge snapshots; use source-and-snapshot-qualified dataset names"
+    "P1_graphs": "use the exact processed graph interfaces used by MonoGST+ and GPU4GST",
+    "P1_queries": "use every author query; no subsampling; preserve query blocks internally but report one aggregate row per graph",
+    "P2_queries": "related-group BFS candidates on six GPU4GST author graphs; select five per graph/g cell from five input-size rank strata without solver feedback",
+    "controlled_queries": "MonoGST+ Gaussian-size and uniform-vertex protocol on DBLP-MonoGSTPlus and IMDb-latest-20260722",
+    "query_validity": "generated P2/S2 and gate queries must have a common intersecting component; published P1 queries are retained in full and known-infeasible rows are audited explicitly",
+    "same_name_graphs": "DBLP-MonoGSTPlus and DBLP-GPU4GST remain separate identities regardless of similar counts",
+    "method_selection": "ABHSS base and enhanced are fixed configurations of one executable; configuration is frozen before a query batch and no per-query oracle is allowed",
+    "future_experiments": "ablations and approximation-quality comparisons are not enabled in this freeze"
+  },
+  "abhss_configuration": {
+    "executable": "build/abhss (Linux) or build/Release/abhss.exe (Windows multi-config)",
+    "base_arguments": ["--enhancements=none"],
+    "enhanced_arguments": ["--enhancements=all"],
+    "enhancement_order": ["directed-cut", "adjoint-completion"],
+    "dependency": "adjoint-completion requires directed-cut",
+    "runtime_switching": "forbidden"
+  },
+  "graph_loading": {
+    "implementation": "shared 8 MiB buffered numeric scanner; solver then performs exact-degree adjacency reservation and one O(n+m) connected-component index build, while the offline feasibility audit streams edges into a DSU",
+    "semantic_contract": "preserve original edge order, edge_id, per-vertex adjacency insertion order and finite-double conversion; reject trailing graph tokens",
+    "query_feasibility": "reuse the immutable component index; connected graphs cost O(total query memberships), disconnected graphs intersect sorted per-group component sets",
+    "result_fields": ["graph_load_seconds", "query_load_seconds"],
+    "timing_policy": "engineering metrics only; excluded from solver query time and algorithmic speedup",
+    "regression_gate": "tests/graph_io_regression.cpp"
+  },
+  "build_policy": {
+    "linux_entry": "make release",
+    "language": "C++17 without compiler extensions",
+    "optimization": "Release -O2 (or MSVC /O2); enable IPO/LTO uniformly for repository performance targets only when the toolchain reports support",
+    "old_libstdcxx_compatibility": "fall back from floating std::from_chars to strtod when the compile-and-link probe fails",
+    "ci": ".github/workflows/linux-ci.yml on ubuntu-24.04",
+    "native_linux_evidence_required_before_formal_run": true
+  },
+  "solver_output_contract": {
+    "returns": ["exact objective weight", "feasibility"],
+    "does_not_currently_serialize": "optimal tree edge set",
+    "paper_guardrail": "do not claim that the current artifact outputs the tree unless decision reconstruction is implemented and tested"
   },
   "required_source_archives": [
     {
-      "name": "SteinLib WRP3",
-      "path": "data_sources/steinlib/WRP3.tgz",
-      "url": "https://steinlib.zib.de/download.php#WRP3",
-      "sha256": "89ca703cc31453ea60272cf78dfc148c19c2186028e3d7512c79110a3c2949c5"
+      "name": "GPU4GST author artifact",
+      "path": "data_origin",
+      "url": "https://github.com/toziki/GPU4GST-sigmod",
+      "identity_manifest": "data_origin/OFFICIAL_ONEDRIVE_MANIFEST.json",
+      "hash_manifest": "data_origin/SHA256SUMS.txt"
     },
     {
-      "name": "SteinLib WRP4",
-      "path": "data_sources/steinlib/WRP4.tgz",
-      "url": "https://steinlib.zib.de/download.php#WRP4",
-      "sha256": "aefe27b5403343f40fb40dfb24b09076395b655d09f3654530a40009b6d7313e"
+      "name": "MonoGST+ author workload",
+      "path": "data/{Toronto,MovieLens,DBLP,LinkedMDB,DBpedia}",
+      "identity_manifest": "experiment_data/p1_published_workloads/manifest.json",
+      "redistribution_note": "the accepted manuscript and author data are not assumed redistributable; publish hashes and acquisition instructions unless permission is obtained"
+    },
+    {
+      "name": "IMDb non-commercial datasets",
+      "path": "data_sources/official/official-latest-20260722/raw/imdb-20260722",
+      "url": "https://developer.imdb.com/non-commercial-datasets/",
+      "license_note": "IMDb non-commercial terms apply"
+    },
+    {
+      "name": "SteinLib WRP3/WRP4",
+      "path": "data_sources/steinlib",
+      "url": "https://steinlib.zib.de/testset.php"
     }
   ],
   "correctness_gate_dependencies": [
@@ -37,7 +81,7 @@
       "path": "third_party/GroupSteinerTree",
       "url": "https://github.com/YahuiSun/GroupSteinerTree.git",
       "commit": "09f3bda70f3afa546fd88d446cdb185aee01b278",
-      "redistribution_note": "upstream repository has no repository-level license file; acquisition metadata is published instead of vendoring it"
+      "redistribution_note": "upstream repository has no repository-level license file"
     },
     {
       "name": "SCIP-Jack in SCIP 7.0.3",
@@ -45,14 +89,16 @@
       "url": "https://github.com/scipopt/scip.git",
       "commit": "74c11e60cd2d45e02f34b2afbf1fc3079c713e03",
       "license": "ZIB Academic License",
-      "use": "known-optimum gate only, never a large-graph runtime baseline"
+      "use": "known-optimum gate only"
     }
   ],
   "reporting_requirements": [
-    "CPU model, physical cores, RAM, OS, compiler and build type",
-    "one compute thread per solver process; monitoring thread is measurement-only",
-    "wall-clock time includes solver preprocessing after graph load and excludes one shared graph load only when all methods use the same convention",
-    "per-query 10000-second timeout, timeout counted as timeout rather than imputed runtime",
-    "peak RSS, solved count, timeout count, objective value and optimality agreement"
+    "CPU model, physical cores, RAM, OS, compiler and Release build",
+    "one compute thread per solver process",
+    "per-query 10000-second timeout and a common graph-load convention",
+    "P1: one row per graph with total queries, solved, timeout, error and total time",
+    "P1 observed total time is shown only if all queries finish; otherwise show solved time and capped total budget",
+    "P2/S2: solved count, PAR-2, mutually solved speedup, timeout direction, objective agreement and peak RSS",
+    "all available exact methods must agree on objective value before a performance claim is used"
   ]
 }

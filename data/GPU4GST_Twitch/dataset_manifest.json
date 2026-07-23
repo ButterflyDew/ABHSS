@@ -9,7 +9,6 @@
   "base_seed": 2025,
   "queries_per_g": 300,
   "generated": [
-    {"g": 4, "seed": 13305655776818921757, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 4},
     {"g": 5, "seed": 12921381580221097518, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 4},
     {"g": 6, "seed": 1119859257206414227, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 5},
     {"g": 7, "seed": 18019386372260223083, "min_bfs_depth": 1, "max_bfs_depth": 1, "mean_bfs_depth": 1, "insufficient_root_rejections": 0, "infeasible_query_rejections": 9},
