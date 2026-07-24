@@ -30,6 +30,7 @@ INLINE_CODE = re.compile(r"`[^`]*`")
 INLINE_DOLLAR = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)")
 LOCAL_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 FORBIDDEN_GITHUB_MATH_MACRO = re.compile(r"\\(operatorname)\*?(?![A-Za-z])")
+FORBIDDEN_GITHUB_CASES = re.compile(r"\\(?:begin|end)\s*\{cases\}")
 
 
 def markdown_files() -> list[Path]:
@@ -49,6 +50,12 @@ def check_github_math_macros(
         failures.append(
             f"{relative}:{line_number}: GitHub rejects \\{match.group(1)}; "
             "use a supported spelling such as \\mathrm{name}"
+        )
+    if FORBIDDEN_GITHUB_CASES.search(text):
+        failures.append(
+            f"{relative}:{line_number}: GitHub failed to render the cases "
+            "environment in this repository; split the branches into "
+            "separate fenced math blocks"
         )
 
 

@@ -208,11 +208,13 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 有界 `GroupRow` 对每个顶点暴露一个有限读取值，但该值有两种含义：
 
 ```math
-\texttt{row}[v]=
-\begin{cases}
-d_i(v), & d_i(v)<U_0,\\
-U_0, & d_i(v)\ge U_0\text{ 且未保存}.
-\end{cases}
+\texttt{row}[v]=d_i(v),
+\qquad d_i(v)<U_0.
+```
+
+```math
+\texttt{row}[v]=U_0,
+\qquad d_i(v)\ge U_0\text{ 且精确值未保存}.
 ```
 
 因此 `IsExact(v)` 不是浮点精度标记，而是“这个位置保存的是否为真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树；所有 singleton 合并、完整结算与 witness 路径都必须先检查 `IsExact`。
