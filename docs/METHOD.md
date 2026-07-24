@@ -7,7 +7,7 @@
 给定无向图 $G=(V,E,w)$，其中 $n=|V|$、$m=|E|$，每条边权 $w(e)\ge 0$。给定 $g$ 个非空顶点组 $\mathcal K=\{K_0,\ldots,K_{g-1}\}$，组之间允许重叠，每组允许包含多个候选顶点。一个可行解是与每个 $K_i$ 至少相交一次的连通子图；由于边权非负，任意可行连通子图均可删除环而不增代价，因此最优解可取为树。目标值记为：
 
 ```math
-\operatorname{OPT}(G,\mathcal K)=
+\mathrm{OPT}(G,\mathcal K)=
 \min_{T\subseteq G\text{ connected}}
 \left\{\sum_{e\in E(T)}w(e):V(T)\cap K_i\neq\varnothing,\ \forall i\right\}.
 ```
@@ -195,7 +195,7 @@ Enhanced
 
 `D/A/H` 共用一种 `Row`：递增的顶点数组、对齐的值数组、ordinary 专用 branch bitmap、`branch_count` 和显式 `ready`。`ready` 区分“已经生成但为空”和“尚未生成”。不存在 Base/Enhanced 各一套 row，也不存在运行中在 dense/hash/bitmap DP 状态之间切换。
 
-单组到全图的距离 $d_i(v)=\min_{t\in K_i}\operatorname{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`IsExact` 和 `ForEachExact` 暴露同一语义。
+单组到全图的距离 $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`IsExact` 和 `ForEachExact` 暴露同一语义。
 
 ### 5.1 `Row` 的逻辑值与物理 payload
 
@@ -244,12 +244,12 @@ U_0, & d_i(v)\ge U_0\text{ 且未保存}.
 
 ### 6.1 零权分量覆盖下界
 
-先把所有零权边缩成免费连通分量。每个分量携带它命中的组集合 $C_j\subseteq[g]$。在这些集合上执行精确 set cover DP，令 $c_0$ 为覆盖全部查询组至少需要的零权分量数。若 $c_0=1$，某个零权分量已覆盖全部组，故 $\operatorname{OPT}=0$。
+先把所有零权边缩成免费连通分量。每个分量携带它命中的组集合 $C_j\subseteq[g]$。在这些集合上执行精确 set cover DP，令 $c_0$ 为覆盖全部查询组至少需要的零权分量数。若 $c_0=1$，某个零权分量已覆盖全部组，故 $\mathrm{OPT}=0$。
 
 若 $c_0>1$，令 $w_+$ 为最小正边权。任何连通可行树在零权分量缩点图上至少连接 $c_0$ 个分量，因此至少使用 $c_0-1$ 条正权边：
 
 ```math
-L_{\mathrm{cc}}=(c_0-1)w_+\le\operatorname{OPT}.
+L_{\mathrm{cc}}=(c_0-1)w_+\le\mathrm{OPT}.
 ```
 
 若图没有正权边但查询可行，则必有 $c_0=1$。set cover DP 用 $O(3^g)$ 时间、$O(2^g+n)$ 空间，并返回若干代表顶点供上界构造使用。
@@ -286,7 +286,7 @@ U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
 定义组间松弛距离：
 
 ```math
-\delta(i,j)=\min_{u\in K_i,v\in K_j}\operatorname{dist}(u,v).
+\delta(i,j)=\min_{u\in K_i,v\in K_j}\mathrm{dist}(u,v).
 ```
 
 代码等价地在 $K_j$ 上取 $d_i$ 的最小值。有界距离返回的 cutoff 不大于被截断的真实距离，因此即使矩阵因截断而不完全对称，仍保持下界方向。
@@ -326,7 +326,7 @@ B(S,v)=\min_{\varnothing\neq T\subsetneq S}\{D(T,v)+D(S\setminus T,v)\},
 ```
 
 ```math
-D(S,v)=\min_{u\in V}\{B(S,u)+\operatorname{dist}(u,v)\}.
+D(S,v)=\min_{u\in V}\{B(S,u)+\mathrm{dist}(u,v)\}.
 ```
 
 实现按 $|S|$ 递增，只生成到 $\lfloor g/2\rfloor$。size 2 直接求两个 singleton 的共同精确顶点；更高层固定 mask 的最低 bit 在 accumulator 侧，只枚举不含该 pivot 的 branch，从而消除左右对称和重复拆分。
@@ -393,7 +393,7 @@ Base 的零 rent 首次购买已前移到 A1 之前；DirectedCut 的 primal upp
 对每个非锚 singleton $i$，公共锚定 singleton 状态定义为：
 
 ```math
-A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\operatorname{dist}(u,v)\}.
+A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\mathrm{dist}(u,v)\}.
 ```
 
 式中 $d_a(u)+d_i(u)$ 是锚组与组 $i$ 在共同根 $u$ 合并的 seed，外层最短路闭包把根移动到 $v$。所以 A1 不是辅助启发式，而是完整前向 $A$ 递推的第一张真实逻辑 row。Base 提前生成它，ordinary 结束后把同一批标准 `Row` 移交给 `BuildForwardAnchoredRows`；前向阶段只按更新后的 incumbent 重滤并完成结算，不再次运行闭包。
@@ -460,7 +460,7 @@ ordinary 完成后，`first/second/locator` 立即释放。随后 `std::move(sin
 ```math
 A(S,v)=\min_{u\in V}\left\{
 \min_{\varnothing\neq T\subseteq S}
-A(S\setminus T,u)+D(T,u)+\operatorname{dist}(u,v)
+A(S\setminus T,u)+D(T,u)+\mathrm{dist}(u,v)
 \right\},
 ```
 
@@ -568,7 +568,7 @@ H(S,v)\leftarrow \sum_j D(B_j,v).
 从 $h_{\max}$ 递减到 $h_{\mathrm{low}}+1$。对目标 $S$，除转置终端外，还可从更大的 successor $S\cup B$ 加一个 ordinary branch：
 
 ```math
-H(S,v)=\operatorname{closure}\left(
+H(S,v)=\mathrm{closure}\left(
 \min_{B\subseteq [k]\setminus S}
 H(S\cup B,v)+D(B,v)
 \right).
@@ -612,7 +612,7 @@ for size = q down to ell+1:
 
 下面给出当前实现必须同时满足的证明链。
 
-**引理 1（上界真实性）。** `best` 只由规范 SPT 边并集、共同根真实路径并集、directed-cut primal、facility 支撑路径、witness-tree DP、root-star 或完整状态结算更新。每一项都能展开为原图上的连通覆盖，因此 `best` 始终满足 $best\ge\operatorname{OPT}$。
+**引理 1（上界真实性）。** `best` 只由规范 SPT 边并集、共同根真实路径并集、directed-cut primal、facility 支撑路径、witness-tree DP、root-star 或完整状态结算更新。每一项都能展开为原图上的连通覆盖，因此 `best` 始终满足 $best\ge\mathrm{OPT}$。
 
 **引理 2（基础 future 可采纳）。** $L_{\mathrm{cc}}$ 来自零权缩点后必须连接的分量数；$L_{\mathrm{far}}$ 是任一剩余组不可回避的单组距离；$L_{\mathrm{tour}}$ 来自可行树倍增、组度量 shortcut 和除以 2。三者分别不超过其声明的剩余代价，因此任意最大组合仍可采纳。
 
@@ -632,7 +632,7 @@ for size = q down to ell+1:
 
 **引理 10（配置覆盖）。** `ConfigurationProfile` 的每个差异要么只增加引理 1 或引理 5 类型的安全证书，要么替换同一职责：bounded/complete 组距离保持读取契约，A1/dual 保持 future 契约，root-path/dual-primal 保持真实上界契约，前向高层 A/adjoint H 由引理 9 对应。第 3.2 节的计划保证每个必需逻辑层恰由一个 realization 覆盖，没有 Base-only 的未替代状态族。
 
-**定理（ABHSS 精确性）。** 对任意合法配置、无向非负边权输入及 $g\le16$ 的查询：若共同分量不存在，算法正确返回 infeasible；否则算法返回 $\operatorname{OPT}(G,\mathcal K)$。证明如下：引理 1 保证任意时刻 `best` 不低于最优值；引理 2–6 保证距离截断、future 与严格上界剪枝不删除任何代价低于当前 `best` 的完整推导；引理 7 与引理 8（Base/DirectedCutOnly）或引理 9（Enhanced）保证至少一条最优规范推导仍被枚举。搜索耗尽时不存在低于 `best` 的未枚举可行解，故 `best <= OPT`；与引理 1 的 `best >= OPT` 合并得到 `best = OPT`。所有上下界闭合使用原始 `double` 顺序 `best <= lower`，不以 epsilon 把正 gap 当作 0。
+**定理（ABHSS 精确性）。** 对任意合法配置、无向非负边权输入及 $g\le16$ 的查询：若共同分量不存在，算法正确返回 infeasible；否则算法返回 $\mathrm{OPT}(G,\mathcal K)$。证明如下：引理 1 保证任意时刻 `best` 不低于最优值；引理 2–6 保证距离截断、future 与严格上界剪枝不删除任何代价低于当前 `best` 的完整推导；引理 7 与引理 8（Base/DirectedCutOnly）或引理 9（Enhanced）保证至少一条最优规范推导仍被枚举。搜索耗尽时不存在低于 `best` 的未枚举可行解，故 `best <= OPT`；与引理 1 的 `best >= OPT` 合并得到 `best = OPT`。所有上下界闭合使用原始 `double` 顺序 `best <= lower`，不以 epsilon 把正 gap 当作 0。
 
 ### 13.1 证明责任如何落到代码接口
 

@@ -187,7 +187,26 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 5. 运行 SteinLib 已知最优 gate；任何目标值/可行性不一致都先当正确性错误，不能用“浮点容差”直接解释。
 6. 只在正确性门禁通过后跑旧/新性能 panel；保留每个 panel 的权重序列和超时方向，不仅比较总时间。
 
-## 10. 当前明确边界
+## 10. GitHub 文档上传与渲染注意
+
+后续 LLM 或人工修改 Markdown 时必须遵守以下仓库级约定。它们不是 LaTeX 数学语义限制，而是 GitHub 当前 Markdown 渲染器的兼容性边界。
+
+1. 块公式统一使用带 `math` info string 的 fenced block，不使用“首尾各一行 `$$`”的三行式写法。标准形态为：
+
+   ````markdown
+   ```math
+   E = mc^2
+   ```
+   ````
+
+2. 不得在行内或块公式中使用 `\operatorname` 或 `\operatorname*`。截至 2026-07-24，GitHub 会显示 “The following macros are not allowed: operatorname”，并把公式源文回退成灰色代码块。普通命名使用 `\mathrm{name}`；例如 `\mathrm{OPT}`、`\mathrm{dist}` 和 `\mathrm{clamp}`。
+3. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
+4. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、本地链接、表格公式以及已确认的 GitHub 禁用宏；`make release` 已依赖该门禁。
+5. 上传后不能只统计 `.js-display-math` 节点，因为失败公式同样会生成该节点。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）至少抽查所有含块公式的文件，并确认页面没有 “The following macros are not allowed”、黄色错误框或灰色公式源码回退。若 GitHub 以后新增禁用宏，先改写公式，再把宏加入 `validate_markdown.py` 的黑名单。
+
+语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。
+
+## 11. 当前明确边界
 
 - ABHSS 只支持无向、有限非负边权与 $g\le16$。
 - 当前公开二进制输出精确权值和 feasibility，不输出最优树边集。

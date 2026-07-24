@@ -29,6 +29,7 @@ FENCE_OPEN = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 INLINE_CODE = re.compile(r"`[^`]*`")
 INLINE_DOLLAR = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)")
 LOCAL_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+FORBIDDEN_GITHUB_MATH_MACRO = re.compile(r"\\(operatorname)\*?(?![A-Za-z])")
 
 
 def markdown_files() -> list[Path]:
@@ -38,6 +39,17 @@ def markdown_files() -> list[Path]:
         if directory.is_dir():
             files.extend(directory.rglob("*.md"))
     return sorted(set(files))
+
+
+def check_github_math_macros(
+    text: str, relative: Path, line_number: int, failures: list[str]
+) -> None:
+    """Reject macros confirmed to fail in GitHub's rendered Markdown."""
+    for match in FORBIDDEN_GITHUB_MATH_MACRO.finditer(text):
+        failures.append(
+            f"{relative}:{line_number}: GitHub rejects \\{match.group(1)}; "
+            "use a supported spelling such as \\mathrm{name}"
+        )
 
 
 def main() -> int:
@@ -72,8 +84,12 @@ def main() -> int:
                     fence_width = 0
                     fence_info = ""
                     math_has_content = False
-                elif fence_info == "math" and stripped:
-                    math_has_content = True
+                elif fence_info == "math":
+                    if stripped:
+                        math_has_content = True
+                    check_github_math_macros(
+                        line, relative, line_number, failures
+                    )
                 continue
 
             if stripped == "$$":
@@ -94,6 +110,7 @@ def main() -> int:
 
             prose = INLINE_CODE.sub("", line)
             prose_lines.append(prose)
+            check_github_math_macros(prose, relative, line_number, failures)
             inline_dollars += len(INLINE_DOLLAR.findall(prose))
             if re.search(r"\\[()[\]]", prose):
                 failures.append(
@@ -140,7 +157,7 @@ def main() -> int:
 
     print(
         f"Validated {len(files)} GitHub Markdown files: strict UTF-8, "
-        "balanced fences/math, and valid local links"
+        "balanced fences/math, GitHub-safe macros, and valid local links"
     )
     return 0
 
