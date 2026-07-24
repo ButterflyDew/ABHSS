@@ -79,15 +79,15 @@ powershell -ExecutionPolicy Bypass -File data_origin/verify_data.ps1
 
 论文说明，边权与相邻顶点邻域之间的 Jaccard 距离成比例：
 
-$$
+```math
 d_J(u,v)=1-\frac{|N(u)\cap N(v)|}{|N(u)\cup N(v)|}.
-$$
+```
 
 论文没有明写把浮点距离转成整数的倍率和取整规则。对作者仓库中 Twitch 的全部 429,113 条边逐条复算后，零处不一致，实际成品采用：
 
-$$
+```math
 w(u,v)=\left\lfloor 100\left(1-\frac{|N(u)\cap N(v)|}{|N(u)\cup N(v)|}\right)\right\rfloor.
-$$
+```
 
 因此 `Twitch.in` 中的权重范围是 30 到 100。这个“乘 100 后向下取整”的结论是对作者成品的完整核验结果，不是论文正文明确给出的公式；其他 7 个成品仍应以作者 OneDrive 文件为准。
 

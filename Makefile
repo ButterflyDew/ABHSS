@@ -8,6 +8,7 @@ PYTHON ?= python3
 CMAKE ?= cmake
 
 .PHONY: help configure build release paper-binaries tools test validate \
+	validate-markdown \
 	validate-paper-binaries validate-all-binaries clean
 
 help:
@@ -15,6 +16,7 @@ help:
 	@$(CMAKE) -E echo "make paper-binaries       Build only abhss and pruneddp"
 	@$(CMAKE) -E echo "make tools                Build data conversion/audit tools"
 	@$(CMAKE) -E echo "make test                 Build and run local correctness tests"
+	@$(CMAKE) -E echo "make validate-markdown    Check GitHub Markdown and fenced display math"
 	@$(CMAKE) -E echo "make validate             Validate manifests without optional third-party binaries"
 	@$(CMAKE) -E echo "make validate-paper-binaries Require the two binaries used by three formal timing entries"
 	@$(CMAKE) -E echo "make validate-all-binaries Validate including restored Basic+/SCIP-Jack"
@@ -26,7 +28,7 @@ configure:
 build: configure
 	$(CMAKE) --build "$(BUILD_DIR)" --parallel "$(JOBS)"
 
-release: build
+release: validate-markdown build
 	$(CMAKE) --build "$(BUILD_DIR)" --target test --parallel "$(JOBS)"
 
 paper-binaries: configure
@@ -38,7 +40,10 @@ tools: configure
 test: build
 	ctest --test-dir "$(BUILD_DIR)" --build-config "$(BUILD_TYPE)" --output-on-failure
 
-validate:
+validate-markdown:
+	$(PYTHON) tools/experiments/validate_markdown.py
+
+validate: validate-markdown
 	$(PYTHON) tools/experiments/validate_environment.py
 
 validate-paper-binaries: paper-binaries

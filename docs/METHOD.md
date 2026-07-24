@@ -6,11 +6,11 @@
 
 给定无向图 $G=(V,E,w)$，其中 $n=|V|$、$m=|E|$，每条边权 $w(e)\ge 0$。给定 $g$ 个非空顶点组 $\mathcal K=\{K_0,\ldots,K_{g-1}\}$，组之间允许重叠，每组允许包含多个候选顶点。一个可行解是与每个 $K_i$ 至少相交一次的连通子图；由于边权非负，任意可行连通子图均可删除环而不增代价，因此最优解可取为树。目标值记为：
 
-$$
+```math
 \operatorname{OPT}(G,\mathcal K)=
 \min_{T\subseteq G\text{ connected}}
 \left\{\sum_{e\in E(T)}w(e):V(T)\cap K_i\neq\varnothing,\ \forall i\right\}.
-$$
+```
 
 当前二进制求精确最优权值，不序列化最终最优树的边集合；内部构造的真实树 witness 用于维持可行上界。若论文或 artifact 声称“输出树本身”，还需增加父决策保存或在最优值确定后的第二遍等式回溯。本文以下“精确”均指：对输入解析得到的 `double` 边权，返回与组合最优值一致的权值；实验用 $10^{-6}$ 做跨实现核验，但算法的上下界闭合和剪枝不使用该容差。
 
@@ -101,13 +101,13 @@ Enhanced {DirectedCut, AdjointCompletion}
 
 位掩码满足集合关系：
 
-$$
+```math
 \varnothing
 \subset
 \{\text{DirectedCut}\}
 \subset
 \{\text{DirectedCut},\text{AdjointCompletion}\}.
-$$
+```
 
 但这不等于 Enhanced 必须逐条重放 Base 的全部指令。代码中的 `ConfigurationProfile` 把差异分成两类：
 
@@ -130,17 +130,17 @@ $$
 
 令
 
-$$
+```math
 h=\left\lfloor\frac g2\right\rfloor,
 \qquad
 q=\max\{0,h-1\}.
-$$
+```
 
 $q$ 来自第 10 节的平衡分解定理，是完整锚定格必须覆盖的最高 mask 大小，不是经验阈值。正层的定义域是整数区间
 
-$$
+```math
 \mathcal L_A=\{s\in\mathbb Z:1\le s\le q\}.
-$$
+```
 
 `MakeAnchoredCompletionSchedule` 只把这个定义域映射到 realization：
 
@@ -207,13 +207,13 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 
 有界 `GroupRow` 对每个顶点暴露一个有限读取值，但该值有两种含义：
 
-$$
+```math
 \texttt{row}[v]=
 \begin{cases}
 d_i(v), & d_i(v)<U_0,\\
 U_0, & d_i(v)\ge U_0\text{ 且未保存}.
 \end{cases}
-$$
+```
 
 因此 `IsExact(v)` 不是浮点精度标记，而是“这个位置保存的是否为真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树；所有 singleton 合并、完整结算与 witness 路径都必须先检查 `IsExact`。
 
@@ -248,9 +248,9 @@ $$
 
 若 $c_0>1$，令 $w_+$ 为最小正边权。任何连通可行树在零权分量缩点图上至少连接 $c_0$ 个分量，因此至少使用 $c_0-1$ 条正权边：
 
-$$
+```math
 L_{\mathrm{cc}}=(c_0-1)w_+\le\operatorname{OPT}.
-$$
+```
 
 若图没有正权边但查询可行，则必有 $c_0=1$。set cover DP 用 $O(3^g)$ 时间、$O(2^g+n)$ 空间，并返回若干代表顶点供上界构造使用。
 
@@ -271,9 +271,9 @@ Base 先从每组顶点数、最小顶点号的稳定顺序选规范终端作为
 
 对任意根 $r$，分别连接到各组最近终端可得：
 
-$$
+```math
 U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
-$$
+```
 
 该和可能重复计算共享边，但仍是可行上界。实现从精确顶点数最少的组表驱动扫描，取最小共同根；随后沿满足最短路等式的真实边恢复根到各组的路径，按 `edge_id` 去重，得到通常更紧的 $U_{\mathrm{union}}$。路径等式使用 $10^{-9}$ 只为在浮点输入上找到真实边序列；即使选择了近似等式边，最终仍按原图边权对实际边并集计价，所以它只能影响上界强弱，不能产生虚假下界。
 
@@ -285,9 +285,9 @@ $$
 
 定义组间松弛距离：
 
-$$
+```math
 \delta(i,j)=\min_{u\in K_i,v\in K_j}\operatorname{dist}(u,v).
-$$
+```
 
 代码等价地在 $K_j$ 上取 $d_i$ 的最小值。有界距离返回的 cutoff 不大于被截断的真实距离，因此即使矩阵因截断而不完全对称，仍保持下界方向。
 
@@ -297,15 +297,15 @@ $$
 
 最便宜的 future 是：
 
-$$
+```math
 L_{\mathrm{far}}(v,R)=\max_{i\in R} d_i(v).
-$$
+```
 
 每个顶点缓存全体组中最远组；若该组仍在 $R$ 中可 $O(1)$ 返回，否则扫描 mask。Base 的统一下界为：
 
-$$
+```math
 L_{\mathrm{future}}(v,R)=\max\{L_{\mathrm{far}},L_{\mathrm{tour}}\}.
-$$
+```
 
 开启 `DirectedCut` 后再取 directed-cut 下界 $L_{\mathrm{cut}}$ 的最大值。热路径总是先算便宜证书；一旦 `partial + lower >= U` 即拒绝，不支付更贵证书。最终值按 row epoch 缓存。
 
@@ -321,13 +321,13 @@ DirectedCut 配置不重放这次 Base root-path 购买。共同的 root-star �
 
 对 singleton，$D(\{i\},v)=d_i(v)$。对 $|S|\ge2$，先在共同根合并两个真子集，再在图上做多源最短路闭包：
 
-$$
+```math
 B(S,v)=\min_{\varnothing\neq T\subsetneq S}\{D(T,v)+D(S\setminus T,v)\},
-$$
+```
 
-$$
+```math
 D(S,v)=\min_{u\in V}\{B(S,u)+\operatorname{dist}(u,v)\}.
-$$
+```
 
 实现按 $|S|$ 递增，只生成到 $\lfloor g/2\rfloor$。size 2 直接求两个 singleton 的共同精确顶点；更高层固定 mask 的最低 bit 在 accumulator 侧，只枚举不含该 pivot 的 branch，从而消除左右对称和重复拆分。
 
@@ -335,9 +335,9 @@ $$
 
 每个同根 split seed 的真实已付值为 $x$，队列 key 为：
 
-$$
+```math
 f=x+L_{\mathrm{future}}(v,[g]\setminus S).
-$$
+```
 
 只有 $f<U$ 的候选进入或继续传播。因为 $L_{\mathrm{future}}$ 不超过任何完成代价，$f\ge U$ 的状态不可能导出严格优于已经存在的可行解；等于 $U$ 时也无需保留，因为同成本答案已存在。剪枝不会改变最优权值。
 
@@ -392,9 +392,9 @@ Base 的零 rent 首次购买已前移到 A1 之前；DirectedCut 的 primal upp
 
 对每个非锚 singleton $i$，公共锚定 singleton 状态定义为：
 
-$$
+```math
 A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\operatorname{dist}(u,v)\}.
-$$
+```
 
 式中 $d_a(u)+d_i(u)$ 是锚组与组 $i$ 在共同根 $u$ 合并的 seed，外层最短路闭包把根移动到 $v$。所以 A1 不是辅助启发式，而是完整前向 $A$ 递推的第一张真实逻辑 row。Base 提前生成它，ordinary 结束后把同一批标准 `Row` 移交给 `BuildForwardAnchoredRows`；前向阶段只按更新后的 incumbent 重滤并完成结算，不再次运行闭包。
 
@@ -402,29 +402,29 @@ $$
 
 设 A1 构造开始时的真实可行上界为 $U_0$。对组 $i$ 定义尚未由 A1 覆盖的非锚组集合 $R_i$，并令
 
-$$
+```math
 C_i(v)=\max_{j\in R_i} d_j(v).
-$$
+```
 
 Base 只保存满足 $A(\{i\},v)<U_0$ 且 $A(\{i\},v)+C_i(v)<U_0$ 的精确位置。这里 $A(\{i\},\cdot)$ 是多源最短路值，$C_i$ 是若干最短距离函数的最大值；二者沿任意边 $(x,y)$ 都满足一致性关系。特别地，若 $x$ 是到 $y$ 的一条最短 A1 路径上的前驱，则
 
-$$
+```math
 A(\{i\},x)+C_i(x)
 \le A(\{i\},y)+C_i(y).
-$$
+```
 
 因此，只要目标 $v$ 满足 $A(\{i\},v)+C_i(v)<U_0$，其规范最短路径上的全部前缀也满足严格 cone 条件，Dijkstra 不会在到达 $v$ 前被剪掉。反过来，若 $v$ 没有保存，则必有 $A(\{i\},v)+C_i(v)\ge U_0$，从而可安全返回：
 
-$$
+```math
 \underline A_i(v)=\max\{0,U_0-C_i(v)\}.
-$$
+```
 
 若位置在 row 内，`Value` 返回精确 $A(\{i\},v)$；否则返回上述 cone 外下界。两者统一记为 $\underline A_i(v)$。对一个 ordinary 状态 $D(S,v)$，尚未覆盖的每个组 $i$ 都必须进入包含锚组的完成部分，因此
 
-$$
+```math
 L_{A1}(v,[k]\setminus S)
 =\max_{i\in[k]\setminus S}\underline A_i(v)
-$$
+```
 
 是相应规范完成的可采纳 future。代码把它再与 farthest 和 tour 取最大。
 
@@ -457,12 +457,12 @@ ordinary 完成后，`first/second/locator` 立即释放。随后 `std::move(sin
 
 锚定递推为：
 
-$$
+```math
 A(S,v)=\min_{u\in V}\left\{
 \min_{\varnothing\neq T\subseteq S}
 A(S\setminus T,u)+D(T,u)+\operatorname{dist}(u,v)
 \right\},
-$$
+```
 
 其中 $A(\varnothing,v)=d_a(v)$ 为隐式 row，不为全图单独物化。对固定 $S$，内层枚举一个非空 ordinary 块 $T$，要求 $D(T)$ 已 ready，且 $A(S\setminus T)$ 已 ready 或为空 mask。合并只在同一根 $u$ 发生，随后从所有有限 seed 做一次多源 Dijkstra 闭包。和 ordinary 一样，只有 `value + future < best` 的候选进入队列。
 
@@ -472,17 +472,17 @@ $$
 
 每个 settled $A(S,v)$ 会执行两种只收紧上界的操作。第一，把每个未覆盖 singleton 的组距离直接接到 $v$：
 
-$$
+```math
 U_{\mathrm{root}}=A(S,v)+
 \sum_{i\in[k]\setminus S}d_i(v).
-$$
+```
 
 虽然不同最短路可能重复边，该和仍对应若干真实路径的并，因此是可行上界。第二，`CompleteAnchoredRow` 把剩余 mask $R=[k]\setminus S$ 分成至多两个 ordinary 块 $L$ 与 $R\setminus L$，并在共同根结算：
 
-$$
+```math
 U_{\mathrm{split}}=
 A(S,v)+D(L,v)+D(R\setminus L,v).
-$$
+```
 
 实现从实际可枚举值最少的一侧驱动交集，singleton 先检查 `IsExact`，多组块要求 ready 并遵守 branch 规范。结算产生的是完整可行树候选，不写入新的 full-mask DP row。
 
@@ -512,10 +512,10 @@ $$
 
 对每个组 $i$ 得到势 $\pi_i(v)$。非负 residual 是可核验的对偶可行性证书：一棵从 $v$ 连到剩余每个组的树，在有向展开中必须跨过各组的一个有效割；顺序容量扣减保证不同组势对同一弧的总收费不超过该弧容量。因此：
 
-$$
+```math
 L_{\mathrm{cut}}(v,R)=\sum_{i\in R}\pi_i(v)
 \le \text{从 }v\text{ 完成 }R\text{ 的最小代价}.
-$$
+```
 
 changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短路条件；处理顺序和并列规则固定，不依据查询运行表现切换。
 
@@ -535,11 +535,11 @@ changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短�
 
 固定：
 
-$$
+```math
 h_{\max}=\lfloor g/2\rfloor-1,
 \qquad
 h_{\mathrm{low}}=\left\lfloor h_{\max}/2\right\rfloor.
-$$
+```
 
 公共前向内核只物化 $|S|\le h_{\mathrm{low}}$ 的 $A$，并保留边界层。该式是对最高逻辑层的固定 meet-in-the-middle 切分，不含“某个组数以上才启用”的经验分类，也不看 row 密度、图名或耗时。
 
@@ -551,11 +551,11 @@ $$
 
 一个或两个互不相交 ordinary 块的并集为 $Q$ 时，产生目标：
 
-$$
+```math
 S=[k]\setminus Q,
 \qquad
 H(S,v)\leftarrow \sum_j D(B_j,v).
-$$
+```
 
 这里 $H(S,v)$ 已支付 $S$ 外的组，等待锚定前缀覆盖 $S$。只保留 $h_{\mathrm{low}}<|S|\le h_{\max}$ 的目标。一个或两个块足够，是因为平衡完成边界的外侧在规范分解中至多由两个大小不超过 $h$ 的 ordinary 块组成；更多同根块可按第 7.3 节递归规范化进已有 branch。
 
@@ -567,18 +567,18 @@ $$
 
 从 $h_{\max}$ 递减到 $h_{\mathrm{low}}+1$。对目标 $S$，除转置终端外，还可从更大的 successor $S\cup B$ 加一个 ordinary branch：
 
-$$
+```math
 H(S,v)=\operatorname{closure}\left(
 \min_{B\subseteq [k]\setminus S}
 H(S\cup B,v)+D(B,v)
 \right).
-$$
+```
 
 每张 $H(S)$ 完成后，枚举低层锚定 mask $L\subseteq S$，令 $B=S\setminus L$，在共同根结算：
 
-$$
+```math
 A(L,v)+D(B,v)+H(S,v).
-$$
+```
 
 三部分分别覆盖锚组及 $L$、边界块 $B$、以及 $[k]\setminus S$，恰好覆盖全部查询组。
 
@@ -667,12 +667,12 @@ for size = q down to ell+1:
 
 令 $k=g-1$，$h=\lfloor g/2\rfloor$，$F=\sum_i|K_i|$，并令 $r$ 为 directed-cut primal 涉及的不同 facility 顶点数；Base 中取 $r=0$。忽略只改善常数的稀疏性，并把当前二叉堆、真实路径恢复和 facility 上界都计入，一个输出敏感的保守总时间上界可写为：
 
-$$
+```math
 O\!\left(
 (g+r+2^g)(m+n)\log(n+m)
 +g^2(m+n)+2^g(g^3+r^2)+3^g(n+r)+F\log(F+1)
 \right),
-$$
+```
 
 其中 $g^2(m+n)$ 保守覆盖至多 $O(g)$ 个候选根、每根至多 $g$ 条真实最短路的恢复；$r$ 相关三项来自 facility 支撑图。若只讨论 facility 之后的主状态搜索，常用简写才是 $O(3^g n+2^g(m+n)\log(n+m))$。这里按当前 `std::priority_queue` 的重复入堆二叉堆实现计每次 push/pop 的 $O(\log(n+m))$，不借用 decrease-key/Fibonacci heap 的 $O(m+n\log n)$ 界；在简单图上该对数项可等价写成 $O(\log n)$，但本实现允许重边。tour 的固定端点表使用 $O(2^g g^2)$ 空间、$O(2^g g^3)$ 时间；零权 cover 的组维度 DP 为 $O(3^g)$，另有当前逐查询零边扫描/并查集的图维度成本。因为当前 $g\le16$，纯组维度表可控，实际瓶颈通常是图维度 row、闭包和 Enhanced 的 facility 数 $r$；论文不能把后者从最坏界中省略。
 
@@ -698,9 +698,9 @@ $$
 
 令 $Z_D,Z_A,Z_H$ 为阶段结束时实际保存的状态标量数，$R_D,R_A,R_H$ 为图闭包实际检查的邻接项数，$M_D,M_A,M_H$ 为同根交集/拆分候选数，则主搜索更贴近实际的成本为：
 
-$$
+```math
 O\left(M_D+M_A+M_H+(R_D+R_A+R_H)\log(n+m)\right),
-$$
+```
 
 若 $Z_{A1}^{\mathrm{work}}$ 表示 Base 提前 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。空间分别为 Base 的 $O(Z_D+Z_A+n)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn)$。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，高层 $H$ 仅保存高层区间中实际生成的稀疏 row，不物化完整 dense 状态网格。
 

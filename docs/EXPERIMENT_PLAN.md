@@ -156,9 +156,9 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 对每个组独立采样：
 
-$$
+```math
 |S_i|=\operatorname{clamp}\left(\operatorname{round}(N(f,(0.15f)^2)),0.5f,1.5f\right).
-$$
+```
 
 随后从 `1..n` 中无放回均匀选择 `|S_i|` 个顶点。不同组之间允许重叠。本文不再把多个组大小强行平衡为“每条查询恰好平均等于 `f`”，因为那会改变 MonoGST+ 原生成方法；manifest 同时记录目标 `f` 和真实 `mean_f/min_f/max_f`。
 
