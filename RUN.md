@@ -191,7 +191,7 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 query_seconds weight query_peak_rss_mib mask_vertex_states
 ```
 
-末列是本次查询首次进入主状态存储的不同 `(mask,v)` 项数。PrunedDP++ 统计 Hash/Dense `StateStore` 中实际 `present` 的项，reopen 不重复；ABHSS 统计 $D$、$A$、$H$ 行中首次接纳的状态，early-A1 转交给公共前向行时不重复。两边均排除组距离、route/tour、dual、队列过期副本、松弛尝试和只更新完整解的 full-mask 候选。平凡/前置闭合查询可为 0；尚无统一口径的 correctness-only adapter 写 `-1`。console 的 `[Query]` 行末同步输出 `mask_vertex_states=<整数>`，supervisor 将正式方法的非负值写入每任务 JSON。
+末列是本次查询首次进入主状态存储的状态项数。PrunedDP++ 统计 Hash/Dense `StateStore` 中实际 `present` 的 `(mask,v)` 项，reopen 不重复；ABHSS 统计 $D$、$A$、$H$ 行中首次接纳的项，并把状态族视为键的一部分，因此不同状态族中数值相同的 `(mask,v)` 分别计数。Base 提前调度的 A1 转交给公共前向行时不重复；DirectedCut/Enhanced 若在前向阶段生成 A1，也只计一次，若该层由 $H$ 替换则只统计实际 $H$ 状态。两边均排除组距离、route/tour、dual、队列过期副本、松弛尝试和只更新完整解的 full-mask 候选。平凡/前置闭合查询可为 0；尚无统一口径的 correctness-only adapter 写 `-1`。console 的 `[Query]` 行末同步输出 `mask_vertex_states=<整数>`，supervisor 将正式方法的非负值写入每任务 JSON。
 
 ## 6. 稳定分片与断点续跑
 

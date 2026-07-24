@@ -59,7 +59,8 @@ std::string ResolveGraphFolder(const std::string& data_root, const std::string& 
  *
  * 加载分三阶段：先保存原边并统计度数，再按精确容量建立邻接表，最后一次
  * 扫描邻接表建立连通分量缓存。该过程不改变边序、edge_id、邻接插入顺序或
- * 浮点解析语义；连通分量缓存避免每条查询重新执行 O(n+m) 图扫描。
+ * 浮点解析语义；连通分量缓存避免可行性检查为每条查询重新执行 O(n+m)
+ * 图扫描。算法自身的查询预处理成本不归入这项 I/O 缓存声明。
  */
 Graph LoadGraphFromFolder(const std::string& graph_folder);
 

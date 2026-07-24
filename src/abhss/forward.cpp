@@ -174,8 +174,10 @@ std::vector<Row> BuildForwardAnchoredRows(
     std::vector<int> touched;
     std::vector<int> settled;
 
-    // A(0) 只在 g=2/3 时直接参加完成式；更大查询绝不物化全顶点锚 row。
-    if (p.half < 2)
+    // 完整锚定格没有任何正层时，A(0) 才直接参加最终完成式。不能仅凭
+    // `last_size==0` 判断，因为 Enhanced 的低层前缀可以为空、而高层 H
+    // 仍负责非空逻辑后缀。A(0) 始终是隐式组距离，不写入一张全图 row。
+    if (plan.complete_implicit_anchor)
     {
         std::vector<int> roots;
         p.group_distance[p.anchor_group].ForEachExact(
@@ -227,10 +229,10 @@ std::vector<Row> BuildForwardAnchoredRows(
                 return bound_cache[vertex];
             };
 
-            // early-A1 在证书 cone 内已经完成精确图闭包。这里只按更新后的
-            // incumbent 重新过滤，并调用与普通前向 row 相同的完成结算。
-            const bool reuses_early_row = anchored[mask].ready;
-            if (reuses_early_row)
+            // 提前调度的公共 A1 在证书 cone 内已经完成精确图闭包。这里只按
+            // 更新后的 incumbent 重滤，并调用相同的完成结算；不是第二套 A1。
+            const bool reuses_singleton_row = anchored[mask].ready;
+            if (reuses_singleton_row)
             {
                 Row precomputed = std::move(anchored[mask]);
                 ForEachValue(precomputed, [&](int vertex, double value)
@@ -312,8 +314,8 @@ std::vector<Row> BuildForwardAnchoredRows(
             }
 
             // 新生成的 A(mask) 以 touched 中的不同顶点作为实际发现状态；
-            // early-A1 已在构造时登记，这里只发生所有权转移与再次过滤。
-            if (!reuses_early_row)
+            // 提前生成的 A1 已登记；这里仅转移所有权，不重复计算状态数。
+            if (!reuses_singleton_row)
                 p.AccountMaskVertexStates(touched.size());
 
             settled.erase(

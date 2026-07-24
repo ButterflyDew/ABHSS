@@ -15,7 +15,7 @@
 ## 2. 统一执行规则
 
 - 计时项：同一 `abhss` 二进制的 Base 配置、全增强配置，以及 PrunedDP++-Safe。
-- 配置冻结：`abhss_base` 和 `abhss_enhanced` 必须指向同一可执行文件，参数分别固定为 `--enhancements=none` 与 `--enhancements=all`；运行中不得切换。
+- 配置冻结：`abhss_base` 和 `abhss_enhanced` 必须指向同一可执行文件，参数分别固定为 `--enhancements=none` 与 `--enhancements=all`；运行中不得切换。两者差异只能是安全新增证书或同一逻辑职责的 realization 替换，不能存在 Base 独有而 Enhanced 无对应物的状态族；完整映射见 [`METHOD.md`](METHOD.md) 第 3.1 节。
 - 计算资源：每个 solver process 只允许一个计算线程；监控线程只采样 RSS。
 - 构建：同一编译器、Release、相同 IPO/优化规则。
 - 计时：图在一个 query block 中加载一次；逐查询 timer 在 `[Ready]` 之后开始，包含该方法的查询预处理与求解，不包含共同图加载。
@@ -26,7 +26,7 @@
 - 失败记录：timeout、graph-load-timeout、OOM、error 分开保存，不能删掉失败行后计算平均值。
 - 数据身份：名称、来源和最终 `graph.txt` SHA-256 共同构成图身份；两个 DBLP 永不合并。
 
-机器矩阵是 [`experiments/paper_matrix.json`](../experiments/paper_matrix.json)，输入哈希与查询分布是 [`experiment_data/p1_published_workloads/manifest.json`](../experiment_data/p1_published_workloads/manifest.json)。单入口重构及大图非退化结果固化在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json)。
+机器矩阵是 [`experiments/paper_matrix.json`](../experiments/paper_matrix.json)，输入哈希与查询分布是 [`experiment_data/p1_published_workloads/manifest.json`](../experiment_data/p1_published_workloads/manifest.json)。单入口重构、“新增或同职责替换”配置契约，以及 SteinLib、Musae、Reddit、Orkut 的非退化结果固化在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json)。
 
 ### 2.1 来源证据链与可声称强度
 
@@ -189,7 +189,7 @@ $$
 - 不比较不同完成子集的平均时间。
 - 不把 ABHSS Base/全增强配置的逐查询最小值当作第三种曲线。
 - 若 PrunedDP++ 在某图明显更好，保留该图并从 `n,m`、密度、候选组大小、连通分量、实际 `f`、状态数和上界命中率分析原因。
-- 每条完成查询同时保存 `mask_vertex_states`：ABHSS 为首次进入 $D$、$A$、$H$ 行的不同状态总数，PrunedDP++ 为主 StateStore 的实际项数。两边都排除组距离/route/tour/dual、重复队列项和 full-mask 完成候选；该指标用于解释状态空间削减，不替代时间或内存。
+- 每条完成查询同时保存 `mask_vertex_states`：ABHSS 为首次进入 $D$、$A$、$H$ 行的状态项总数，状态族属于实际键，因此不同状态族中数值相同的 `(mask,v)` 分别计数；PrunedDP++ 为主 StateStore 的实际 `(mask,v)` 项数。两边都排除组距离/route/tour/dual、重复队列项和 full-mask 完成候选。该指标用于解释各自状态域的削减，不是跨算法完全同成本的基本操作，也不替代时间或内存。
 - cell 级报告完成查询的中位/p90 状态数，并在双方均完成且状态数为正的配对上报告 `PrunedDP++ / ABHSS` 状态倍率。timeout 没有最终状态数，必须单列完成分母，不能以完成子集冒充完整 workload，也不能把 Dense 容量当 PrunedDP++ 实际状态数。
 
 ### 7.1 正确性 gate 与运行准入
@@ -199,7 +199,7 @@ $$
 1. 求解器与可行性审计共用的快速数字读取器保留原边、`edge_id`、双向邻接顺序、自环双邻接项、零/小数/科学计数边权和连通分量缓存，并拒绝尾部 token/非法权重。
 2. 查询读取器保留合法多查询与空查询，并拒绝负查询/组计数、空组、截断 payload 和声明记录之后的多余 token。
 3. Base、DirectedCutOnly 和 Enhanced 都通过历史零权 witness 父指针环反例。
-4. 三个合法配置在 144 个确定性随机连通小图、$2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、$g>16$、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
+4. 三个合法配置在 144 个确定性随机连通小图、$2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、$g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
 5. ABHSS Base/Enhanced 的状态数重复运行稳定；PrunedDP++ Hash 与 Dense 后端报告相同实际状态数；平凡查询报告 0。
 
 然后运行 `S1_steinlib_exactness_gate`。当前冻结证据包含 11 个 $11\le g\le16$ 的 WRP 已知最优实例：ABHSS Base/Enhanced、PrunedDP++-Safe、DPBF 和 SCIP-Jack 已全部匹配；Basic+ 只在其 $g\le14$ 能力范围内参加。当前证据摘要在 [`experiments/correctness_audit.json`](../experiments/correctness_audit.json)。未恢复第三方二进制时可先跑仓库内 gate，但不能因此声称完成了六方 SteinLib 核验。

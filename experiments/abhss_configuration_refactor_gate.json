@@ -1,9 +1,13 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "generated_at": "2026-07-23T11:01:10.9319471Z",
-  "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm with a monotone enhancement chain, without exactness or solver-time regression",
+  "updated_at": "2026-07-24",
+  "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm whose frozen configurations differ only by safe additions or same-role replacements, without exactness or solver-time regression",
   "result": "PASS",
+  "current_contract_gate": "structural_a1_schedule_gate_20260724",
+  "current_binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611",
   "policy": {
+    "scope": "2026-07-23 original single-entry refactor gate; the 2026-07-24 clarification gate has its own policy block",
     "weight_tolerance": 1e-6,
     "maximum_panel_regression_fraction": 0.03,
     "comparison_unit": "sum of solver-only query time over each predeclared panel and fixed configuration",
@@ -19,6 +23,333 @@
     "dependency": "adjoint-completion requires directed-cut",
     "formal_configurations": ["base", "enhanced"],
     "executable_count": 1
+  },
+  "relation_contract": {
+    "allowed_relations": [
+      "safe addition with a correctness certificate",
+      "replacement of the same logical responsibility by a structurally or functionally corresponding realization"
+    ],
+    "forbidden_relation": "a Base-only logical state family or stage with no Enhanced counterpart or same-role replacement",
+    "safe_additions_in_directed_cut": [
+      "directed-cut dual-feasibility certificate",
+      "additional facility feasible upper bound"
+    ],
+    "same_role_replacements": {
+      "group_distance": "Base canonical-SPT cutoff plus bounded GroupRow value/IsExact oracle -> Enhanced complete-potential GroupRow value/IsExact oracle without cutoff construction",
+      "ordinary_future": "Base pre-ordinary A1 cone -> Enhanced directed-cut potential",
+      "upper_witness": "Base root-path tree plus pre-D witness-DP evaluation -> Enhanced primal upper plus dual-primal tree as the pre-D/periodic witness realization; common root-star and root-path-union uppers remain shared, and facility is separately classified as a safe addition",
+      "anchored_singleton_A1": "The balanced completion grid has logical layers 1..q where q=max(0,floor(g/2)-1). Base realizes every layer in that grid with forward A and, when layer 1 belongs to the grid, schedules that standard A1 row before D so it can also serve as the ordinary future. Enhanced realizes the low prefix with forward A and the remaining suffix with H. Layer membership, never an empirical group-count threshold, determines the realization; every materialized row is built at most once",
+      "high_completion": "Base forward high A -> Enhanced low A plus adjoint high H"
+    },
+    "machine_contract": "DescribeConfiguration/SolveOptions ConfigurationProfile plus MakeAnchoredCompletionSchedule/AnchoredCompletionSchedule",
+    "regression_assertion": "abhss_configuration_exactness checks the added-operation subset relation, every replacement realization, and exact one-realization coverage of every required anchored layer for group counts 0..16"
+  },
+  "inclusion_clarification_gate_20260724": {
+    "status": "SUPERSEDED for the current A1 schedule by structural_a1_schedule_gate_20260724; retained only as historical evidence for the earlier naming-only clarification",
+    "result": "PASS",
+    "non_regression_policy": {
+      "maximum_new_over_old": 1.03,
+      "short_panel_rule": "when one old/new pair exceeds 1.03, alternate at least three times and compare medians",
+      "rerun_rule_triggered": true,
+      "triggered_panels": ["musae_g6", "musae_g10"],
+      "solver_time_only": true
+    },
+    "comparison_baseline": {
+      "git_commit": "05fedcc9229b03eca39120bfd210837fce3ad54d",
+      "binary_bytes": 421471,
+      "binary_sha256": "bce2b8c6338cdcaf50a305a6bdf3c9f05cf8432a25beb8a8e4d4c20233ff1799"
+    },
+    "timed_candidate_binary": {
+      "binary_bytes": 421622,
+      "binary_sha256": "a00eccb84fde11befe81fd7b38ce84550dbe4e16a2babf55741d0ae7366a07f9",
+      "semantic_change": "renames EarlyAnchor as the pre-ordinary view of the common A1 layer and adds an auditable add-or-replace configuration profile; the accepted hot solver recurrence is unchanged"
+    },
+    "final_validation_binary": {
+      "binary_bytes": 421622,
+      "binary_sha256": "cb66e917329588f50ebd9e5de0adfdcf4deebab1241f848f85e4cf64845bf134",
+      "post_timing_changes": "Chinese comments and documentation precision for the then-current selective A1 schedule only; no executable statement, branch, data layout or recurrence changed in that historical candidate",
+      "ctest": "5/5 PASS"
+    },
+    "rejected_design": {
+      "description": "force Base pre-ordinary A1 through the generic forward-layer kernel",
+      "panel": "GPU4GST_Musae cross_g6, five queries, Base; weights and state semantics checked during the trial",
+      "old_median_seconds": 0.311819,
+      "candidate_median_seconds": 0.364584,
+      "candidate_over_old": 1.169216757,
+      "decision": "rejected because it violated the 3% non-regression threshold despite discovering fewer states"
+    },
+    "accepted_panels": [
+      {
+        "id": "steinlib_wrp11",
+        "g": "11..16",
+        "queries": 11,
+        "comparison": "one interleaved pass per configuration",
+        "base_old_seconds": 12.733748,
+        "base_new_seconds": 12.493838,
+        "base_new_over_old": 0.981159514,
+        "enhanced_old_seconds": 3.451776,
+        "enhanced_new_seconds": 3.366416,
+        "enhanced_new_over_old": 0.975270701,
+        "weights_match": true
+      },
+      {
+        "id": "musae_g6",
+        "g": 6,
+        "queries": 5,
+        "comparison": "seven alternating old/new runs per configuration; compare medians",
+        "base_old_median_seconds": 0.324194,
+        "base_new_median_seconds": 0.323404,
+        "base_new_over_old": 0.997563187,
+        "enhanced_old_median_seconds": 0.533856,
+        "enhanced_new_median_seconds": 0.522922,
+        "enhanced_new_over_old": 0.979518822,
+        "weights_and_state_counts_match": true
+      },
+      {
+        "id": "musae_g10",
+        "g": 10,
+        "queries": 5,
+        "comparison": "three alternating old/new runs per configuration; compare medians",
+        "base_old_median_seconds": 12.841729,
+        "base_new_median_seconds": 12.803674,
+        "base_new_over_old": 0.997036614,
+        "enhanced_old_median_seconds": 2.292221,
+        "enhanced_new_median_seconds": 2.296687,
+        "enhanced_new_over_old": 1.001948329,
+        "weights_and_state_counts_match": true
+      },
+      {
+        "id": "musae_g14_query1",
+        "g": 14,
+        "queries": 1,
+        "comparison": "one old/new run per configuration; below the preregistered 1.03 rerun trigger",
+        "base_old_seconds": 90.425096,
+        "base_new_seconds": 93.065060,
+        "base_new_over_old": 1.029195037,
+        "enhanced_old_seconds": 34.216071,
+        "enhanced_new_seconds": 34.571531,
+        "enhanced_new_over_old": 1.010388685,
+        "weights_and_state_counts_match": true
+      },
+      {
+        "id": "reddit_g10_queries1_2",
+        "g": 10,
+        "queries": 2,
+        "comparison": "one old/new large-graph run per configuration",
+        "base_old_seconds": 2.245759,
+        "base_new_seconds": 2.132081,
+        "base_new_over_old": 0.949381033,
+        "enhanced_old_seconds": 33.097924,
+        "enhanced_new_seconds": 31.921074,
+        "enhanced_new_over_old": 0.964443389,
+        "weights_and_state_counts_match": true
+      },
+      {
+        "id": "orkut_g6_query1",
+        "g": 6,
+        "queries": 1,
+        "comparison": "one old/new large-graph run per configuration",
+        "base_old_seconds": 18.940209,
+        "base_new_seconds": 18.792427,
+        "base_new_over_old": 0.992197446,
+        "enhanced_old_seconds": 73.912270,
+        "enhanced_new_seconds": 71.851436,
+        "enhanced_new_over_old": 0.972117836,
+        "weights_and_state_counts_match": true
+      }
+    ],
+    "maximum_observed_accepted_regression": {
+      "panel": "musae_g14_query1 Base",
+      "fraction": 0.029195037,
+      "threshold": 0.03
+    },
+    "quality_mismatches": 0,
+    "state_count_mismatches": 0,
+    "new_timeouts_or_feasibility_regressions": 0
+  },
+  "structural_a1_schedule_gate_20260724": {
+    "result": "PASS",
+    "supersedes": "inclusion_clarification_gate_20260724 for the current executable A1 scheduling contract",
+    "contract": {
+      "logical_grid": "q=max(0,floor(g/2)-1) is the largest anchored-mask cardinality required by the balanced exact-completion recurrence; the required positive layers are exactly 1..q",
+      "base": "Base realizes the whole required grid with forward A. If A1 is a member of 1..q, the same standard row is generated before ordinary D, reused through a read-only cone-future view, and then ownership-transferred to the common forward kernel without a second closure or a second state count",
+      "directed_cut_only": "The directed-cut potential replaces the ordinary-future responsibility; the common full forward-A kernel realizes every required anchored layer",
+      "enhanced": "The directed-cut potential replaces the ordinary-future responsibility. With ell=floor(q/2), common forward A realizes 1..ell and adjoint H realizes the complementary high-layer responsibility ell+1..q",
+      "forbidden_dispatch": "No graph name, query identity, row density, elapsed time, measured performance, or empirical condition of the form g compared with a tuned constant selects the A1 path",
+      "configuration_freeze": "The enhancement mask is fixed before the query starts and cannot change during the query"
+    },
+    "non_regression_policy": {
+      "maximum_new_over_old": 1.03,
+      "comparison_unit": "sum of solver-only per-query time over a fixed panel; graph and query loading are excluded",
+      "short_panel_rule": "use at least three alternating runs and compare medians",
+      "large_graph_rule": "one old/new run is an additional direction and memory check, not a substitute for the repeated small/medium panels",
+      "state_count_rule": "state counts may change when A1 is scheduled before D because a different incumbent is visible at discovery time; exact weights must match and the work change must be disclosed"
+    },
+    "comparison_baseline": {
+      "git_commit": "05fedcc9229b03eca39120bfd210837fce3ad54d",
+      "binary_bytes": 421471,
+      "binary_sha256": "bce2b8c6338cdcaf50a305a6bdf3c9f05cf8432a25beb8a8e4d4c20233ff1799"
+    },
+    "timed_candidate_binary": {
+      "binary_bytes": 424245,
+      "binary_sha256": "9e20aaddad624ab6ea86ec66d1cad2e1907ab67918087cf4b18648ead40feb00b",
+      "implementation_changes": [
+        "replace the empirical A1 group-count guard with the logical anchored-grid schedule",
+        "move Base's already-existing initial root-path witness evaluation before every A/D state so the newly uniform A1 schedule sees the tighter incumbent",
+        "cache the top-two A1 payload locators losslessly in one lazily touched 64-bit item per queried vertex and release the cache after ordinary D",
+        "expose and regression-test the safe-addition or same-role-replacement ConfigurationProfile"
+      ]
+    },
+    "final_validation_binary": {
+      "binary_bytes": 424245,
+      "binary_sha256": "0eb2c9f9fcd297c03fa82d51977931f266e4b005cfe91a9c063782a82a8a0e3e",
+      "post_timing_changes": "move the accepted layer-plan formula and predicates into the shared header so the regression test can inspect the executable contract, and replace forward.cpp's direct half<2 test with the schedule's complete_implicit_anchor bit. The latter distinguishes an empty complete logical grid from an empty Enhanced low prefix with a nonempty H suffix. No recurrence, pruning expression, row layout, A1 cache, or completion layer changed.",
+      "ctest": "5/5 PASS",
+      "final_hash_interleaved_checks": {
+        "musae_author_g5_full_base": {
+          "queries": 300,
+          "old_seconds": [17.989440, 17.372995, 17.547932],
+          "new_seconds": [17.735320, 17.570958, 18.225195],
+          "old_median_seconds": 17.547932,
+          "new_median_seconds": 17.735320,
+          "new_over_old": 1.010678637,
+          "weight_mismatches": 0
+        },
+        "musae_cross_g10_enhanced": {
+          "queries": 5,
+          "old_seconds": [2.381182, 2.299604, 2.342078],
+          "new_seconds": [2.271983, 2.271125, 2.336541],
+          "old_median_seconds": 2.342078,
+          "new_median_seconds": 2.271983,
+          "new_over_old": 0.970071449,
+          "weights_and_state_counts_match": true
+        }
+      },
+      "final_hash_known_optimum_check": {
+        "steinlib_base_seconds": 12.558120,
+        "steinlib_enhanced_seconds": 4.007772,
+        "result": "Base 11/11 and Enhanced 11/11 match the g=11..16 known optima",
+        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+      }
+    },
+    "final_documented_binary": {
+      "binary_bytes": 424245,
+      "binary_sha256": "14b5e8aea38cbbb3f284ccabc47c3d9804bbc77979fe5b0ff450ae7c1199a7a6",
+      "change_after_interleaved_timing": "rename the AddedOperation identifier PrimalFacilityUpperBound to FacilityUpperBound while preserving its underlying bit value. This removes a documentation-category ambiguity: primal upper/witness is the same-role replacement for Base root-path upper/witness, while facility is the safe addition. No executable condition, arithmetic expression, data layout, enum value, or recurrence changed.",
+      "ctest": "5/5 PASS",
+      "steinlib_known_optimum_check": {
+        "base": "11/11 match, 13.301639 solver seconds",
+        "enhanced": "11/11 match, 4.029878 solver seconds",
+        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+      }
+    },
+    "release_binary": {
+      "binary_bytes": 424245,
+      "binary_sha256": "ccf639d28101f6baf3d7f628077685a71a859495b09d8315215eee0a70b72e0b",
+      "change_after_documentation_validation": "the final top-level A/H dispatch reads completion_schedule.uses_adjoint instead of re-reading the equivalent frozen option bit. The tested ConfigurationProfile and layer schedule now form the single dispatch chain; no layer boundary, arithmetic, row, or loop changed.",
+      "ctest": "5/5 PASS",
+      "steinlib_known_optimum_check": {
+        "base": "11/11 match, 13.323551 solver seconds",
+        "enhanced": "11/11 match, 4.191898 solver seconds",
+        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+      }
+    },
+    "repository_audit_rebuild": {
+      "binary_bytes": 424245,
+      "binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611",
+      "change_after_release_binary": "repository-wide paper-method audit tightened comments and documentation, added unknown-enhancement-bit rejection to the existing configuration regression, and corrected the CMake target-role comments. No ABHSS executable condition, arithmetic expression, data layout, recurrence, or command-line behavior changed",
+      "windows_hash_note": "the MinGW PE contains a link timestamp and debug line sections, so this raw whole-file SHA-256 is an artifact identity rather than a reproducible source identity; the current artifact is recorded instead of reusing the earlier release hash",
+      "ctest": "5/5 PASS",
+      "steinlib_known_optimum_check": {
+        "base": "11/11 match, 13.207488 solver seconds",
+        "enhanced": "11/11 match, 3.978831 solver seconds",
+        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+      },
+      "performance_evidence": "the release_binary performance panels remain the applicable executable-path evidence because the audit changed no solver statement; no new performance number is inferred from the changed whole-file PE hash"
+    },
+    "correctness": {
+      "ctest": "5/5 PASS after the final build",
+      "independent_random_exact_dp": "144 deterministic connected cases, all three legal configurations, g=2..10",
+      "steinlib_known_optima": "Base 11/11 and Enhanced 11/11 on WRP instances with g=11..16 after the final build",
+      "steinlib_weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "performance_panel_weight_mismatches": 0,
+      "new_timeouts_or_feasibility_regressions": 0
+    },
+    "performance_panels": [
+      {
+        "id": "musae_author_g5_full_base",
+        "purpose": "stress the formerly deferred A1 case with the complete 300-query author workload",
+        "queries": 300,
+        "comparison": "three runs per binary; compare medians",
+        "old_seconds": [17.536750, 17.321490, 17.327307],
+        "new_seconds": [17.174919, 17.947839, 17.623782],
+        "old_median_seconds": 17.327307,
+        "new_median_seconds": 17.623782,
+        "new_over_old": 1.017110276,
+        "weights_match": true,
+        "old_mask_vertex_states": 148124,
+        "new_mask_vertex_states": 1140079,
+        "state_change_explanation": "A1 is now generated before D for every query whose logical grid contains that layer; the old path generated it only after D and therefore saw a later, tighter incumbent. The full workload remains inside the preregistered time gate despite the disclosed extra discoveries."
+      },
+      {
+        "id": "musae_cross_g6_base",
+        "purpose": "repeat the existing five-query Base regression panel after the structural schedule change",
+        "queries": 5,
+        "comparison": "three final-candidate runs versus the frozen seven-run old median",
+        "old_median_seconds": 0.324194,
+        "new_seconds": [0.313223, 0.322729, 0.304143],
+        "new_median_seconds": 0.313223,
+        "new_over_old": 0.966159152,
+        "weights_match": true
+      },
+      {
+        "id": "musae_cross_g10_enhanced",
+        "purpose": "verify that the Enhanced path, whose state work is unchanged, does not regress",
+        "queries": 5,
+        "comparison": "three alternating old/new runs; compare medians",
+        "old_seconds": [2.327287, 2.427691, 2.404028],
+        "new_seconds": [2.416109, 2.329040, 2.335852],
+        "old_median_seconds": 2.404028,
+        "new_median_seconds": 2.335852,
+        "new_over_old": 0.971640929,
+        "weights_and_state_counts_match": true
+      },
+      {
+        "id": "orkut_cross_g6_query1_base",
+        "purpose": "large-graph solver-time and query-memory direction check",
+        "queries": 1,
+        "old_seconds": 21.218458,
+        "new_seconds": 17.772309,
+        "new_over_old": 0.837587208,
+        "old_query_peak_rss_mib": 266.996,
+        "new_query_peak_rss_mib": 239.562,
+        "weight": 11,
+        "weights_match": true
+      },
+      {
+        "id": "reddit_cross_g10_queries1_2_base",
+        "purpose": "multi-million-vertex sparse-query time and memory direction check",
+        "queries": 2,
+        "old_total_seconds": 2.245410,
+        "new_total_seconds": 2.176247,
+        "new_over_old": 0.969198053,
+        "query2_old_peak_rss_mib": 161.852,
+        "query2_new_peak_rss_mib": 161.789,
+        "weights": [0, 100],
+        "weights_match": true
+      }
+    ],
+    "maximum_repeated_panel_regression": {
+      "panel": "musae_author_g5_full_base",
+      "fraction": 0.017110276,
+      "threshold": 0.03
+    },
+    "rejected_variants": [
+      "unconditionally moving A1 before D without a payload-locator cache exceeded the time gate",
+      "delaying A1 until after D size 2 improved one panel but regressed another and reintroduced a schedule not derived from the recurrence",
+      "caching two doubles per vertex improved lookup time but inflated large-graph RSS",
+      "the accepted packed-locator cache preserves the original double payload and the large-graph memory direction"
+    ]
   },
   "build_identity": {
     "git_base_commit": "4ac26f45ac97dffd47936b921a1729abca3513ec",
@@ -54,8 +385,9 @@
   "correctness": {
     "fast_graph_io_structure": "PASS",
     "zero_weight_witness_three_legal_configurations": "PASS",
-    "independent_exact_subset_dp_random_instances": 120,
+    "independent_exact_subset_dp_random_instances": 144,
     "configuration_chain_round_trip": "PASS",
+    "add_or_replace_profile": "PASS: added-operation subset relation and all four same-role realizations asserted",
     "public_api_rejects_adjoint_only": "PASS",
     "command_line_rejects_adjoint_only": "PASS",
     "steinlib_wrp_known_optima": "11/11 for base and enhanced",

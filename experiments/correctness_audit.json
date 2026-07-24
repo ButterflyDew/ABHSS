@@ -1,16 +1,16 @@
 {
   "schema_version": 5,
-  "audited_at": "2026-07-23",
+  "audited_at": "2026-07-24",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
     "zero_weight_witness": "PASS: base, directed-cut-only and enhanced all return 1",
-    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10; cumulative discovered-state totals are base=2789, directed-cut-only=972, enhanced=980",
+    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10; the same gate validates the add-or-replace ConfigurationProfile, rejects unknown enhancement bits, and checks exact one-realization coverage of every required anchored layer for group counts 0..16; cumulative discovered-state totals are base=2772, directed-cut-only=972, enhanced=980",
     "mask_vertex_state_accounting": "PASS: ABHSS Base/Enhanced counts are deterministic across repeated runs, PrunedDP++ Hash/Dense report the same present-entry count, and trivial queries report zero",
     "query_prelude_contracts": "PASS: empty, singleton, overlapping-zero, disconnected-infeasible, out-of-range vertex and g>16 cases have the declared behavior",
     "strict_bound_closure": "PASS: a 5e-10 positive upper/lower gap is not misclassified as exact closure",
-    "illegal_adjoint_only": "PASS: public API and command line reject adjoint-completion without directed-cut"
+    "illegal_configuration_bits": "PASS: public API rejects unknown enhancement bits and adjoint-completion without directed-cut; the command line also rejects adjoint-only"
   },
   "configuration_refactor_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json",
@@ -19,6 +19,41 @@
     "objective_mismatches": 0,
     "timeout_or_feasibility_regressions": 0,
     "maximum_new_over_old_panel_time": 1.011842788,
+    "threshold": 1.03,
+    "result": "PASS"
+  },
+  "repository_consistency_audit": {
+    "current_release_binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611",
+    "github_markdown": "PASS: all 15 tracked Markdown files are strict UTF-8, have balanced code/math fences and inline-dollar delimiters, contain no legacy LaTeX delimiters or raw math pipes inside tables, and have no broken local links",
+    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 26,484 performance tasks (P1=8,318, P2=360, S2=150 queries across three methods)",
+    "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
+    "paper_method_contract": "PASS: the active documents describe the same add-or-replace ConfigurationProfile, recurrence-derived A/H schedule, output fields, timeout, workload counts and source limitations as the code and machine manifests"
+  },
+  "configuration_inclusion_clarification_gate": {
+    "evidence": "experiments/abhss_configuration_refactor_gate.json#inclusion_clarification_gate_20260724",
+    "status": "SUPERSEDED for the current A1 schedule; retained as a historical naming-only gate",
+    "contract": "safe additions or same-role replacements; every realized A1 row is materialized at most once and high-layer A1 may be replaced by H",
+    "accepted_panels": 6,
+    "configuration_panel_comparisons": 12,
+    "objective_mismatches": 0,
+    "state_count_mismatches": 0,
+    "timeout_or_feasibility_regressions": 0,
+    "maximum_new_over_old_panel_time": 1.029195037,
+    "threshold": 1.03,
+    "result": "PASS"
+  },
+  "structural_a1_schedule_gate": {
+    "evidence": "experiments/abhss_configuration_refactor_gate.json#structural_a1_schedule_gate_20260724",
+    "contract": "the anchored recurrence defines the positive layer interval 1..q with q=max(0,floor(g/2)-1); Base, DirectedCutOnly and Enhanced cover that same interval with the declared forward-A or adjoint-H realization, and no empirical group-count threshold selects a path",
+    "final_binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611",
+    "local_ctest": "5/5 PASS",
+    "independent_random_exact_dp_cases": 144,
+    "steinlib_final_build": "Current audit rebuild: Base 11/11 in 13.207488 solver seconds and Enhanced 11/11 in 3.978831 solver seconds match known optima for g=11..16",
+    "repeated_performance_panels": 3,
+    "large_graph_direction_checks": 2,
+    "objective_mismatches": 0,
+    "timeout_or_feasibility_regressions": 0,
+    "maximum_repeated_panel_new_over_old": 1.017110276,
     "threshold": 1.03,
     "result": "PASS"
   },

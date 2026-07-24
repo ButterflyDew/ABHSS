@@ -1083,6 +1083,15 @@ bool PrepareProblem(Problem& p)
 
     p.ordinary.assign(p.subset_count, {});
     p.ordinary_minimum.assign(p.subset_count, fp::kInf);
+
+    // Base 本来就会零 rent 购买一次 root-path witness subset DP；把同一次
+    // 求值前移到任何 A/D 状态层之前，使 A1 使用收紧后的 incumbent。开启
+    // DirectedCut 时，primal upper/witness 已替换 Base 的初始上界职责，
+    // facility 另作安全新增；不重放 root-path 求值，后续共用调度器。
+    if (p.UsesBoundedGroupDistances())
+        p.best = std::min(
+            p.best,
+            EvaluateWitnessTree(p.witness_tree, p, p.ordinary));
     return p.best <= p.component_cover.lower;
 }
 

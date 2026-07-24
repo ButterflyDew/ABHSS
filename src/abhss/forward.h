@@ -14,6 +14,9 @@ namespace gst::methods::abhss::internal
 struct ForwardAnchoredPlan
 {
     int last_size = 0;
+    // 仅当完整逻辑正层域为空时，直接以隐式 A(0) 做最终结算。该位由完整
+    // completion schedule 给出，不能用 low prefix 为空或某个 g 阈值代替。
+    bool complete_implicit_anchor = false;
     bool retain_last_layer = true;
     const char* probe_method = nullptr;
     const char* probe_phase = "forward_anchor_layer";
@@ -21,11 +24,11 @@ struct ForwardAnchoredPlan
 
 /**
  * @brief 按计划生成前向锚定 A(S,v) row 并持续更新全局可行上界。
- * @param initial_rows 空表或 `subset_count` 大小的已精确闭包 early-A1 表。
+ * @param initial_rows 空表或 `subset_count` 大小、由本内核提前生成的 A1 表。
  * @return 需要保留的前向 row；最后层是否保留由 plan 决定。
  *
- * `initial_rows` 按值接收并转移所有权，因为 ordinary 阶段结束后 early row
- * 不再有其他消费者。全部配置调用这一份 seed、图闭包和完成结算实现。
+ * `initial_rows` 按值接收并转移所有权，因为 ordinary 阶段结束后 singleton
+ * future 不再有其他消费者。全部配置调用这一份 seed、图闭包和结算实现。
  */
 std::vector<Row> BuildForwardAnchoredRows(
     Problem& problem,

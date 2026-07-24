@@ -26,6 +26,16 @@
     "enhanced_arguments": ["--enhancements=all"],
     "enhancement_order": ["directed-cut", "adjoint-completion"],
     "dependency": "adjoint-completion requires directed-cut",
+    "execution_relation": "every difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
+    "same_role_replacements": {
+      "group_distance": "canonical-SPT cutoff plus bounded value/IsExact oracle -> complete value/IsExact potential oracle without a cutoff-construction pass",
+      "ordinary_future": "reusable A1 cone -> directed-cut potential",
+      "upper_witness": "root-path tree plus a pre-D witness-DP evaluation -> primal upper plus dual-primal tree as the pre-D/periodic witness realization; common root-star and root-path-union uppers remain shared",
+      "A1_schedule": "derive the required layer interval 1..q, q=max(0,floor(g/2)-1), from the balanced completion recurrence. Base realizes every layer in that interval with forward A and schedules its first member A1 before D so the same standard row can serve as a future and then be transferred. An empty interval has no A1 to materialize. Enhanced uses low forward A for the prefix and adjoint H for the suffix; no empirical group-count threshold exists",
+      "high_completion": "forward high A -> low A plus adjoint high H"
+    },
+    "safe_additions": ["directed-cut dual-feasibility certificate", "facility feasible upper bound"],
+    "contract_evidence": "experiments/abhss_configuration_refactor_gate.json",
     "runtime_switching": "forbidden"
   },
   "graph_loading": {
@@ -47,7 +57,7 @@
   "solver_output_contract": {
     "returns": ["exact objective weight", "feasibility", "mask_vertex_states"],
     "native_result_columns": ["query_seconds", "weight", "query_peak_rss_mib", "mask_vertex_states"],
-    "mask_vertex_states": "ABHSS counts distinct D/A/H (mask,v) states when first admitted to a row workspace; PrunedDP++ counts distinct entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
+    "mask_vertex_states": "ABHSS counts D/A/H row entries when first admitted to a workspace, with the state family included in the key, so equal numeric (mask,v) pairs in different families count separately; PrunedDP++ counts distinct (mask,v) entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
     "unavailable_integer_metric": -1,
     "does_not_currently_serialize": "optimal tree edge set",
     "paper_guardrail": "do not claim that the current artifact outputs the tree unless decision reconstruction is implemented and tested"

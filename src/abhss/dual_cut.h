@@ -32,7 +32,8 @@ public:
      * @brief 构造全部组势、保留 residual，并恢复一棵 primal 可行树。
      *
      * 各组按根距离递减分配有向边容量；每轮只从此前真正改写过的弧启动
-     * residual 最短路修复。最后在零 residual 弧上恢复原图边 bitmap。
+     * residual 最短路修复。最后在固定容差内的数值零 residual 弧上恢复
+     * 原图边 bitmap；候选路径始终按原边权计价。
      * 调用者可在生成 witness 后用 `ReleaseResidual` 回收 2m 临时数组。
      */
     void BuildKeepingResidualChangedArcsWithPrimalEdges(
@@ -85,7 +86,7 @@ public:
         return potential_[group][vertex];
     }
 
-    /** @brief 返回零 residual 弧上恢复的 primal 可行树真实边权。 */
+    /** @brief 返回数值零 residual 弧上恢复的 primal 可行树真实边权。 */
     double PrimalUpper() const
     {
         return primal_upper_;
@@ -232,7 +233,7 @@ private:
     }
 
     /**
-     * @brief 在零 residual 有向弧上从 root 逐次连接尚未覆盖的组。
+     * @brief 在固定容差内的数值零 residual 有向弧上逐次连接未覆盖组。
      * @return 恢复出的原图边并集真实权重；无法覆盖全部组时返回正无穷。
      *
      * Dijkstra 仍按原边权计价，并把选中路径写入调用者持有的 edge bitmap，

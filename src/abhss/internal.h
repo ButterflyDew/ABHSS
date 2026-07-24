@@ -88,7 +88,8 @@ void ForEachBranch(const Row& row, Use&& use)
  *
  * 基础配置只保留严格小于安全 cutoff 的精确距离，并按实际字节数在 dense
  * 与“有序值+membership/rank 位图”间选择；DirectedCut 增强需要完整势，
- * 因而使用非 bounded dense 表。两种布局具有完全相同的读取语义。
+ * 因而使用非 bounded dense 表。各布局共享“读取值 + IsExact”合同；bounded
+ * 表的 cutoff 占位不能脱离 IsExact 冒充真实距离。
  */
 struct GroupRow
 {
@@ -196,7 +197,7 @@ struct Problem
     {
     }
 
-    /** @brief 返回是否启用给定增强，是内部所有能力判断的唯一入口。 */
+    /** @brief 热路径直接读取冻结 bit mask；语义映射由 ConfigurationProfile 审计。 */
     bool HasEnhancement(Enhancement enhancement) const
     {
         return options.Enabled(enhancement);
@@ -244,9 +245,10 @@ struct Problem
      * @brief 查询期间首次进入 D/A/H 行工作区的不同 `(mask,v)` 数量。
      *
      * 每张逻辑 row 只构造一次，因此在该 row 中某顶点第一次由无穷变为
-     * 有限值时即可一次性计数。计数按 D/A/H 状态族区分；同一 early-A1
-     * row 转交给公共前向内核时不重复计数。组距离、tour、dual、转置候选和
-     * 完整解结算不是主状态表，均不计入。
+     * 有限值时即可一次性计数。D/A/H 状态族是键的一部分；同一数值 mask、
+     * vertex 出现在不同状态族时是不同项。Base 提前调度的同一 A1 row 转交
+     * 给公共前向内核时不重复计数。组距离、tour、dual、转置候选和完整解
+     * 结算不是主状态表，均不计入。
      */
     std::uint64_t mask_vertex_states = 0;
 

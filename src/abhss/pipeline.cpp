@@ -51,12 +51,12 @@ bool PrepareWithProbe(Problem& problem, const char* probe_method)
 
 /** @brief 以统一诊断边界调用 ordinary 构造，并统计最终 row payload。 */
 void BuildOrdinaryWithProbe(Problem& problem,
-                            EarlyAnchor* early,
+                            AnchoredSingletonFuture* singleton_future,
                             const char* probe_method)
 {
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "ordinary_start", problem);
-    BuildOrdinaryRows(problem, early);
+    BuildOrdinaryRows(problem, singleton_future);
     EmitAbhssProbe(
         probe_method,
         "ordinary_end",

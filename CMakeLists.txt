@@ -38,8 +38,9 @@ if(ABHSS_ENABLE_IPO)
     endif()
 endif()
 
-# 两个 helper 让三个正式本地二进制使用同一编译策略，同时避免把本项目的
-# 警告选项强加给不可修改的第三方 header。
+# 两个 helper 让三个仓库内 solver target 使用同一编译策略，同时避免把
+# 本项目的警告选项强加给不可修改的第三方 header。正式性能矩阵只使用其中
+# 的 abhss 与 pruneddp；dpbf 是 correctness-only target。
 function(abhss_enable_project_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
@@ -144,8 +145,9 @@ target_compile_definitions(abhss PRIVATE ABHSS_BUILD_ABHSS=1)
 
 foreach(target pruneddp dpbf abhss)
     target_link_libraries(${target} PRIVATE Threads::Threads)
-    # ABHSS 的基础/增强配置由同一个可执行文件在查询开始前选定。对所有正式
-    # 计时方法统一启用 Release IPO，避免把编译策略误当作算法增强。
+    # ABHSS 的基础/增强配置由同一个可执行文件在查询开始前选定。仓库内
+    # solver target 统一采用 Release IPO 策略；正式计时子集因此不会把
+    # 编译策略差异误当作算法增强。
     abhss_enable_release_ipo(${target})
     abhss_enable_project_warnings(${target})
     if(WIN32)

@@ -252,6 +252,25 @@ void CheckPreludeContracts(const gst::methods::abhss::SolveOptions& base,
     }
     if (!rejected_invalid)
         throw std::runtime_error("adjoint-only configuration reached solving");
+
+    // 公开结构允许调用者直接写 bit mask，因此未知高位也必须在进入任何
+    // 图/查询预处理前拒绝，不能被未来编译版本静默解释为某种配置。
+    auto unknown = base;
+    unknown.enhancements = std::uint32_t{1} << 31;
+    if (gst::methods::abhss::IsValid(unknown) ||
+        std::string(gst::methods::abhss::ConfigurationName(unknown)) != "invalid")
+        throw std::runtime_error("unknown enhancement bit was marked valid");
+    bool rejected_unknown = false;
+    try
+    {
+        (void)gst::methods::abhss::SolveOneQuery(graph, overlap, unknown);
+    }
+    catch (const std::invalid_argument&)
+    {
+        rejected_unknown = true;
+    }
+    if (!rejected_unknown)
+        throw std::runtime_error("unknown enhancement bit reached solving");
 }
 
 /**
@@ -286,8 +305,13 @@ void CheckSubNanogapClosure(const gst::methods::abhss::SolveOptions& base)
 /** @brief 运行入口契约及 g=2..10 的 144 个确定性随机精确性实例。 */
 int main()
 {
+    using gst::methods::abhss::AddedOperation;
     using gst::methods::abhss::Enhancement;
+    using gst::methods::abhss::GroupDistanceRealization;
+    using gst::methods::abhss::HighLayerRealization;
+    using gst::methods::abhss::OrdinaryFutureRealization;
     using gst::methods::abhss::SolveOptions;
+    using gst::methods::abhss::UpperWitnessRealization;
 
     // 显式验证“完整增强逐项关开关即回到基础配置”的配置链，而不是仅依赖
     // 三个工厂函数碰巧返回相同掩码。
@@ -300,6 +324,82 @@ int main()
             SolveOptions::DirectedCutOnly().enhancements ||
         base.enhancements != SolveOptions::Base().enhancements)
         throw std::runtime_error("ABHSS enhancement switch chain is inconsistent.");
+
+    // 进一步验证论文使用的“新增 + 同职责替换”关系。Base 不得拥有仅自己
+    // 执行的逻辑阶段；距离、ordinary future、上界 witness 和高层完成均由
+    // profile 显式选择 realization，真正新增的证书位只能单调增加。
+    const auto base_profile =
+        gst::methods::abhss::DescribeConfiguration(base);
+    const auto directed_profile =
+        gst::methods::abhss::DescribeConfiguration(directed_only);
+    const auto enhanced_profile =
+        gst::methods::abhss::DescribeConfiguration(enhanced);
+    if (!base_profile.valid || !directed_profile.valid ||
+        !enhanced_profile.valid || base_profile.added_operations != 0 ||
+        (base_profile.added_operations & ~directed_profile.added_operations) ||
+        (directed_profile.added_operations & ~enhanced_profile.added_operations) ||
+        base_profile.group_distance != GroupDistanceRealization::BoundedCutoff ||
+        directed_profile.group_distance !=
+            GroupDistanceRealization::CompletePotential ||
+        base_profile.ordinary_future !=
+            OrdinaryFutureRealization::AnchoredSingletonCone ||
+        directed_profile.ordinary_future !=
+            OrdinaryFutureRealization::DirectedCutPotential ||
+        base_profile.upper_witness != UpperWitnessRealization::RootPathTree ||
+        directed_profile.upper_witness !=
+            UpperWitnessRealization::DualPrimalTree ||
+        base_profile.high_layer != HighLayerRealization::ForwardAnchoredA ||
+        directed_profile.high_layer !=
+            HighLayerRealization::ForwardAnchoredA ||
+        enhanced_profile.high_layer != HighLayerRealization::AdjointH ||
+        !enhanced_profile.Adds(AddedOperation::DirectedCutCertificate) ||
+        !enhanced_profile.Adds(AddedOperation::FacilityUpperBound))
+        throw std::runtime_error(
+            "ABHSS add-or-replace configuration contract is inconsistent.");
+
+    // 层计划只能来自平衡递推域。逐个 g 核对每一正层由一种 realization
+    // 恰好覆盖，防止以后重新加入“某个组数以上才提前 A1”之类经验分派。
+    for (int group_count = 0; group_count <= 16; ++group_count)
+    {
+        const int half = group_count / 2;
+        const int expected_highest = half > 0 ? half - 1 : 0;
+        const auto base_schedule =
+            gst::methods::abhss::MakeAnchoredCompletionSchedule(
+                group_count, base_profile);
+        const auto directed_schedule =
+            gst::methods::abhss::MakeAnchoredCompletionSchedule(
+                group_count, directed_profile);
+        const auto enhanced_schedule =
+            gst::methods::abhss::MakeAnchoredCompletionSchedule(
+                group_count, enhanced_profile);
+        if (base_schedule.highest_layer != expected_highest ||
+            base_schedule.forward_last_layer != expected_highest ||
+            base_schedule.uses_adjoint ||
+            directed_schedule.highest_layer != expected_highest ||
+            directed_schedule.forward_last_layer != expected_highest ||
+            directed_schedule.uses_adjoint ||
+            enhanced_schedule.highest_layer != expected_highest ||
+            enhanced_schedule.forward_last_layer != expected_highest / 2 ||
+            !enhanced_schedule.uses_adjoint)
+            throw std::runtime_error(
+                "ABHSS anchored layer boundary is not derived from the exact grid.");
+
+        for (int layer = 1; layer <= expected_highest + 1; ++layer)
+        {
+            const bool required = layer <= expected_highest;
+            if (base_schedule.ContainsLogicalLayer(layer) != required ||
+                base_schedule.UsesForwardA(layer) != required ||
+                base_schedule.UsesAdjointH(layer) ||
+                directed_schedule.UsesForwardA(layer) != required ||
+                directed_schedule.UsesAdjointH(layer) ||
+                (enhanced_schedule.UsesForwardA(layer) &&
+                 enhanced_schedule.UsesAdjointH(layer)) ||
+                (enhanced_schedule.UsesForwardA(layer) ||
+                 enhanced_schedule.UsesAdjointH(layer)) != required)
+                throw std::runtime_error(
+                    "ABHSS anchored layer has missing or duplicate realization.");
+        }
+    }
 
     CheckPreludeContracts(base, enhanced);
     CheckSubNanogapClosure(base);
