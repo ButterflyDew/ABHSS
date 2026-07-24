@@ -31,6 +31,9 @@ INLINE_DOLLAR = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)")
 LOCAL_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 FORBIDDEN_GITHUB_MATH_MACRO = re.compile(r"\\(operatorname)\*?(?![A-Za-z])")
 FORBIDDEN_GITHUB_CASES = re.compile(r"\\(?:begin|end)\s*\{cases\}")
+FORBIDDEN_TEXT_MACRO_UNDERSCORE = re.compile(
+    r"\\(?:text|texttt|mathtt)\{[^}\n]*[\\]?_[^}\n]*\}"
+)
 
 
 def markdown_files() -> list[Path]:
@@ -56,6 +59,12 @@ def check_github_math_macros(
             f"{relative}:{line_number}: GitHub failed to render the cases "
             "environment in this repository; split the branches into "
             "separate fenced math blocks"
+        )
+    if FORBIDDEN_TEXT_MACRO_UNDERSCORE.search(text):
+        failures.append(
+            f"{relative}:{line_number}: GitHub may parse an underscore inside "
+            "a math text macro outside math mode; keep the code identifier in "
+            "Markdown prose or rewrite it as a mathematical symbol"
         )
 
 

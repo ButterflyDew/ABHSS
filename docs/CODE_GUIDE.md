@@ -200,9 +200,10 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
    ````
 
 2. 不得在行内或块公式中使用 `\operatorname` 或 `\operatorname*`。截至 2026-07-24，GitHub 会显示 “The following macros are not allowed: operatorname”，并把公式源文回退成灰色代码块。普通命名使用 `\mathrm{name}`；例如 `\mathrm{OPT}`、`\mathrm{dist}` 和 `\mathrm{clamp}`。当前渲染器也曾把语法完整的 `\begin{cases}...\end{cases}` 报成 “Missing `\end{cases}`”；本仓库因此把分段函数拆成多个独立 `math` block，不再使用 `cases` 环境。
-3. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
-4. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、本地链接、表格公式以及已确认的 GitHub 禁用宏；`make release` 已依赖该门禁。
-5. 上传后不能只统计 `.js-display-math` 节点，因为失败公式同样会生成该节点。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）至少抽查所有含块公式的文件，并确认每个 `.js-display-math` 都含实际 MathML `<math>` 子节点，页面不存在 `.flash-error`、黄色错误框或灰色公式源码回退。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 一类解析错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
+3. 不要把含下划线的代码标识符塞进数学文本命令，例如不要写 `$S\subseteq\texttt{full\_mask}$`。GitHub 曾把其中的 `_` 送到文本模式并报 “`'_' allowed only in math mode`”。代码名应留在公式外，用 Markdown 行内代码表示；若确实需要数学记号，则改写为 `$M_{\mathrm{full}}$` 这一类结构。
+4. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
+5. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、本地链接、表格公式以及已确认的 GitHub 禁用宏；`make release` 已依赖该门禁。
+6. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
 
 语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。
 

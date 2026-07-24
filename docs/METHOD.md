@@ -227,7 +227,7 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 
 - ordinary row、锚定 row、补集转置和 `popcount` 使用压缩 mask；
 - 需要连同锚组调用全组 future、tour 或 dual 时，使用 `anchor_bit | original_mask[S]`；
-- `full_mask ^ S` 只在已经确认 $S\subseteq\texttt{full\_mask}$ 时表示非锚补集；原始全组补集使用 `original_full_mask ^ original_mask[S]`。
+- `full_mask ^ S` 只在已经确认 $S$ 是压缩全集 `full_mask` 的子集时表示非锚补集；原始全组补集使用 `original_full_mask ^ original_mask[S]`。
 
 选择永久锚后，所有上述数组一次性建立且查询内不再改变。这样可把普通状态数从 $2^g$ 降到 $2^{g-1}$，同时让 $A(\varnothing,v)=d_a(v)$ 作为隐式基例，不必为锚 singleton 再保存一张全图 row。
 
