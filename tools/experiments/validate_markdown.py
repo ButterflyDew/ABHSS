@@ -30,6 +30,9 @@ FENCE_OPEN = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 INLINE_CODE = re.compile(r"`[^`]*`")
 INLINE_DOLLAR = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)")
 LOCAL_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+UNSAFE_INLINE_MATH_LEFT_BOUNDARY = re.compile(
+    r"[、，；：（）。！？]\$(?!\$)|(?<!\s)-\$(?!\$)"
+)
 FORBIDDEN_GITHUB_MATH_MACRO = re.compile(r"\\(operatorname)\*?(?![A-Za-z])")
 FORBIDDEN_GITHUB_CASES = re.compile(r"\\(?:begin|end)\s*\{cases\}")
 FORBIDDEN_TEXT_MACRO_UNDERSCORE = re.compile(
@@ -154,6 +157,12 @@ def main() -> int:
             prose = INLINE_CODE.sub("", line)
             prose_lines.append(prose)
             check_github_math_macros(prose, relative, line_number, failures)
+            if UNSAFE_INLINE_MATH_LEFT_BOUNDARY.search(prose):
+                failures.append(
+                    f"{relative}:{line_number}: GitHub may leave inline math "
+                    "literal when its opening $ touches CJK punctuation or a "
+                    "word hyphen; insert a space before the opening $"
+                )
             inline_dollars += len(INLINE_DOLLAR.findall(prose))
             if re.search(r"\\[()[\]]", prose):
                 failures.append(
@@ -218,7 +227,8 @@ def main() -> int:
 
     print(
         f"Validated {len(files)} GitHub Markdown files: strict UTF-8, "
-        "balanced fences/math, GitHub-safe macros, and exact-case tracked links"
+        "balanced fences/math, safe inline boundaries/macros, and exact-case "
+        "tracked links"
     )
     return 0
 

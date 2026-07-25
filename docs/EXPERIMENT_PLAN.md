@@ -141,7 +141,7 @@ P2 只使用同一 GPU4GST 作者图族，使图转换、候选组和 related-gr
 
 P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六图平均后的单一倍率。小图必须保留，即使 ABHSS 固定成本导致轻微劣势。
 
-## 5. 副实验：$\langle g,f\rangle$ 受控敏感性
+## 5. 副实验： $\langle g,f\rangle$ 受控敏感性
 
 ### 5.1 图和网格
 
@@ -189,7 +189,7 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 - 不比较不同完成子集的平均时间。
 - 不把 ABHSS Base/全增强配置的逐查询最小值当作第三种曲线。
 - 若 PrunedDP++ 在某图明显更好，保留该图并从 `n,m`、密度、候选组大小、连通分量、实际 `f`、状态数和上界命中率分析原因。
-- 每条完成查询同时保存 `mask_vertex_states`：ABHSS 为首次进入 $D$、$A$、$H$ 行的状态项总数，状态族属于实际键，因此不同状态族中数值相同的 `(mask,v)` 分别计数；PrunedDP++ 为主 StateStore 的实际 `(mask,v)` 项数。两边都排除组距离/route/tour/dual、重复队列项和 full-mask 完成候选。该指标用于解释各自状态域的削减，不是跨算法完全同成本的基本操作，也不替代时间或内存。
+- 每条完成查询同时保存 `mask_vertex_states`：ABHSS 为首次进入 $D$、 $A$、 $H$ 行的状态项总数，状态族属于实际键，因此不同状态族中数值相同的 `(mask,v)` 分别计数；PrunedDP++ 为主 StateStore 的实际 `(mask,v)` 项数。两边都排除组距离/route/tour/dual、重复队列项和 full-mask 完成候选。该指标用于解释各自状态域的削减，不是跨算法完全同成本的基本操作，也不替代时间或内存。
 - cell 级报告完成查询的中位/p90 状态数，并在双方均完成且状态数为正的配对上报告 `PrunedDP++ / ABHSS` 状态倍率。timeout 没有最终状态数，必须单列完成分母，不能以完成子集冒充完整 workload，也不能把 Dense 容量当 PrunedDP++ 实际状态数。
 
 ### 7.1 正确性 gate 与运行准入
@@ -199,7 +199,7 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 1. 求解器与可行性审计共用的快速数字读取器保留原边、`edge_id`、双向邻接顺序、自环双邻接项、零/小数/科学计数边权和连通分量缓存，并拒绝尾部 token/非法权重。
 2. 查询读取器保留合法多查询与空查询，并拒绝负查询/组计数、空组、截断 payload 和声明记录之后的多余 token。
 3. Base、DirectedCutOnly 和 Enhanced 都通过历史零权 witness 父指针环反例。
-4. 三个合法配置在 144 个确定性随机连通小图、$2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、$g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
+4. 三个合法配置在 144 个确定性随机连通小图、 $2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、 $g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
 5. ABHSS Base/Enhanced 的状态数重复运行稳定；PrunedDP++ Hash 与 Dense 后端报告相同实际状态数；平凡查询报告 0。
 
 然后运行 `S1_steinlib_exactness_gate`。当前冻结证据包含 11 个 $11\le g\le16$ 的 WRP 已知最优实例：ABHSS Base/Enhanced、PrunedDP++-Safe、DPBF 和 SCIP-Jack 已全部匹配；Basic+ 只在其 $g\le14$ 能力范围内参加。当前证据摘要在 [`experiments/correctness_audit.json`](../experiments/correctness_audit.json)。未恢复第三方二进制时可先跑仓库内 gate，但不能因此声称完成了六方 SteinLib 核验。

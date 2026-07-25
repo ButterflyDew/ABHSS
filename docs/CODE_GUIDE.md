@@ -100,7 +100,7 @@ main
 
 `src/main.cpp` 是二进制公共批处理入口。CMake 通过宏将同一入口编译为 `abhss`、`pruneddp`、`dpbf` 及可选的第三方 adapter，使图加载、查询分片、计时和输出格式一致。每个 `weights.txt` 查询行依次写 time、weight、query peak RSS 和 `mask_vertex_states`；正式 ABHSS/PrunedDP++ 返回非负计数，无统一口径的 adapter 写 `-1`。
 
-`SolveOneQuery` 先通过 `IsValid`（内部读取 `DescribeConfiguration`）拒绝非法开关，再处理空查询、$g>16$、无共同分量、单组等入口情形。非平凡查询建立 `Problem` 并完成预处理后，才保存本次执行所需的 `ConfigurationProfile` 和状态层计划。`Problem` 为避免改变热对象布局，仍只读保存原来的冻结 bit mask；`UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 与 profile 映射由同一配置回归共同约束。代码与论文共用这张“新增或替换”契约，不能再把位掩码单调误写成逐指令包含。
+`SolveOneQuery` 先通过 `IsValid`（内部读取 `DescribeConfiguration`）拒绝非法开关，再处理空查询、 $g>16$、无共同分量、单组等入口情形。非平凡查询建立 `Problem` 并完成预处理后，才保存本次执行所需的 `ConfigurationProfile` 和状态层计划。`Problem` 为避免改变热对象布局，仍只读保存原来的冻结 bit mask；`UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 与 profile 映射由同一配置回归共同约束。代码与论文共用这张“新增或替换”契约，不能再把位掩码单调误写成逐指令包含。
 
 `PrepareProblem` 依次构建零权分量下界、共同的距离—根初始化合同、真实路径并集、锚组、tour 下界和当前配置自己的 witness。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。CompletePotential 构造完整距离势。两者返回前都执行相同 root-star 扫描，返回后又共同构造 root-path-union。规范 SPT 因而是 bounded 物理表示的私有 bootstrap，不是 Base-only 的调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
 
@@ -108,7 +108,7 @@ main
 
 `MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。域为空时，完成式直接使用隐式 $A(\varnothing)$；域非空时，A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
 
-`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核；$H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
+`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核； $H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
 
 Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAnchoredRows`，生成完整的低/高层锚定 $A$。Enhanced 仍调用同一内核生成由平衡完成域确定的低层 $A$，再由 `SolveHighAdjoint` 以补集转置终端和递减 $H$ 代替未物化的高层 $A$。切分是递推域的固定 meet-in-the-middle 边界，不读取数据集名或运行表现。
 
@@ -132,7 +132,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/abhss/abhss.h` | 公开 `SolveOptions`、增强位、`ConfigurationProfile`、`AnchoredCompletionSchedule` 和 `SolveResult` | 开关链只表达安全新增/同职责替换；层计划只表达平衡递推域及 A/H realization |
 | `src/abhss/solver.cpp` | 单一 solver 入口与配置调度 | 只在这里选择完整前向或 adjoint 完成；不存在按查询 oracle |
 | `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
-| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、$A$、$H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
+| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、 $A$、 $H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
 | `src/abhss/preprocess.cpp` | 零权 cover、组距离、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；`best` 只由真实可行子图收紧 |
 | `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
 | `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常生成 row 都走同一完成函数 |
@@ -154,7 +154,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/common/output_manager.{h,cpp}` | 安全创建结果目录并追加 header/记录 | artifact 输出 |
 | `src/pruneddp` | PrunedDP++ 论文路径的本仓库重建，支持 Safe、strict-pathmax 与实际 StateStore 项数 | Safe 是当前主性能 baseline；Hash 直接用容器 size，Dense 只数 present，不是原作者 2016 代码的 bit-for-bit 镜像 |
 | `src/dpbf` | 稠密全子集 Dreyfus–Wagner/DPBF | 小图正确性 baseline，80M cell 安全上限 |
-| `src/baselines/basic_plus.*` | PVLDB 2021 作者 header 的输入 adapter | 可选 correctness-only，$g\le14$ |
+| `src/baselines/basic_plus.*` | PVLDB 2021 作者 header 的输入 adapter | 可选 correctness-only， $g\le14$ |
 | `src/baselines/gpu4gst_pruneddp.*` | GPU4GST artifact 内 CPU PrunedDP++ header 的输入 adapter | 可选 artifact 核验，只接受非负整数边权，不在冻结性能矩阵 |
 
 `basic_plus` 和 `gpu4gst_pruneddp_artifact` 只在所需 `third_party` header 已恢复时由 CMake 创建。SCIP-Jack 是独立外部二进制，由 Python runner 适配，不链接到本项目。
@@ -166,7 +166,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `fast_graph_io_structure` | 零/小数/科学计数边权、原边和邻接顺序、自环双邻接项、连通分量、错误 token | 快速读取改变图语义或静默接受损坏输入 |
 | `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
 | `abhss_zero_weight_witness` | 历史零权父指针环反例 | witness 重根不终止或误计上界 |
-| `abhss_configuration_exactness` | 144 个确定性随机连通小图，$2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言共同 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通图中规范终端失败后的共同分量 fallback、`ConfigurationProfile` 的新增位/其余 realization、共同 witness `buy` 公式、调度器从 `rent=0` 且零次求值启动、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新暴露 Base-only SPT 调度、把规范终端失败误判为查询无解、恢复 Base 预买、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
+| `abhss_configuration_exactness` | 144 个确定性随机连通小图， $2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言共同 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通图中规范终端失败后的共同分量 fallback、`ConfigurationProfile` 的新增位/其余 realization、共同 witness `buy` 公式、调度器从 `rent=0` 且零次求值启动、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新暴露 Base-only SPT 调度、把规范终端失败误判为查询无解、恢复 Base 预买、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
 | `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、A1 所有权交接后重复计数、误把 Dense 容量或辅助预处理当实际状态 |
 
 本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。
@@ -180,7 +180,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `tools/data/generate_controlled_queries.py` | 生成 DBLP/IMDb 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
 | `tools/data/build_query_feasibility_audit.py` | 重用图分量扫描并将每个矩阵 case 的可行性与当前矩阵哈希绑定 |
 | `tools/experiments/validate_environment.py` | 在运行前检查矩阵总数、方法配置、路径、哈希和可行性审计 |
-| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
+| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，拒绝与中文标点或词内连字号相贴的行内公式开界，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
 | `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录，并解析行末状态数 |
 | `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成时间/状态倍率、timeout 方向、目标值和可行性不一致 |
 | `tools/experiments/plot_results.py` | 从冻结 supervisor JSON records 绘制 P2/S2 曲线，不重新挑选查询 |
@@ -191,7 +191,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 
 1. 先写明要保持的数学不变式：真实上界、可采纳下界、精确 row 还是 cutoff 证书。
 2. 优先在公共 `Problem`/`Row`/future/交集函数中实现，不得恢复另一套 Base/Enhanced 数据结构。
-3. 若是增强操作，从 `SolveOptions::Base()` 通过 `With` 增加，在 `DescribeConfiguration` 中明确登记为“安全新增”或“同职责替换”，并在 `IsValid` 中执行依赖检查；不得出现 Base 独有但 Enhanced 无同职责 realization 的阶段，也不得依据图名、$g$、当前速度或内存自动开关。
+3. 若是增强操作，从 `SolveOptions::Base()` 通过 `With` 增加，在 `DescribeConfiguration` 中明确登记为“安全新增”或“同职责替换”，并在 `IsValid` 中执行依赖检查；不得出现 Base 独有但 Enhanced 无同职责 realization 的阶段，也不得依据图名、 $g$、当前速度或内存自动开关。
 4. 为最小反例增加 CTest，然后运行 `make release`。修改剪枝、闭合、零权边或 adjoint 时，三种合法配置都必须对照独立 DP。
 5. 运行 SteinLib 已知最优 gate；任何目标值/可行性不一致都先当正确性错误，不能用“浮点容差”直接解释。
 6. 只在正确性门禁通过后跑旧/新性能 panel；保留每个 panel 的权重序列和超时方向，不仅比较总时间。
@@ -211,8 +211,9 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 2. 不得在行内或块公式中使用 `\operatorname` 或 `\operatorname*`。截至 2026-07-24，GitHub 会显示 “The following macros are not allowed: operatorname”，并把公式源文回退成灰色代码块。普通命名使用 `\mathrm{name}`；例如 `\mathrm{OPT}`、`\mathrm{dist}` 和 `\mathrm{clamp}`。当前渲染器也曾把语法完整的 `\begin{cases}...\end{cases}` 报成 “Missing `\end{cases}`”；本仓库因此把分段函数拆成多个独立 `math` block，不再使用 `cases` 环境。
 3. 不要把含下划线的代码标识符塞进数学文本命令，例如不要写 `$S\subseteq\texttt{full\_mask}$`。GitHub 曾把其中的 `_` 送到文本模式并报 “`'_' allowed only in math mode`”。代码名应留在公式外，用 Markdown 行内代码表示；若确实需要数学记号，则改写为 `$M_{\mathrm{full}}$` 这一类结构。
 4. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
-5. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
-6. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
+5. 行内公式的开界 `$` 前必须有安全边界。GitHub 已实测会把紧跟中文标点或词内连字号的后续公式留成原文：不要写 `$D$、$A$、$H$` 或 `fixed-$U_0$`，而应写成 $D$、 $A$、 $H$ 以及“固定的 $U_0$”。注意“定界符数量配对”不能发现这类问题，必须同时检查边界和上传后的实际 MathML 数量。
+6. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符及安全左边界、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
+7. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
 
 语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。
 
