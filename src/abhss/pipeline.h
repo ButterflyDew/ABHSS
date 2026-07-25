@@ -24,13 +24,14 @@ bool PrepareWithProbe(Problem& problem, const char* probe_method);
 
 /**
  * @brief 在统一 probe 边界内生成 ordinary D row。
- * @param singleton_future Base 中已存在的公共 A1 future 视图；若锚定格没有
- *        A1，或 DirectedCut 用 dual future 替换该职责，则传 nullptr。
+ * @param singleton_future 已存在的公共 A1 future 视图；仅当锚定格没有 A1
+ *        逻辑层时传 nullptr。DirectedCut 作为额外证书，不会关闭该视图。
  *
  * 该包装器只统一计时和诊断字段，不改变 `BuildOrdinaryRows` 的状态语义。
  */
 void BuildOrdinaryWithProbe(Problem& problem,
                             AnchoredSingletonFuture* singleton_future,
+                            WitnessUpperScheduler& witness_scheduler,
                             const char* probe_method);
 
 }  // namespace gst::methods::abhss::internal

@@ -1,6 +1,7 @@
 #ifndef ABHSS_PUBLIC_H
 #define ABHSS_PUBLIC_H
 
+#include <algorithm>
 #include <cstdint>
 
 #include "../common/graph_io.h"
@@ -87,18 +88,23 @@ enum class AddedOperation : std::uint32_t
     FacilityUpperBound = std::uint32_t{1} << 1,
 };
 
-/** @brief 同一“组距离”职责的两种可互换实现。 */
-enum class GroupDistanceRealization : std::uint8_t
+/** @brief 同一“距离 oracle + 候选根 + 初始真实上界”职责的两种实现。 */
+enum class DistanceRootRealization : std::uint8_t
 {
-    BoundedCutoff,
+    BootstrappedBounded,
     CompletePotential,
 };
 
-/** @brief ordinary future 职责的两种可采纳证书实现。 */
+/**
+ * @brief ordinary 阶段共同复用的 A1 future realization。
+ *
+ * 所有合法配置都选择同一 A1 row 视图。开启 DirectedCut 后，ordinary 的
+ * 统一 future 只在 A1 之外另取 dual potential 的最大值；A1 的 seed、闭包、
+ * cone、fallback、top-two 视图和前向交接在所有配置中逐项相同。
+ */
 enum class OrdinaryFutureRealization : std::uint8_t
 {
     AnchoredSingletonCone,
-    DirectedCutPotential,
 };
 
 /** @brief 初始/周期上界见证职责的两种实现。 */
@@ -118,18 +124,19 @@ enum class HighLayerRealization : std::uint8_t
 /**
  * @brief 把增强位解释为论文可陈述的“新增 + 同职责替换”执行契约。
  *
- * `added_operations` 只包含 Base 完全没有对应物的安全工作；其余四个字段
- * 都是相同逻辑职责的 realization，而不是额外算法阶段。特别地，Base 的
- * A1-cone future 被 DirectedCut potential 替换；A1 落在需物化的前向区间
- * 时，每种配置至多生成一次，若它落在 adjoint 高层则由 H 同职责替换。
+ * `added_operations` 只包含 Base 完全没有对应物的安全工作；距离—根初始化、
+ * 上界 witness 和高层完成三个字段选择同职责 realization。ordinary future
+ * 字段则固定记录全部配置共享的 A1 row 视图；DirectedCut potential 仅作为
+ * 安全新增证书并入 ordinary 的 max 组合，不进入 A1 构造。A1 在每种配置
+ * 中至多物化一次并直接移交公共前向内核。
  * 该结构同时约束配置合法性与配置回归，避免文档单独发明关系。
  */
 struct ConfigurationProfile
 {
     bool valid = true;
     std::uint32_t added_operations = 0;
-    GroupDistanceRealization group_distance =
-        GroupDistanceRealization::BoundedCutoff;
+    DistanceRootRealization distance_root =
+        DistanceRootRealization::BootstrappedBounded;
     OrdinaryFutureRealization ordinary_future =
         OrdinaryFutureRealization::AnchoredSingletonCone;
     UpperWitnessRealization upper_witness =
@@ -161,9 +168,7 @@ constexpr ConfigurationProfile DescribeConfiguration(SolveOptions options)
         profile.added_operations =
             static_cast<std::uint32_t>(AddedOperation::DirectedCutCertificate) |
             static_cast<std::uint32_t>(AddedOperation::FacilityUpperBound);
-        profile.group_distance = GroupDistanceRealization::CompletePotential;
-        profile.ordinary_future =
-            OrdinaryFutureRealization::DirectedCutPotential;
+        profile.distance_root = DistanceRootRealization::CompletePotential;
         profile.upper_witness = UpperWitnessRealization::DualPrimalTree;
     }
     if (adjoint)
@@ -207,8 +212,9 @@ struct AnchoredCompletionSchedule
  * @brief 从组数决定的递推域边界生成唯一层计划。
  *
  * 这里的整数除法来自平衡分解：`floor(g/2)-1` 是完整锚定格的最高层，
- * adjoint 再对该区间做固定的 meet-in-the-middle 切分。函数不读取图、
- * 查询内容、row 密度、耗时或内存，也不比较 `g` 与经验常数。
+ * adjoint 再对该区间做固定的 meet-in-the-middle 切分；只要区间非空，
+ * 公共 A1 必属于前向前缀，使 ordinary 前生成的同一 row 能被所有配置移交。
+ * 函数不读取图、查询内容、row 密度、耗时或内存，也不比较 `g` 与经验常数。
  */
 constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     int group_count,
@@ -220,7 +226,11 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     schedule.uses_adjoint =
         profile.high_layer == HighLayerRealization::AdjointH;
     schedule.forward_last_layer = schedule.uses_adjoint
-                                      ? schedule.highest_layer / 2
+                                      ? (schedule.highest_layer > 0
+                                             ? std::max(
+                                                   1,
+                                                   schedule.highest_layer / 2)
+                                             : 0)
                                       : schedule.highest_layer;
     return schedule;
 }

@@ -287,13 +287,21 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     return result;
 }
 
+namespace
+{
 /**
- * @brief 从各组规范终端构造最短路树边并集，选择真实代价最小的根。
+ * @brief 为 bootstrapped-bounded realization 尝试构造 cutoff 与候选根。
  *
- * 该上界在 Base 中先于 bounded Dijkstra 建立安全 cutoff；增强配置可跳过
- * 这项固定成本并由完整距离、dual primal 上界接管。
+ * 这是该 realization 内部的数据表示启动器，不是调用者可见的 Base-only
+ * 逻辑阶段。返回边并集由原图真实边组成，所以既可安全截断距离，也可作为
+ * `DistanceRootInitialization::upper` 的初值。若非连通图中各组的规范最小
+ * 终端没有落在同一个可行分量，本函数可返回无穷；随后以无穷 cutoff 执行
+ * 的多源距离不会截断有限标签，共同 root-star 扫描会在调用者已验证存在的
+ * 公共分量中取得有限上界。
  */
-double BuildCanonicalSptUpper(const Graph& graph, const Query& query, int& best_root)
+double BootstrapBoundedDistanceUpper(const Graph& graph,
+                                     const Query& query,
+                                     int& best_root)
 {
     const int g = static_cast<int>(query.groups.size());
     const int full_mask = (1 << g) - 1;
@@ -493,6 +501,41 @@ double RootStarUpper(const GroupTable& distance, int n, int& root)
         }
     });
     return best;
+}
+
+}  // namespace
+
+/**
+ * @brief 用所选 realization 一次构造距离 oracle、候选根和初始真实上界。
+ *
+ * 外层控制流对所有配置相同；差异被限制在同一输出合同的内部 realization。
+ * 这保持原有调用顺序：bounded 先尝试得到 cutoff 再构造组距离；若 bootstrap
+ * 暂为无穷，该次多源搜索自然退化为不截断。complete 直接保存完整距离；
+ * 两边最后都用共同根 star 扫描取得或改进根与有限上界。
+ */
+DistanceRootInitialization BuildDistanceRootInitialization(
+    const Graph& graph,
+    const Query& query,
+    DistanceRootRealization realization)
+{
+    DistanceRootInitialization result;
+    const bool bounded =
+        realization == DistanceRootRealization::BootstrappedBounded;
+    if (!bounded && realization != DistanceRootRealization::CompletePotential)
+        throw std::logic_error("ABHSS unknown distance-root realization.");
+
+    if (bounded)
+        result.upper = BootstrapBoundedDistanceUpper(
+            graph, query, result.root);
+    result.group_distance = BuildGroupDistances(
+        graph,
+        query,
+        bounded,
+        bounded ? result.upper : fp::kInf);
+    result.upper = std::min(
+        result.upper,
+        RootStarUpper(result.group_distance, graph.n, result.root));
+    return result;
 }
 
 /** @brief 用 subset DP 构建每个组子集、每对固定端点的最短 Hamilton path。 */
@@ -985,16 +1028,17 @@ bool PrepareProblem(Problem& p)
         return true;
     }
 
-    if (p.UsesBoundedGroupDistances())
-        p.best = BuildCanonicalSptUpper(p.graph, p.query, p.root);
-    const bool bounded_distances = p.UsesBoundedGroupDistances();
-    p.group_distance = BuildGroupDistances(
-        p.graph,
-        p.query,
-        bounded_distances,
-        bounded_distances ? p.best : fp::kInf);
-    const double star = RootStarUpper(p.group_distance, p.graph.n, p.root);
-    p.best = std::min(p.best, star);
+    // 调用者始终执行同一个距离—根初始化职责。两种 realization 都一次返回
+    // GroupRow oracle、候选根和真实上界；bounded cutoff 的 SPT 启动器已经
+    // 封装在相应 realization 内，不再形成 Base-only 的外层控制流。
+    DistanceRootInitialization distance_root =
+        BuildDistanceRootInitialization(
+            p.graph,
+            p.query,
+            DescribeConfiguration(p.options).distance_root);
+    p.group_distance = std::move(distance_root.group_distance);
+    p.root = distance_root.root;
+    p.best = std::min(p.best, distance_root.upper);
     // 上下界闭合是精确性终止条件，不能用 epsilon 把一个很小但为正的 gap
     // 当作 0。容差只允许用于恢复真实路径；恢复失败最多削弱上界，不会证明
     // 最优性。这里使用解析后 double 值的原始顺序比较。
@@ -1084,14 +1128,9 @@ bool PrepareProblem(Problem& p)
     p.ordinary.assign(p.subset_count, {});
     p.ordinary_minimum.assign(p.subset_count, fp::kInf);
 
-    // Base 本来就会零 rent 购买一次 root-path witness subset DP；把同一次
-    // 求值前移到任何 A/D 状态层之前，使 A1 使用收紧后的 incumbent。开启
-    // DirectedCut 时，primal upper/witness 已替换 Base 的初始上界职责，
-    // facility 另作安全新增；不重放 root-path 求值，后续共用调度器。
-    if (p.UsesBoundedGroupDistances())
-        p.best = std::min(
-            p.best,
-            EvaluateWitnessTree(p.witness_tree, p, p.ordinary));
+    // 到此只完成当前配置的 witness 构造，不无条件执行树 DP。Base 的
+    // root-path tree 与 DirectedCut 的 dual-primal tree 随后都交给跨 A1/D 的
+    // 同一个 rent-or-buy 调度器，并从 rent=0 开始按同一 buy 公式购买。
     return p.best <= p.component_cover.lower;
 }
 

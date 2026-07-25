@@ -74,16 +74,23 @@ main
   -> SolveOneQuery
        -> ResolveQueryPrelude
        -> PrepareProblem
+            -> ComputeComponentCover       [zero-cost cover may close here]
+            -> BuildDistanceRootInitialization [otherwise, exactly once]
+                 BootstrappedBounded or CompletePotential
+                 both return {group_distance, root, upper}
        -> DescribeConfiguration          [fixed add-or-replace profile]
        -> MakeAnchoredCompletionSchedule [derive logical A/H layer boundary]
-       -> logical A1 responsibility      [only when the logical grid contains A1]
-            Base: build once before D, reuse in forward A
-            DirectedCutOnly: build as the first full-forward A layer
-            Enhanced: build in low A, or replace the high layer by H
+       -> WitnessUpperScheduler          [both profiles start with rent = 0]
+            buy = the same formula applied to this profile's witness size
+       -> common A1 row                  [only when the logical grid contains A1]
+            all configurations: same seed, farthest cone, positive fallback,
+                                 top-two view and forward-A ownership transfer
+            the A1 builder does not read enhancement flags or dual potentials
+            queue/edge work pays rent; a tighter tree-DP buy restarts the A1 pass
        -> BuildOrdinaryWithProbe
-            Base: A1-cone future
-            DirectedCut/Enhanced: dual-potential future
-            -> BuildOrdinaryRows         [shared D grid]
+            all configurations: farthest + tour + common A1 future
+            DirectedCut/Enhanced: additionally max with dual potential
+            -> BuildOrdinaryRows         [shared D grid; continues the same rent]
        -> RunForwardAnchoredStage        [Base / DirectedCutOnly: full A]
           or
           RunForwardAnchoredStage        [Enhanced: low A]
@@ -95,11 +102,13 @@ main
 
 `SolveOneQuery` 先通过 `IsValid`（内部读取 `DescribeConfiguration`）拒绝非法开关，再处理空查询、$g>16$、无共同分量、单组等入口情形。非平凡查询建立 `Problem` 并完成预处理后，才保存本次执行所需的 `ConfigurationProfile` 和状态层计划。`Problem` 为避免改变热对象布局，仍只读保存原来的冻结 bit mask；`UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 与 profile 映射由同一配置回归共同约束。代码与论文共用这张“新增或替换”契约，不能再把位掩码单调误写成逐指令包含。
 
-`PrepareProblem` 依次构建零权分量下界、组距离、真实上界、锚组映射、tour 下界和 witness。Base 的规范 SPT 为 bounded 组距离提供安全 cutoff；完整距离 realization 不需要这一步。两种配置随后都计算 root-star 与 root-path-union 上界。Base 把该边并集整理为 root-path witness，并在主状态前执行一次 witness DP；开启 `DirectedCut` 时，以 primal upper、dual-primal witness 和后续同一 rent-or-buy 接口替换这项 pre-D/周期 witness 职责，facility 上界另作安全新增。两者都生成同一 `Problem` 和同一 ordinary $D$ 状态。
+`PrepareProblem` 依次构建零权分量下界、共同的距离—根初始化合同、真实路径并集、锚组、tour 下界和当前配置自己的 witness。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。CompletePotential 构造完整距离势。两者返回前都执行相同 root-star 扫描，返回后又共同构造 root-path-union。规范 SPT 因而是 bounded 物理表示的私有 bootstrap，不是 Base-only 的调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
 
-`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。域为空时，完成式直接使用隐式 $A(\varnothing)$；域非空时，A1 是第一个成员，Base 一律在 ordinary 前生成它。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
+预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。调度器只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且树 DP 有新输入时才调用同一个 `EvaluateWitnessTree`。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。无论是否发生重启，只有最终接纳的一份 A1 row 被发布、移交和计数。
 
-`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。开启 `DirectedCut` 后，ordinary future 这一相同职责由对偶势替换。DirectedCutOnly 仍在完整前向格中生成 A1；Enhanced 若低层前向区间包含 A1，就由同一 `BuildForwardAnchoredRows` 内核生成，否则该逻辑层属于 adjoint 高层，由 $H$ 的补集状态实现。`complete_implicit_anchor` 只表示完整正层域为空，不能用“低层前缀为空”或某个组数比较代替。这里区分的是状态层 realization，不是按查询参数选择快路径。
+`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。域为空时，完成式直接使用隐式 $A(\varnothing)$；域非空时，A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
+
+`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核；$H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
 
 Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAnchoredRows`，生成完整的低/高层锚定 $A$。Enhanced 仍调用同一内核生成由平衡完成域确定的低层 $A$，再由 `SolveHighAdjoint` 以补集转置终端和递减 $H$ 代替未物化的高层 $A$。切分是递推域的固定 meet-in-the-middle 边界，不读取数据集名或运行表现。
 
@@ -107,14 +116,14 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 
 | 逻辑职责 | Base realization | Enhanced realization | 关系 |
 |---|---|---|---|
-| 组距离 oracle | 规范 SPT 给出 cutoff，再构造 bounded `GroupRow` | 不需要 cutoff，直接构造完整距离势 `GroupRow` | 同一“值 + `IsExact`”读取合同的表示替换；非精确 cutoff 只作下界 |
-| ordinary future | 提前调度的 A1 cone | directed-cut potential | 同一可采纳下界职责的替换 |
-| pre-D 与周期 witness | root-path tree，并在 D 前先做一次树 DP | primal upper + dual-primal tree，随后进入同一 rent-or-buy 调度 | 同一真实可行上界/witness 职责的替换；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
-| 锚定 singleton $A_1$ | 逻辑格包含 A1 时在 ordinary 前生成并移交 | 若属低层则由公共前向 A 生成；若属高层则由 $H$ 替换 | 同一完成层语义；每张实际 row 至多生成一次 |
-| 高层锚定完成 | 完整前向高层 $A$ | 低层 $A$ 加高层 $H$ | 等价完成式的方向替换 |
+| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest cone 与正 fallback，随后移交前向 A | 逐项执行同一 seed、cone、fallback、top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支 |
+| 距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段 |
+| ordinary 的其他 future | farthest、tour | farthest、tour，再与 directed-cut potential 取最大 | 安全新增证书；A1 future 仍共同存在 |
+| witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
+| A1 之后的高层锚定完成 | 完整前向高层 $A$ | A1/低层 $A$ 加高层 $H$ | 等价完成式的方向替换；A1 不属于替换后缀 |
 | 无 Base 对应物的工作 | 无 | directed-cut 可行证书、额外 facility 收紧 | 安全新增 |
 
-`DirectedCutOnly` 采用表中的 DirectedCut 距离、future 和 witness realization，但仍保留完整前向高层 $A$，只作为隔离 `AdjointCompletion` 的正确性/消融配置。表中不允许出现“Base 独有且 Enhanced 没有同职责替代物”的逻辑阶段。
+`DirectedCutOnly` 采用表中的 DirectedCut 距离与 witness realization，增加 dual/facility 证书，但仍保留完整前向高层 $A$，只作为隔离 `AdjointCompletion` 的正确性/消融配置。表中不允许出现“Base 独有且 Enhanced 没有同职责替代物”的逻辑阶段。
 
 ## 5. ABHSS 源文件导读
 
@@ -125,7 +134,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
 | `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、$A$、$H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
 | `src/abhss/preprocess.cpp` | 零权 cover、组距离、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；`best` 只由真实可行子图收紧 |
-| `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、row 交集、规范 branch、witness rent-or-buy | 提前 A1 仍是标准 `Row`，每张至多生成一次；cone 与 dual 是同职责 future 替换 |
+| `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
 | `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常生成 row 都走同一完成函数 |
 | `src/abhss/dual_cut.h` | `DirectedCut` 的对偶势、residual、primal 边恢复 | 势只作下界，上界必须由原图真实边计价 |
 | `src/abhss/adjoint.{h,cpp}` | ordinary 按顶点转置、高层 $H$ 递减、低层 $A$ 边界结算 | $H(S)$ 覆盖 $S$ 外侧，与 $A(L)+D(S\setminus L)$ 恰好覆盖全组 |
@@ -157,7 +166,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `fast_graph_io_structure` | 零/小数/科学计数边权、原边和邻接顺序、自环双邻接项、连通分量、错误 token | 快速读取改变图语义或静默接受损坏输入 |
 | `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
 | `abhss_zero_weight_witness` | 历史零权父指针环反例 | witness 重根不终止或误计上界 |
-| `abhss_configuration_exactness` | 144 个确定性随机连通小图，$2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言 `ConfigurationProfile` 的新增位/四类 realization、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
+| `abhss_configuration_exactness` | 144 个确定性随机连通小图，$2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言共同 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通图中规范终端失败后的共同分量 fallback、`ConfigurationProfile` 的新增位/其余 realization、共同 witness `buy` 公式、调度器从 `rent=0` 且零次求值启动、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新暴露 Base-only SPT 调度、把规范终端失败误判为查询无解、恢复 Base 预买、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
 | `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、A1 所有权交接后重复计数、误把 Dense 容量或辅助预处理当实际状态 |
 
 本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。
@@ -171,7 +180,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `tools/data/generate_controlled_queries.py` | 生成 DBLP/IMDb 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
 | `tools/data/build_query_feasibility_audit.py` | 重用图分量扫描并将每个矩阵 case 的可行性与当前矩阵哈希绑定 |
 | `tools/experiments/validate_environment.py` | 在运行前检查矩阵总数、方法配置、路径、哈希和可行性审计 |
-| `tools/experiments/validate_markdown.py` | 检查文档为严格 UTF-8、围栏闭合，并强制块公式使用 GitHub 官方 `math` 围栏而非独占行 `$$` |
+| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
 | `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录，并解析行末状态数 |
 | `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成时间/状态倍率、timeout 方向、目标值和可行性不一致 |
 | `tools/experiments/plot_results.py` | 从冻结 supervisor JSON records 绘制 P2/S2 曲线，不重新挑选查询 |
@@ -202,7 +211,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 2. 不得在行内或块公式中使用 `\operatorname` 或 `\operatorname*`。截至 2026-07-24，GitHub 会显示 “The following macros are not allowed: operatorname”，并把公式源文回退成灰色代码块。普通命名使用 `\mathrm{name}`；例如 `\mathrm{OPT}`、`\mathrm{dist}` 和 `\mathrm{clamp}`。当前渲染器也曾把语法完整的 `\begin{cases}...\end{cases}` 报成 “Missing `\end{cases}`”；本仓库因此把分段函数拆成多个独立 `math` block，不再使用 `cases` 环境。
 3. 不要把含下划线的代码标识符塞进数学文本命令，例如不要写 `$S\subseteq\texttt{full\_mask}$`。GitHub 曾把其中的 `_` 送到文本模式并报 “`'_' allowed only in math mode`”。代码名应留在公式外，用 Markdown 行内代码表示；若确实需要数学记号，则改写为 `$M_{\mathrm{full}}$` 这一类结构。
 4. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
-5. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、本地链接、表格公式以及已确认的 GitHub 禁用宏；`make release` 已依赖该门禁。
+5. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
 6. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
 
 语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。

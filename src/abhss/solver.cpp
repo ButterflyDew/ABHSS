@@ -32,28 +32,28 @@ const char* ProbeMethodName(const SolveOptions& options)
 /**
  * @brief 按冻结配置调度公共 A1，并返回 ordinary 阶段可读的 future 视图。
  *
- * 只要完整锚定状态格包含 A1，Base 就在 D 前生成这一公共层，使它服务
- * 全部非平凡 D 层，并在随后移交给前向 A 内核。DirectedCut/Enhanced 用
- * dual future 替换该职责；其 A1 由低层 A 或高层 H 实现。每张逻辑 row
- * 至多生成一次。
+ * 只要完整锚定状态格包含 A1，所有合法配置都在 D 前生成这一公共层，使它
+ * 服务全部非平凡 D 层，并在随后移交给前向 A 内核。该调度器与 A1 构造
+ * 都不读取 enhancement profile；DirectedCut/Enhanced 只在后续 ordinary
+ * future 中额外取 dual potential 的最大值。条件式树 DP 若收紧上界，只会
+ * 让共同构造器丢弃未完成 pass 并整轮重启；最终逻辑 row 仍只发布一次。
  */
 AnchoredSingletonFuture* ScheduleAnchoredSingletonFuture(
     Problem& problem,
-    const ConfigurationProfile& profile,
     const AnchoredCompletionSchedule& schedule,
     AnchoredSingletonFuture& singleton_future,
+    WitnessUpperScheduler& witness_scheduler,
     const char* probe_method)
 {
     // A1 不在逻辑状态格中时没有可登记的层；这发生于平衡完成式只需隐式
-    // A(0) 的查询。除此之外，Base 一律选择 A1 realization，不使用 g 阈值。
-    if (profile.ordinary_future !=
-            OrdinaryFutureRealization::AnchoredSingletonCone ||
-        !schedule.ContainsLogicalLayer(1))
+    // A(0) 的查询。除此之外所有配置一律执行同一 A1 操作，不使用 g 阈值。
+    if (!schedule.ContainsLogicalLayer(1))
         return nullptr;
 
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "singleton_anchor_start", problem);
-    BuildReusableAnchoredSingletonLayer(problem, singleton_future);
+    BuildReusableAnchoredSingletonLayer(
+        problem, singleton_future, witness_scheduler);
     EmitAbhssProbe(probe_method,
                    "singleton_anchor_end",
                    problem,
@@ -65,9 +65,8 @@ AnchoredSingletonFuture* ScheduleAnchoredSingletonFuture(
 /**
  * @brief 使用完整前向 A 格完成基础或 directed-cut-only 配置。
  *
- * Base 把提前调度且已经精确闭包的 A1 row 移交给公共前向内核；只开
- * directed-cut 时，所需 A1 在这里由同一内核生成，形成 adjoint 增益消融。
- * 最后一层只用于结算答案，不保留 payload，与重构前行为一致。
+ * 所有无 adjoint 配置都把提前调度且已经精确闭包的同一 A1 row 移交给公共
+ * 前向内核。最后一层只用于结算答案，不保留 payload。
  */
 void CompleteWithForwardGrid(Problem& problem,
                              const AnchoredCompletionSchedule& schedule,
@@ -97,6 +96,7 @@ void CompleteWithForwardGrid(Problem& problem,
  */
 void CompleteWithAdjoint(Problem& problem,
                          const AnchoredCompletionSchedule& schedule,
+                         std::vector<Row> initial_rows,
                          const char* probe_method)
 {
     const int high_last = schedule.highest_layer;
@@ -110,7 +110,16 @@ void CompleteWithAdjoint(Problem& problem,
     plan.probe_method = probe_method;
     plan.probe_phase = "low_anchor_layer";
     std::vector<Row> anchored = RunForwardAnchoredStage(
-        problem, plan, "low_anchor_start", "low_anchor_end");
+        problem,
+        plan,
+        "low_anchor_start",
+        "low_anchor_end",
+        std::move(initial_rows));
+
+    // 非空前向前缀已经覆盖完整逻辑域时不存在 H 后缀；直接返回可避免一次
+    // 没有消费者的 ordinary 转置。该判断来自层区间，而非经验参数分派。
+    if (low_last >= high_last)
+        return;
 
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "adjoint_start", problem);
@@ -167,20 +176,30 @@ SolveResult SolveOneQuery(const Graph& graph,
     const AnchoredCompletionSchedule completion_schedule =
         MakeAnchoredCompletionSchedule(problem.g, profile);
 
+    // 预处理完成后才创建；构造函数只计算共同 buy，rent 严格从 0 开始。
+    // 同一个对象随后跨越公共 A1 与 ordinary D，防止两配置各自维护调度器。
+    WitnessUpperScheduler witness_scheduler(problem);
     AnchoredSingletonFuture singleton_future;
     AnchoredSingletonFuture* ordinary_singleton_future =
         ScheduleAnchoredSingletonFuture(
             problem,
-            profile,
             completion_schedule,
             singleton_future,
+            witness_scheduler,
             probe_method);
     BuildOrdinaryWithProbe(
-        problem, ordinary_singleton_future, probe_method);
+        problem,
+        ordinary_singleton_future,
+        witness_scheduler,
+        probe_method);
     singleton_future.ReleaseLookupCache();
 
     if (completion_schedule.uses_adjoint)
-        CompleteWithAdjoint(problem, completion_schedule, probe_method);
+        CompleteWithAdjoint(
+            problem,
+            completion_schedule,
+            std::move(singleton_future.row),
+            probe_method);
     else
         CompleteWithForwardGrid(
             problem,

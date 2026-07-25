@@ -26,7 +26,7 @@
 - 失败记录：timeout、graph-load-timeout、OOM、error 分开保存，不能删掉失败行后计算平均值。
 - 数据身份：名称、来源和最终 `graph.txt` SHA-256 共同构成图身份；两个 DBLP 永不合并。
 
-机器矩阵是 [`experiments/paper_matrix.json`](../experiments/paper_matrix.json)，输入哈希与查询分布是 [`experiment_data/p1_published_workloads/manifest.json`](../experiment_data/p1_published_workloads/manifest.json)。单入口重构、“新增或同职责替换”配置契约，以及 SteinLib、Musae、Reddit、Orkut 的非退化结果固化在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json)。
+机器矩阵是 [`experiments/paper_matrix.json`](../experiments/paper_matrix.json)，输入哈希与查询分布是 [`experiment_data/p1_published_workloads/manifest.json`](../experiment_data/p1_published_workloads/manifest.json)。单入口重构、“共同操作 + 安全新增或同职责替换”配置契约，以及严格公共 A1 在 SteinLib、Musae、YouTube、Orkut 上的正确性与 A1-active 非退化结果固化在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json)。Reddit 两条查询在 A1 前即闭合，作为不归因于 A1 的负对照保留全部波动数字，不能把它冒充 A1 性能证据。
 
 ### 2.1 来源证据链与可声称强度
 
@@ -206,7 +206,84 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 下列任一条会阻止正式性能 claim：完成查询的权值不一致；feasible/infeasible 不一致；生成的 P2/S2 出现无共同分量查询；当前 `paper_matrix.json` 哈希与 feasibility audit 不匹配；或运行二进制的配置/header 与矩阵登记不一致。
 
-### 7.2 Linux 编译与服务器锁定
+### 7.2 历史严格公共 A1 接入门
+
+本段冻结的是“所有配置使用严格共同 A1”的上一阶段证据，已被第 7.3 节的共同 witness 调度门取代，但不能删除，因为它记录了 dual-A1 等被否决方案。旧版 SHA-256 为 `a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611`，计时候选为 `c15b98614e88bb15cde1c8d192b5bd8410a61b6b98c53baa76c727dab6854c63`；仅补充注释后的验证二进制为 `af18f0d74b5ba2f00b4640c6b4920a585110317a6487b232e104665a8bb79c82`。时间只含 solver query timer，排除图/查询加载；短中面板使用交错重复的总时中位数，大图方向以固定查询补充 RSS 和状态数。A1-active 重复面板的预登记门为 `new/old <= 1.03`。
+
+| 面板 | 旧版秒 | 新版秒 | new/old | 状态/RSS 要点 | 结论 |
+|---|---:|---:|---:|---|---|
+| Musae `g=10`, q1--q5 | 5.665100 | 5.077327 | 0.896247 | 新版状态分别为 192539、258437、588247、5481、930440 | 通过，约快 10.4% |
+| Musae `g=14`, q1 | 9.676265 | 9.651949 | 0.997487 | 2066026 -> 2188274 states | 通过，基本持平 |
+| YouTube `g=10`, q1 | 12.554718 | 12.758588 | 1.016239 | 12065 -> 417065 states；扩张公开保留 | 通过，低于 1.03 |
+| Orkut `g=6`, q1 | 87.609767 | 86.055657 | 0.982261 | 11415 -> 109705 states；2210.891 -> 2211.719 MiB | 大图方向通过 |
+| Musae `g=16`, q1 | 219.745747 | 168.639290 | 0.767429 | 31.098M -> 19.790M states；455.449 -> 306.414 MiB | 高组数压力方向通过 |
+| Reddit `g=10`, q1--q2 | 28.242423 | 29.377420 | 1.040188 | 两版均为 0 states，在 A1/D 前闭合 | 负对照；公开但不归因于 A1 |
+
+该历史候选通过 5/5 CTest、144 个随机精确实例，状态累计为 Base/DirectedCutOnly/Enhanced `2772/913/913`；SteinLib Base 与 Enhanced 均 11/11 命中已知最优值，总 solver 时间分别为 13.115069 s 和 3.627557 s。YouTube 说明公共 A1 可能增加发现状态但总时仍在门内，Musae `g=16` 说明它也可能通过更早收紧后续搜索显著减少状态；因此论文不能把“状态必然减少”写成普遍性质。Reddit 的两条查询根本未执行 A1，其波动只能作为预处理/机器噪声风险，既不能拿来证明 A1 退化，也不能从原始记录中删除。
+
+### 7.3 共同 witness rent-or-buy 门
+
+当前修改消除了上一阶段残留的不对称：旧二进制中 Base 在预处理末无条件运行一次 root-path witness DP，Enhanced 则不无条件运行 dual-primal witness DP。当前方案要求两边预处理只构造各自 witness，随后统一从 `rent=0` 开始；公共 A1 与 ordinary $D$ 连续累计 queue-pop/edge-relax 工作，达到同一公式才调用同一个 `EvaluateWitnessTree`：
+
+```math
+B_{\mathrm{wit}}(T,k)
+=
+\lvert V(T)\rvert\left(
+\frac{3^k-1}{2}+3^k
+\right).
+```
+
+冻结旧二进制 SHA-256 为 `af18f0d74b5ba2f00b4640c6b4920a585110317a6487b232e104665a8bb79c82`。大图、SteinLib 与第一轮重复计时使用的候选为 `6c94736cdbadf1860798e178d733bbaa90b4c7d871d4be969f298665091686a7`；随后只修改了中文注释和文档，没有改变可执行语句。为避免依赖这一判断，亚秒面板交替 7 次、中等面板交替 3 次，已直接在最终二进制 `85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf` 上重新计时。表中比较固定配置的 q1--q5 solver-only 总时中位数；预登记门仍为 `new/old <= 1.03`。
+
+| 重复面板 | 配置 | 旧版中位秒 | 新版中位秒 | new/old | 状态结论 |
+|---|---|---:|---:|---:|---|
+| Musae `g=6`, q1--q5 | Base | 0.307200 | 0.307538 | 1.001100 | 五条均逐项相同 |
+| Musae `g=6`, q1--q5 | Enhanced | 0.578834 | 0.582641 | 1.006577 | 五条均逐项相同 |
+| Musae `g=10`, q1--q5 | Base | 12.820206 | 12.605179 | 0.983227 | 仅 q3 为 1,781,121 -> 1,781,521；后续 D 购买修订点改变 |
+| Musae `g=10`, q1--q5 | Enhanced | 2.124140 | 2.131375 | 1.003406 | 五条均逐项相同 |
+
+大图与高组数只作为固定查询方向检查，不冒充重复中位数：
+
+| 方向面板 | 配置 | 旧版秒 | 新版秒 | new/old | 状态 old -> new | 权值 |
+|---|---|---:|---:|---:|---:|---:|
+| YouTube `g=10`, q1 | Base | 19.364107 | 19.609395 | 1.012667 | 942,973 -> 942,973 | 48 |
+| YouTube `g=10`, q1 | Enhanced | 13.922364 | 13.894155 | 0.997974 | 341,307 -> 341,307 | 48 |
+| Orkut `g=6`, q1 | Base | 19.157284 | 18.379818 | 0.959417 | 174,343 -> 174,343 | 11 |
+| Orkut `g=6`, q1 | Enhanced | 73.805967 | 70.973760 | 0.961626 | 66,987 -> 66,987 | 11 |
+| Musae `g=14`, q1 | Base | 94.121125 | 91.655003 | 0.973798 | 6,581,139 -> 6,605,541 | 414 |
+| Musae `g=14`, q1 | Enhanced | 35.728035 | 35.289030 | 0.987713 | 6,223,600 -> 6,177,805 | 414 |
+
+正确性门为 5/5 CTest；144 个独立全子集 DP 实例全部匹配，最终状态累计 Base/DirectedCutOnly/Enhanced 为 `2815/913/913`；SteinLib 11 个 $11\le g\le16$ 实例两种配置均 11/11 命中已知最优值，总 solver 时间为 9.823664 s 与 3.723920 s。实现过程中有两个必须保留的反例：只在 D 累计 rent 会让 Orkut Base 从 174,343 扩到 617,937 个状态；在 A1 行之间购买但保留旧行会混合两套 cutoff，并使 Musae `g=10` q1 从正确的 291 错为 426。最终方案只在购买真正收紧上界时丢弃部分 A1 pass、用新固定 cutoff 整轮重启；被丢弃的工作支付 rent，但不计为已发布逻辑状态。
+
+逐次观测、RSS、输入哈希、被否决变体和二进制身份见 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json) 的 `common_witness_rent_or_buy_gate_20260725`。该门只证明结构修改不退化，不替代 P1/P2/S2 正式实验。
+
+### 7.4 距离—根初始化重构门
+
+当前代码不再让 `PrepareProblem` 显式执行一个 Base-only 的 `BuildCanonicalSptUpper`。对进入非平凡距离预处理的查询，所有配置只调用一次 `BuildDistanceRootInitialization`，并接收同一个 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 把规范 SPT 边并集封装为自身的 cutoff bootstrap；若规范终端在非连通图中没有共同分量，它允许临时无穷 cutoff，并由不截断的多源距离与共同 root-star 在已知公共分量中取得有限上界。CompletePotential 把全图距离扩展封装为自身的表示成本。两者返回前都执行同一个 root-star 扫描，返回后共同进入 root-path-union。该组织符合“同职责替换”，又避免强迫 Enhanced 支付不改变完整距离输出的额外 SPT。
+
+性能旧版为上一节最终二进制 `85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf`，计时候选为 `4b7a8ad917aefdd7218ccb0af01409208670ba0b23e32ac37a7e03f9d179570e`。加入合同回归测试、中文注释并最终重建后的发布二进制为 `d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319`；它与计时候选的可执行 `.text` 节逐字节相同，SHA-256 均为 `20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33`，因此计时对应当前 solver 指令。短面板按旧/新顺序交替，比较五条固定查询的 solver-only 总时中位数；所有权值与 `(mask,v)` 状态向量逐项相同：
+
+| 重复面板 | 配置 | 对数 | 旧版中位秒 | 新版中位秒 | new/old |
+|---|---|---:|---:|---:|---:|
+| Musae `g=6`, q1--q5 | Base | 7 | 0.348237 | 0.332611 | 0.955128 |
+| Musae `g=6`, q1--q5 | Enhanced | 7 | 0.582339 | 0.578981 | 0.994234 |
+| Musae `g=10`, q1--q5 | Base | 3 | 13.094906 | 13.206400 | 1.008514 |
+| Musae `g=10`, q1--q5 | Enhanced | 3 | 2.287082 | 2.199319 | 0.961627 |
+
+大图固定查询用于检查初始化固定成本，没有冒充重复中位数：
+
+| 方向面板 | 配置 | 旧版秒 | 新版秒 | new/old | 状态 old/new | 权值 |
+|---|---|---:|---:|---:|---:|---:|
+| YouTube `g=10`, q1 | Base | 22.161634 | 19.850138 | 0.895698 | 942,973 / 942,973 | 48 |
+| YouTube `g=10`, q1 | Enhanced | 14.065857 | 13.913244 | 0.989150 | 341,307 / 341,307 | 48 |
+| Orkut `g=6`, q1 | Base | 18.020921 | 18.027482 | 1.000364 | 174,343 / 174,343 | 11 |
+| Orkut `g=6`, q1 | Enhanced | 71.457513 | 71.452179 | 0.999925 | 66,987 / 66,987 | 11 |
+
+SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命中已知最优值，状态向量逐实例相同。Base 单轮总时为 9.364713 -> 9.131532 秒。Enhanced 首轮方向值 1.040754 超过 1.03，因总时仅约 3.6 秒而触发五对交替复测；旧/新中位数为 3.560374 / 3.643549 秒，最终比值 1.023361，低于门限。该门的最大中位数比值因此为 1.023361，结论为通过；它证明当前代码组织没有可检测的性能退化，不声称重命名本身产生加速。
+
+完整逐次时间、RSS、状态、输入身份和二进制身份冻结在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json) 的 `distance_root_initialization_gate_20260725`。本地 `.tmp_canonical_spt_refactor_20260725` 仅为 Git 忽略的原始运行目录。
+
+### 7.5 Linux 编译与服务器锁定
 
 正式服务器推荐用顶层 GNU `Makefile`：`make release JOBS=<physical-core-count>` 完成 Release 配置、当前可用 target 编译和 CTest；`make validate-paper-binaries` 只要求两个正式性能二进制 `abhss`/`pruneddp`，`make validate-all-binaries` 才要求已恢复的 Basic+/SCIP-Jack。CMake 禁用 compiler extensions，在工具链支持时对正式本地 target 统一开启 Release IPO/LTO，并在 GCC 9/10 没有可链接浮点 `from_chars` 时自动回退 `strtod`。
 

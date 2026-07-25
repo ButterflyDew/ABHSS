@@ -10,7 +10,7 @@
 | `query_feasibility_audit.json` | 当前矩阵每个图/查询对的共同分量审计 |
 | `environment_lock.json` | 方法、timeout、计时、报告与第三方版本契约 |
 | `correctness_audit.json` | 已知最优值、零权边和 PrunedDP++ 复现证据 |
-| `abhss_configuration_refactor_gate.json` | 单入口重构前后的小图、高 `g`、大图求解与加载非退化证据 |
+| `abhss_configuration_refactor_gate.json` | 单入口重构、共同距离—根初始化、严格公共 A1、共同零起点 witness rent-or-buy、小图/高 `g`/大图非退化证据；旧 gate 明确标为历史/被取代 |
 | `scip-jack.set` | SCIP-Jack 单线程正确性 gate 配置 |
 
 当前正式性能矩阵：

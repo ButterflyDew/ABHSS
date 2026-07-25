@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "../src/abhss/abhss.h"
+#include "../src/abhss/core.h"
 
 namespace
 {
@@ -300,18 +301,143 @@ void CheckSubNanogapClosure(const gst::methods::abhss::SolveOptions& base)
                  true,
                  3.0);
 }
+
+/** @brief 锁定两种距离—根 initialization realization 的共同输出合同。 */
+void CheckDistanceRootInitializationContract()
+{
+    gst::Graph graph;
+    graph.n = 7;
+    graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    graph.adj.assign(8, {});
+    AddEdge(graph, 1, 2, 0.5);
+    AddEdge(graph, 2, 3, 1.0);
+    AddEdge(graph, 3, 4, 1.5);
+    AddEdge(graph, 4, 5, 2.0);
+    AddEdge(graph, 5, 6, 2.5);
+    AddEdge(graph, 6, 7, 3.0);
+    AddEdge(graph, 2, 6, 4.0);
+
+    gst::Query query;
+    query.groups = {{1}, {3}, {5}, {7}};
+    using gst::methods::abhss::DistanceRootRealization;
+    const auto bounded =
+        gst::methods::abhss::internal::BuildDistanceRootInitialization(
+            graph,
+            query,
+            DistanceRootRealization::BootstrappedBounded);
+    const auto complete =
+        gst::methods::abhss::internal::BuildDistanceRootInitialization(
+            graph,
+            query,
+            DistanceRootRealization::CompletePotential);
+
+    if (bounded.group_distance.size() != query.groups.size() ||
+        complete.group_distance.size() != query.groups.size() ||
+        bounded.root < 1 || bounded.root > graph.n ||
+        complete.root < 1 || complete.root > graph.n ||
+        !std::isfinite(bounded.upper) || !std::isfinite(complete.upper))
+        throw std::runtime_error(
+            "ABHSS distance-root initialization returned an invalid common contract.");
+
+    for (size_t group = 0; group < query.groups.size(); ++group)
+    {
+        const auto& short_row = bounded.group_distance[group];
+        const auto& full_row = complete.group_distance[group];
+        if (!short_row.bounded || full_row.bounded ||
+            full_row.ExactSize(graph.n) != static_cast<size_t>(graph.n))
+            throw std::runtime_error(
+                "ABHSS distance-root realization exposed the wrong oracle layout.");
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+        {
+            if (short_row.IsExact(vertex))
+            {
+                if (std::fabs(short_row[vertex] - full_row[vertex]) > 1e-12)
+                    throw std::runtime_error(
+                        "ABHSS bounded and complete exact distances disagree.");
+            }
+            else if (short_row[vertex] > full_row[vertex])
+            {
+                throw std::runtime_error(
+                    "ABHSS bounded cutoff is not a safe lower placeholder.");
+            }
+        }
+    }
+
+    // 非连通图中，每组的规范最小终端可能没有共同分量，导致私有 SPT
+    // bootstrap 暂时返回无穷；但查询的其他候选仍可共享一个可行分量。
+    // bounded realization 必须让多源搜索与共同 root-star 接管，而不能把
+    // “规范终端失败”误判为查询无解或暴露无穷上界。
+    gst::Graph disconnected;
+    disconnected.n = 7;
+    disconnected.minimum_edge_weight =
+        std::numeric_limits<double>::infinity();
+    disconnected.adj.assign(8, {});
+    AddEdge(disconnected, 1, 2, 1.0);
+    AddEdge(disconnected, 3, 4, 1.0);
+    AddEdge(disconnected, 5, 6, 1.0);
+    AddEdge(disconnected, 6, 7, 1.0);
+
+    gst::Query fallback_query;
+    fallback_query.groups = {{1, 5}, {3, 6}, {4, 7}};
+    const auto fallback_bounded =
+        gst::methods::abhss::internal::BuildDistanceRootInitialization(
+            disconnected,
+            fallback_query,
+            DistanceRootRealization::BootstrappedBounded);
+    const auto fallback_complete =
+        gst::methods::abhss::internal::BuildDistanceRootInitialization(
+            disconnected,
+            fallback_query,
+            DistanceRootRealization::CompletePotential);
+    if (!std::isfinite(fallback_bounded.upper) ||
+        std::fabs(fallback_bounded.upper - 2.0) > 1e-12 ||
+        std::fabs(fallback_complete.upper - 2.0) > 1e-12 ||
+        fallback_bounded.root < 5 || fallback_bounded.root > 7 ||
+        fallback_complete.root < 5 || fallback_complete.root > 7)
+        throw std::runtime_error(
+            "ABHSS distance-root initialization failed its disconnected canonical-terminal fallback.");
+}
 }  // namespace
 
 /** @brief 运行入口契约及 g=2..10 的 144 个确定性随机精确性实例。 */
 int main()
 {
+    // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
+    // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
+    using gst::methods::abhss::internal::EstimateWitnessTreeDpWork;
+    if (EstimateWitnessTreeDpWork(0, 5) != 0 ||
+        EstimateWitnessTreeDpWork(7, 0) != 7 ||
+        EstimateWitnessTreeDpWork(5, 1) != 20 ||
+        EstimateWitnessTreeDpWork(5, 3) != 200)
+        throw std::runtime_error(
+            "ABHSS common witness buy formula is inconsistent.");
+
+    // 调度器本身也必须从零 rent、零次求值启动；不能把 Base 的旧式预买
+    // 偷藏进构造函数。这里只设置公式所需的树大小，不触发实际树 DP。
+    gst::Graph scheduler_graph;
+    gst::Query scheduler_query;
+    gst::methods::abhss::internal::Problem scheduler_problem(
+        scheduler_graph,
+        scheduler_query,
+        gst::methods::abhss::SolveOptions::Base());
+    scheduler_problem.nonanchor_count = 3;
+    scheduler_problem.witness_tree.vertex.resize(5);
+    gst::methods::abhss::internal::WitnessUpperScheduler scheduler(
+        scheduler_problem);
+    if (scheduler.BuyWork() != 200 || scheduler.RentWork() != 0 ||
+        scheduler.EvaluationCount() != 0)
+        throw std::runtime_error(
+            "ABHSS witness scheduler does not start from zero rent.");
+
     using gst::methods::abhss::AddedOperation;
     using gst::methods::abhss::Enhancement;
-    using gst::methods::abhss::GroupDistanceRealization;
+    using gst::methods::abhss::DistanceRootRealization;
     using gst::methods::abhss::HighLayerRealization;
     using gst::methods::abhss::OrdinaryFutureRealization;
     using gst::methods::abhss::SolveOptions;
     using gst::methods::abhss::UpperWitnessRealization;
+
+    CheckDistanceRootInitializationContract();
 
     // 显式验证“完整增强逐项关开关即回到基础配置”的配置链，而不是仅依赖
     // 三个工厂函数碰巧返回相同掩码。
@@ -325,9 +451,9 @@ int main()
         base.enhancements != SolveOptions::Base().enhancements)
         throw std::runtime_error("ABHSS enhancement switch chain is inconsistent.");
 
-    // 进一步验证论文使用的“新增 + 同职责替换”关系。Base 不得拥有仅自己
-    // 执行的逻辑阶段；距离、ordinary future、上界 witness 和高层完成均由
-    // profile 显式选择 realization，真正新增的证书位只能单调增加。
+    // 进一步验证论文使用的“公共操作 + 安全新增 + 同职责替换”关系。Base
+    // 不得拥有仅自己执行的逻辑阶段；ordinary future 在全部配置中固定复用
+    // A1，dual 只作为新增证书。其余替换由 profile 显式选择 realization。
     const auto base_profile =
         gst::methods::abhss::DescribeConfiguration(base);
     const auto directed_profile =
@@ -338,13 +464,16 @@ int main()
         !enhanced_profile.valid || base_profile.added_operations != 0 ||
         (base_profile.added_operations & ~directed_profile.added_operations) ||
         (directed_profile.added_operations & ~enhanced_profile.added_operations) ||
-        base_profile.group_distance != GroupDistanceRealization::BoundedCutoff ||
-        directed_profile.group_distance !=
-            GroupDistanceRealization::CompletePotential ||
+        base_profile.distance_root !=
+            DistanceRootRealization::BootstrappedBounded ||
+        directed_profile.distance_root !=
+            DistanceRootRealization::CompletePotential ||
         base_profile.ordinary_future !=
             OrdinaryFutureRealization::AnchoredSingletonCone ||
         directed_profile.ordinary_future !=
-            OrdinaryFutureRealization::DirectedCutPotential ||
+            OrdinaryFutureRealization::AnchoredSingletonCone ||
+        enhanced_profile.ordinary_future !=
+            OrdinaryFutureRealization::AnchoredSingletonCone ||
         base_profile.upper_witness != UpperWitnessRealization::RootPathTree ||
         directed_profile.upper_witness !=
             UpperWitnessRealization::DualPrimalTree ||
@@ -379,10 +508,17 @@ int main()
             directed_schedule.forward_last_layer != expected_highest ||
             directed_schedule.uses_adjoint ||
             enhanced_schedule.highest_layer != expected_highest ||
-            enhanced_schedule.forward_last_layer != expected_highest / 2 ||
-            !enhanced_schedule.uses_adjoint)
+            enhanced_schedule.forward_last_layer !=
+                (expected_highest > 0
+                     ? std::max(1, expected_highest / 2)
+                     : 0) ||
+            !enhanced_schedule.uses_adjoint ||
+            (expected_highest > 0 &&
+             (!base_schedule.UsesForwardA(1) ||
+              !directed_schedule.UsesForwardA(1) ||
+              !enhanced_schedule.UsesForwardA(1))))
             throw std::runtime_error(
-                "ABHSS anchored layer boundary is not derived from the exact grid.");
+                "ABHSS anchored boundary or common A1 prefix is inconsistent.");
 
         for (int layer = 1; layer <= expected_highest + 1; ++layer)
         {

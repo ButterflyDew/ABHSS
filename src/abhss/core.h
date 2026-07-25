@@ -10,12 +10,14 @@ namespace gst::methods::abhss::internal
 /**
  * @brief 公共锚定 singleton 层在 ordinary 阶段充当 future 时的只读视图。
  *
- * 只要完成计划中存在 A1，Base 就在 ordinary 之前生成该公共层，并通过
- * 此视图供全部非平凡 ordinary 层复用为 future；DirectedCut/Enhanced 改用 dual
- * future，随后由同一前向内核物化低层 A1，或由高层 H 实现等价职责。
+ * 只要完成计划中存在 A1，全部合法配置都在 ordinary 之前生成该公共层，
+ * 并通过此视图供全部非平凡 ordinary 层复用为 future；DirectedCut/Enhanced
+ * 另在统一下界中并入 dual，不取消 A1。
  * 是否存在 A1 完全由锚定状态格的最高逻辑层决定，不使用经验性的 g 阈值。
- * cone 外用构造时 cutoff 与同一 future bound 恢复安全下界。每个顶点
- * 缓存最大的两个 singleton bit，并把两个 32-bit payload locator 压入
+ * 所有配置的 cone 外位置都用构造时 cutoff 与连续 farthest bound 恢复同一
+ * 安全下界；DirectedCut 不进入 A1 构造，只在 ordinary 的其他 future 中
+ * 作为独立证书。每个顶点缓存最大的两个 singleton bit，并把两个 32-bit
+ * payload locator 压入
  * 一个按需触页的 64-bit 项，避免跨 D row 重复二分稀疏 A1；cone 外 locator
  * 直接重算已证明安全的公式。ordinary 结束后立即释放这些只读查找缓存。
  */
@@ -27,14 +29,14 @@ struct AnchoredSingletonFuture
     std::vector<unsigned char> second;
     std::unique_ptr<std::uint64_t[]> cached_locator_pair;
 
-    /** @brief 读取公共 A1；cone 外返回由构造时 future 推导的证书下界。 */
+    /** @brief 读取公共 A1；cone 外返回统一的 farthest-based fallback。 */
     double Value(const Problem& problem, int bit, int vertex) const;
     /** @brief 读取 A1 并同时返回精确 payload 下标或 cone 外标志。 */
     double ValueWithLocator(const Problem& problem,
                             int bit,
                             int vertex,
                             std::uint32_t& locator) const;
-    /** @brief 用已缓存下标 O(1) 读取精确值，或直接重算 cone 外公式。 */
+    /** @brief 用已缓存下标 O(1) 读取精确值，或返回统一 cone 外 fallback。 */
     double LocatedValue(const Problem& problem,
                         int bit,
                         int vertex,
@@ -56,18 +58,71 @@ struct AnchoredSingletonFuture
  *
  * 调用者必须先由完成计划确认 A1 确实存在；本函数自身不按 g、图名或
  * 运行时统计分类。返回的仍是标准 `Row`，ordinary 结束后直接移交给
- * 公共前向内核，不是 Base 独有的第二套状态结构。Enhanced 在 A1 属于
- * 低层时用同一 A 递推生成，属于高层时由 H 替换。每张实际 row 至多物化
- * 一次；ordinary future
- * 分别由 A1 cone 与 dual 势实现，以保留两种 realization 的优势区间。
+ * 公共前向内核，不是 Base 独有的第二套状态结构。全部配置的前向前缀在
+ * 逻辑域非空时都包含 A1。若条件式 witness 购买收紧上界，未完成 pass 会
+ * 被丢弃并以新 cutoff 整轮重启；最终仍只发布、移交和登记一份 row。该函数
+ * 不读取 enhancement profile，因而 Base、DirectedCutOnly 与 Enhanced 的
+ * A1 操作在代码层也无法分叉。
  */
 void BuildReusableAnchoredSingletonLayer(
     Problem& problem,
-    AnchoredSingletonFuture& singleton_future);
+    AnchoredSingletonFuture& singleton_future,
+    class WitnessUpperScheduler& witness_scheduler);
+
+/**
+ * @brief 按统一公式估计一次 witness-tree subset DP 的 buy 工作量。
+ *
+ * `witness_vertices` 只允许取当前配置已经构造的真实 witness 顶点数；
+ * `nonanchor_count` 决定共同的 subset 空间。函数不读取配置位，因此 Base、
+ * DirectedCutOnly 与 Enhanced 只能把各自树大小代入同一公式。
+ */
+long long EstimateWitnessTreeDpWork(size_t witness_vertices,
+                                    int nonanchor_count);
+
+/**
+ * @brief Base/Enhanced 共用的 witness-tree DP rent-or-buy 调度器。
+ *
+ * 构造时 rent 严格为 0，buy 只由当前 `Problem` 的 witness 顶点数和非锚组
+ * 数代入共同公式得到。公共 A1 与 ordinary D 都只上报真实 queue pop/edge
+ * relax 工作；达到 buy 后才调用同一个 `EvaluateWitnessTree`。调度器记录
+ * ordinary row 修订号，避免在可用 DP 信息完全相同期间重复购买同一结果。
+ */
+class WitnessUpperScheduler
+{
+public:
+    explicit WitnessUpperScheduler(Problem& problem);
+
+    /**
+     * @brief 累加一段实际工作，并在满足共同阈值时购买树 DP。
+     * @param ordinary_changed 本段结束时是否有新的 ordinary DP row 可用；
+     *        A1 传 false，D row 完成后传 true。
+     * @return 本次购买是否严格收紧 incumbent；A1 据此安全重启整轮。
+     */
+    bool Account(long long row_work, bool ordinary_changed);
+
+    long long BuyWork() const { return buy_; }
+    long long RentWork() const { return rent_; }
+    int EvaluationCount() const { return evaluation_count_; }
+
+    /** @brief 距离下一次当前输入修订可购买还需支付的 rent；不可买时返回上限。 */
+    long long RemainingRentUntilBuy() const;
+
+private:
+    void Evaluate();
+
+    Problem& problem_;
+    long long rent_ = 0;
+    long long buy_ = 0;
+    int ordinary_revision_ = 0;
+    int evaluated_revision_ = -1;
+    int evaluation_count_ = 0;
+    bool enabled_ = false;
+};
 
 /** @brief 按 |S| 递增生成 D(S,v)，仅发布不可继续同根拆分的规范 branch。 */
 void BuildOrdinaryRows(Problem& problem,
-                       AnchoredSingletonFuture* singleton_future);
+                       AnchoredSingletonFuture* singleton_future,
+                       WitnessUpperScheduler& witness_scheduler);
 
 /** @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。 */
 inline long long BinarySearchCost(size_t size)

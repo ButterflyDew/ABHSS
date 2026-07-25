@@ -12,6 +12,90 @@ namespace
 constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
 }
 
+long long EstimateWitnessTreeDpWork(size_t witness_vertices,
+                                    int nonanchor_count)
+{
+    if (!witness_vertices || nonanchor_count < 0)
+        return 0;
+
+    // 对 k 个非锚组，固定最低 bit 消除左右对称后的非空局部拆分总数为
+    // (3^k-1)/2；一条父子关系的全 mask/submask 卷积总数为 3^k。
+    // WitnessTree 对每个真实顶点恰有一次局部处理和一条通向父亲（含虚拟
+    // 超根）的关系，所以两项都乘真实 witness 顶点数。仓库限制 g<=16，
+    // 因而 3^(g-1) 及其与输入顶点数的乘积处于 signed 64-bit 范围内。
+    long long ternary_subsets = 1;
+    for (int bit = 0; bit < nonanchor_count; ++bit)
+        ternary_subsets *= 3;
+    const long long work_per_vertex =
+        (ternary_subsets - 1) / 2 + ternary_subsets;
+    return static_cast<long long>(witness_vertices) * work_per_vertex;
+}
+
+WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
+    : problem_(problem)
+{
+    buy_ = EstimateWitnessTreeDpWork(
+        problem_.witness_tree.vertex.size(),
+        problem_.nonanchor_count);
+    enabled_ = buy_ > 0;
+    // 诊断构建把共同零起点与 buy 写入事件；正式构建会在编译期消除。
+    EmitAbhssProbe(
+        ProbeFamilyMethod(problem_),
+        "witness_rent_start",
+        problem_,
+        -1.0,
+        nullptr,
+        -1,
+        buy_);
+}
+
+bool WitnessUpperScheduler::Account(long long row_work,
+                                    bool ordinary_changed)
+{
+    if (!enabled_)
+        return false;
+    if (ordinary_changed)
+        ++ordinary_revision_;
+    rent_ += row_work;
+
+    // 第一次购买可只使用隐式 singleton；以后只有 ordinary 修订号变化才有
+    // 新信息可供树 DP 消费。若 A1 的后续 row 又积满 buy，则保留 rent，等
+    // 第一张 D row ready 后再购买，避免对同一输入无条件重复求值。
+    if (rent_ < buy_ || evaluated_revision_ == ordinary_revision_)
+        return false;
+
+    const long long paid_rent = rent_;
+    const double old_best = problem_.best;
+    Evaluate();
+    rent_ = 0;
+    evaluated_revision_ = ordinary_revision_;
+    ++evaluation_count_;
+    EmitAbhssProbe(
+        ProbeFamilyMethod(problem_),
+        "witness_buy",
+        problem_,
+        -1.0,
+        &problem_.ordinary,
+        evaluation_count_,
+        paid_rent);
+    return problem_.best < old_best;
+}
+
+long long WitnessUpperScheduler::RemainingRentUntilBuy() const
+{
+    if (!enabled_ || evaluated_revision_ == ordinary_revision_)
+        return std::numeric_limits<long long>::max();
+    return rent_ >= buy_ ? 0 : buy_ - rent_;
+}
+
+void WitnessUpperScheduler::Evaluate()
+{
+    problem_.best = std::min(
+        problem_.best,
+        EvaluateWitnessTree(
+            problem_.witness_tree, problem_, problem_.ordinary));
+}
+
 double AnchoredSingletonFuture::Value(const Problem& p,
                                       int bit,
                                       int vertex) const
@@ -36,8 +120,11 @@ double AnchoredSingletonFuture::ValueWithLocator(
         return values.value[locator];
     }
     locator = kA1FallbackLocator;
-    const int continuation = p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(0.0, cutoff - FarthestRemaining(p, vertex, continuation));
+    const int continuation =
+        p.nonanchor_original_mask ^ p.original_mask[bit];
+    return std::max(
+        0.0,
+        cutoff - FarthestRemaining(p, vertex, continuation));
 }
 
 double AnchoredSingletonFuture::LocatedValue(
@@ -48,8 +135,11 @@ double AnchoredSingletonFuture::LocatedValue(
 {
     if (!(locator & kA1FallbackLocator))
         return row[bit].value[locator];
-    const int continuation = p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(0.0, cutoff - FarthestRemaining(p, vertex, continuation));
+    const int continuation =
+        p.nonanchor_original_mask ^ p.original_mask[bit];
+    return std::max(
+        0.0,
+        cutoff - FarthestRemaining(p, vertex, continuation));
 }
 
 double AnchoredSingletonFuture::Future(const Problem& p,
@@ -127,96 +217,151 @@ double AnchoredSingletonFuture::Future(const Problem& p,
 
 void BuildReusableAnchoredSingletonLayer(
     Problem& p,
-    AnchoredSingletonFuture& singleton_future)
+    AnchoredSingletonFuture& singleton_future,
+    WitnessUpperScheduler& witness_scheduler)
 {
-    singleton_future.cutoff = p.best;
-    singleton_future.row.assign(p.subset_count, {});
-
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> continuation_cache(p.graph.n + 1);
     std::vector<int> continuation_stamp(p.graph.n + 1);
     int stamp = 0;
     std::vector<int> touched;
     std::vector<int> settled;
-    for (int mask = 1; mask < p.subset_count; mask <<= 1)
-    {
-        const int group = p.bit_to_group[FirstBit(mask)];
-        const int continuation =
-            p.nonanchor_original_mask ^ p.original_mask[mask];
-        ++stamp;
-        auto Continuation = [&](int vertex)
-        {
-            if (continuation_stamp[vertex] != stamp)
-            {
-                continuation_stamp[vertex] = stamp;
-                continuation_cache[vertex] =
-                    FarthestRemaining(p, vertex, continuation);
-            }
-            return continuation_cache[vertex];
-        };
-        touched.clear();
-        settled.clear();
-        std::priority_queue<QueueNode,
-                            std::vector<QueueNode>,
-                            std::greater<QueueNode>> queue;
-        p.group_distance[group].ForEachExact(
-            p.graph.n, [&](int vertex, double value)
-        {
-            const auto& anchor = p.group_distance[p.anchor_group];
-            if (!anchor.IsExact(vertex))
-                return;
-            const double candidate = value + anchor[vertex];
-            if (!(candidate < singleton_future.cutoff) ||
-                candidate >= distance[vertex])
-                return;
-            const double key = candidate + Continuation(vertex);
-            if (!(key < p.best))
-                return;
-            if (distance[vertex] >= fp::kInf)
-                touched.push_back(vertex);
-            distance[vertex] = candidate;
-            queue.push({key, candidate, vertex});
-        });
 
-        while (!queue.empty())
+    // A1 的 cone/fallback 证明要求最终接纳的一整轮 singleton row 共享同一
+    // 个 U0。购买可发生在 queue-pop 安全检查点或 row 末：若没有收紧
+    // incumbent，本轮继续；若确实收紧，则丢弃全部部分 row，以新 U0 从
+    // 第一张 row 重建。调度器会记住 ordinary 修订号，所以同一输入至多
+    // 购买一次，重启后的整轮 A1 不会再次改变 U0。
+    for (;;)
+    {
+        singleton_future.cutoff = p.best;
+        singleton_future.row.assign(p.subset_count, {});
+        size_t accepted_states = 0;
+        bool restart = false;
+
+        for (int mask = 1; mask < p.subset_count; mask <<= 1)
         {
-            const QueueNode node = queue.top();
-            queue.pop();
-            if (node.distance != distance[node.vertex] ||
-                !(node.distance < singleton_future.cutoff) ||
-                !(node.key < p.best))
-                continue;
-            settled.push_back(node.vertex);
-            for (const auto& edge : p.graph.adj[node.vertex])
+            long long row_work = 0;
+            const int group = p.bit_to_group[FirstBit(mask)];
+            ++stamp;
+            const int continuation =
+                p.nonanchor_original_mask ^ p.original_mask[mask];
+            auto Continuation = [&](int vertex)
             {
-                const double next = node.distance + edge.w;
-                if (!(next < singleton_future.cutoff) ||
-                    next >= distance[edge.to])
-                    continue;
-                const double key = next + Continuation(edge.to);
+                if (continuation_stamp[vertex] != stamp)
+                {
+                    continuation_stamp[vertex] = stamp;
+                    continuation_cache[vertex] =
+                        FarthestRemaining(p, vertex, continuation);
+                }
+                return continuation_cache[vertex];
+            };
+            touched.clear();
+            settled.clear();
+            std::priority_queue<QueueNode,
+                                std::vector<QueueNode>,
+                                std::greater<QueueNode>> queue;
+            long long rent_until_buy =
+                witness_scheduler.RemainingRentUntilBuy();
+            p.group_distance[group].ForEachExact(
+                p.graph.n, [&](int vertex, double value)
+            {
+                const auto& anchor = p.group_distance[p.anchor_group];
+                if (!anchor.IsExact(vertex))
+                    return;
+                const double candidate = value + anchor[vertex];
+                if (!(candidate < singleton_future.cutoff) ||
+                    candidate >= distance[vertex])
+                    return;
+                const double key = candidate + Continuation(vertex);
                 if (!(key < p.best))
+                    return;
+                if (distance[vertex] >= fp::kInf)
+                    touched.push_back(vertex);
+                distance[vertex] = candidate;
+                queue.push({key, candidate, vertex});
+            });
+
+            while (!queue.empty())
+            {
+                const QueueNode node = queue.top();
+                queue.pop();
+                ++row_work;
+
+                // 不必等整张 A1 row 才发现 rent 已越过 buy。以 queue-pop 为
+                // 安全检查点可限制超额工作；若树 DP 收紧上界，下面统一清空
+                // 当前工作区并重启整轮。未收紧时 incumbent 与固定 U0 均不变。
+                if (row_work >= rent_until_buy)
+                {
+                    const bool improved =
+                        witness_scheduler.Account(row_work, false);
+                    row_work = 0;
+                    if (improved)
+                    {
+                        restart = true;
+                        break;
+                    }
+                    rent_until_buy =
+                        witness_scheduler.RemainingRentUntilBuy();
+                }
+                if (node.distance != distance[node.vertex] ||
+                    !(node.distance < singleton_future.cutoff) ||
+                    !(node.key < p.best))
                     continue;
-                if (distance[edge.to] >= fp::kInf)
-                    touched.push_back(edge.to);
-                distance[edge.to] = next;
-                queue.push({key, next, edge.to});
+                settled.push_back(node.vertex);
+                for (const auto& edge : p.graph.adj[node.vertex])
+                {
+                    ++row_work;
+                    const double next = node.distance + edge.w;
+                    if (!(next < singleton_future.cutoff) ||
+                        next >= distance[edge.to])
+                        continue;
+                    const double key = next + Continuation(edge.to);
+                    if (!(key < p.best))
+                        continue;
+                    if (distance[edge.to] >= fp::kInf)
+                        touched.push_back(edge.to);
+                    distance[edge.to] = next;
+                    queue.push({key, next, edge.to});
+                }
+            }
+
+            if (restart)
+            {
+                for (int vertex : touched)
+                    distance[vertex] = fp::kInf;
+                break;
+            }
+
+            std::sort(settled.begin(), settled.end());
+            settled.erase(
+                std::unique(settled.begin(), settled.end()), settled.end());
+            Row& row = singleton_future.row[mask];
+            row.vertex = settled;
+            row.value.reserve(settled.size());
+            for (int vertex : settled)
+                row.value.push_back(distance[vertex]);
+            row.ready = true;
+            accepted_states += touched.size();
+
+            // 先清空复用工作区，再允许购买触发整轮重启。A1 不写 ordinary
+            // row，但与 D 使用相同调度器，并按实际 queue-pop/edge-relax 付 rent。
+            for (int vertex : touched)
+                distance[vertex] = fp::kInf;
+            if (witness_scheduler.Account(row_work, false))
+            {
+                restart = true;
+                break;
             }
         }
 
-        std::sort(settled.begin(), settled.end());
-        settled.erase(
-            std::unique(settled.begin(), settled.end()), settled.end());
-        Row& row = singleton_future.row[mask];
-        row.vertex = settled;
-        row.value.reserve(settled.size());
-        for (int vertex : settled)
-            row.value.push_back(distance[vertex]);
-        row.ready = true;
-        // 该 A1 在这里首次物化并计数；移交给前向内核时只重滤和结算，
-        // 不会再次登记同一批 `(mask,v)`。
-        p.AccountMaskVertexStates(touched.size());
-        for (int vertex : touched)
-            distance[vertex] = fp::kInf;
+        if (restart)
+            continue;
+
+        // 只登记最终被算法接纳并移交给前向内核的逻辑状态；因上界收紧而
+        // 丢弃的部分尝试是调度 rent，而不是额外的 `(mask,v)` 状态。
+        p.AccountMaskVertexStates(accepted_states);
+        break;
     }
     singleton_future.first.assign(p.graph.n + 1, 255);
     singleton_future.second.assign(p.graph.n + 1, 255);
@@ -228,65 +373,6 @@ void BuildReusableAnchoredSingletonLayer(
 
 namespace
 {
-/**
- * @brief 以 rent-or-buy 规则调度见证树 subset DP 上界求值。
- *
- * buy 是见证树节点数乘以完整 subset 合并工作；ordinary 每张 row 新增的
- * queue pop/edge relax 作为 rent。累计 rent 达到 buy 才重新求值，避免在
- * 上界尚无足够潜在收益时反复扫描见证树。每种配置的初始上界职责都在
- * 状态层开始前完成：Base 求 root-path witness，DirectedCut 配置以 primal
- * upper/witness 替换并额外求 facility 上界；本调度器只负责后续按实际
- * 工作量重新购买公共树 DP。
- */
-class WitnessUpperScheduler
-{
-public:
-    /**
-     * @brief 绑定查询与 ordinary 表，并按见证大小计算一次 buy 成本。
-     */
-    WitnessUpperScheduler(Problem& problem,
-                          const std::vector<Row>& ordinary)
-        : problem_(problem), ordinary_(ordinary)
-    {
-        if (problem_.witness_tree.vertex.empty())
-            return;
-        long long merge_operations = 1;
-        for (int bit = 0; bit < problem_.nonanchor_count; ++bit)
-            merge_operations *= 3;
-        buy_ = static_cast<long long>(problem_.witness_tree.vertex.size()) *
-               ((merge_operations - 1) / 2 + merge_operations);
-        enabled_ = buy_ > 0;
-    }
-
-    /** @brief 累加当前 row 的实际工作量，达到 buy 阈值时触发一次求值。 */
-    void Account(long long row_work)
-    {
-        if (!enabled_)
-            return;
-        rent_ += row_work;
-        if (rent_ >= buy_)
-        {
-            Evaluate();
-            rent_ = 0;
-        }
-    }
-
-private:
-    /** @brief 在当前已 ready 的 ordinary row 上求见证树可行上界并收紧 incumbent。 */
-    void Evaluate()
-    {
-        problem_.best = std::min(
-            problem_.best,
-            EvaluateWitnessTree(problem_.witness_tree, problem_, ordinary_));
-    }
-
-    Problem& problem_;
-    const std::vector<Row>& ordinary_;
-    long long rent_ = 0;
-    long long buy_ = 0;
-    bool enabled_ = false;
-};
-
 /**
  * @brief 枚举三个 ordinary 分块与永久锚组在共同根相遇的可行解。
  *
@@ -348,7 +434,8 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
 }  // namespace
 
 void BuildOrdinaryRows(Problem& p,
-                       AnchoredSingletonFuture* singleton_future)
+                       AnchoredSingletonFuture* singleton_future,
+                       WitnessUpperScheduler& witness_scheduler)
 {
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
@@ -360,9 +447,6 @@ void BuildOrdinaryRows(Problem& p,
     std::vector<int> seeds;
 
     const int three_block_limit = (p.nonanchor_count + 2) / 3;
-    // queue pop/relax 为下一次见证树 subset DP 支付 rent。初次求值已在
-    // PrepareProblem 末尾完成，保证 A1 与 D 都看到同一个收紧后 incumbent。
-    WitnessUpperScheduler witness(p, p.ordinary);
 
     for (int size = 1; size <= p.half; ++size)
     {
@@ -518,7 +602,7 @@ void BuildOrdinaryRows(Problem& p,
             p.AccountMaskVertexStates(touched.size());
 
             layer_work += row_work;
-            witness.Account(row_work);
+            witness_scheduler.Account(row_work, true);
 
             if (size == p.half)
             {

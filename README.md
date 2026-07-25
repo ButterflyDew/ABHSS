@@ -1,6 +1,6 @@
 # ABHSS：单线程精确 Group Steiner Tree
 
-本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“增加安全证书”或“替换同一逻辑职责的 realization”。例如 A1 是公共逻辑层：只要平衡完成格包含 A1，Base 就在 ordinary 前生成并在前向阶段复用；Enhanced 用 dual potential 替换其 future 职责，并以低层 A 或高层 H 实现其完成职责。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
+本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“共同操作”“增加安全证书”或“替换同一逻辑职责的 realization”。对通过共同分量检查且未被零代价前置条件闭合的查询，所有配置在外层都只调用一次 `BuildDistanceRootInitialization`，取得相同的 `{group_distance, root, upper}` 合同；规范 SPT cutoff bootstrap 与完整距离扩展只是两种距离表示各自的内部成本，不是 Base 独占的论文阶段。例如，只要平衡完成格包含 A1，三个合法配置都在 ordinary 前以相同 seed、farthest cone、正 fallback 和 top-two 视图生成同一类标准 A1 row，并把同一对象移交前向阶段；A1 内核不读取增强位或 directed-cut 势。Base 与 Enhanced 在预处理中只构造各自的 root-path/dual-primal witness，都不无条件运行树 DP；预处理后两边从 `rent=0` 开始，让 A1 与 ordinary 连续支付同一种工作量，达到由各自树大小代入的共同 `buy` 阈值且树 DP 输入修订已变化时调用同一个树 DP。DirectedCut 只在 A1 之外加强 ordinary/adjoint 证书，Adjoint $H$ 仅替换 A1 之后的高层前向 $A$。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
 
 当前冻结性能矩阵包含三类实验：
 

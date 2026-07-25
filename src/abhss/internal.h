@@ -133,6 +133,22 @@ struct GroupRow
 
 using GroupTable = std::vector<GroupRow>;
 
+/**
+ * @brief 两种距离初始化 realization 共同返回的完整输出合同。
+ *
+ * 在调用者已验证存在公共可行分量的前提下，`group_distance` 提供统一的
+ * 值/精确性 oracle；`root` 是后续路径并集与锚组选择使用的候选根；`upper`
+ * 必须是可由原图真实边展开的有限可行上界。bounded realization 可在内部
+ * 先尝试构造 cutoff，complete realization 则由完整距离直接扫描共同根，
+ * 但调用者不再调度配置专属的前置阶段。
+ */
+struct DistanceRootInitialization
+{
+    GroupTable group_distance;
+    double upper = fp::kInf;
+    int root = 1;
+};
+
 /** @brief 零权连通分量覆盖得到的全局下界、覆盖数和候选代表根。 */
 struct ComponentCover
 {
@@ -204,10 +220,11 @@ struct Problem
     }
 
     /**
-     * @brief 返回是否使用基础配置的有界组距离。
+     * @brief 返回当前距离—根 realization 是否采用有界 GroupRow 表示。
      *
-     * directed-cut 需要每个顶点的完整组距离势；因此一旦开启该增强就改用
-     * dense 完整距离，否则保留基础配置的 cutoff 安全截断。
+     * CompletePotential 需要每个顶点的完整组距离势；其余合法配置选择
+     * BootstrappedBounded 的 cutoff 安全截断。这里查询的是共同合同的物理
+     * 表示，不表示调用者另有一个 Base-only 预处理阶段。
      */
     bool UsesBoundedGroupDistances() const
     {
@@ -246,8 +263,8 @@ struct Problem
      *
      * 每张逻辑 row 只构造一次，因此在该 row 中某顶点第一次由无穷变为
      * 有限值时即可一次性计数。D/A/H 状态族是键的一部分；同一数值 mask、
-     * vertex 出现在不同状态族时是不同项。Base 提前调度的同一 A1 row 转交
-     * 给公共前向内核时不重复计数。组距离、tour、dual、转置候选和完整解
+     * vertex 出现在不同状态族时是不同项。所有配置提前调度的同一 A1 row
+     * 转交给公共前向内核时不重复计数。组距离、tour、dual、转置候选和完整解
      * 结算不是主状态表，均不计入。
      */
     std::uint64_t mask_vertex_states = 0;
@@ -297,19 +314,16 @@ struct QueueNode
 
 /** @brief 用零权连通分量计算覆盖数下界，并返回可用的代表根。 */
 ComponentCover ComputeComponentCover(const Graph& graph, const Query& query);
-/** @brief 从每组规范终端构造 SPT 可行解，返回最好边并集代价与根。 */
-double BuildCanonicalSptUpper(const Graph& graph, const Query& query, int& root);
 /**
- * @brief 计算每组到全图的多源最短路。
- * @param bounded true 时只保存严格小于 cutoff 的精确值，其余位置以 cutoff
- *        作为安全证书；false 时保存完整 dense 距离。
+ * @brief 构造共同的“距离 oracle + 候选根 + 初始真实上界”预处理输出。
+ *
+ * 两种 realization 的内部工作可以不同，但返回结构及后续消费者完全相同；
+ * 调用者不得再单独调度某个配置专属的 SPT 或 root-star 阶段。
  */
-GroupTable BuildGroupDistances(const Graph& graph,
-                               const Query& query,
-                               bool bounded,
-                               double cutoff);
-/** @brief 扫描共同根 `sum_i d_i(v)` 可行上界，并通过引用更新最佳根。 */
-double RootStarUpper(const GroupTable& distance, int n, int& root);
+DistanceRootInitialization BuildDistanceRootInitialization(
+    const Graph& graph,
+    const Query& query,
+    DistanceRootRealization realization);
 /** @brief 恢复候选根到各组的最短路并集，并按原图 edge id 去重计价。 */
 RootPathUnion BuildRootPathUnion(const Graph& graph,
                                  const Query& query,

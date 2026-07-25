@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import subprocess
 from urllib.parse import unquote
 
 
@@ -45,6 +46,21 @@ def markdown_files() -> list[Path]:
     return sorted(set(files))
 
 
+def tracked_paths() -> set[str]:
+    """Return exact-case Git paths so local-only links cannot pass on Windows."""
+    completed = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    return {
+        item.decode("utf-8", errors="strict")
+        for item in completed.stdout.split(b"\0")
+        if item
+    }
+
+
 def check_github_math_macros(
     text: str, relative: Path, line_number: int, failures: list[str]
 ) -> None:
@@ -71,6 +87,17 @@ def check_github_math_macros(
 def main() -> int:
     failures: list[str] = []
     files = markdown_files()
+    tracked = tracked_paths()
+    discovered = {path.relative_to(ROOT).as_posix() for path in files}
+    omitted = sorted(
+        item
+        for item in tracked
+        if item.lower().endswith(".md") and item not in discovered
+    )
+    for item in omitted:
+        failures.append(
+            f"{item}: tracked Markdown is outside the validated document set"
+        )
 
     for path in files:
         relative = path.relative_to(ROOT)
@@ -165,6 +192,24 @@ def main() -> int:
             destination = (path.parent / unquote(target)).resolve()
             if not destination.exists():
                 failures.append(f"{relative}: broken local link: {target}")
+                continue
+            try:
+                git_target = destination.relative_to(ROOT).as_posix()
+            except ValueError:
+                failures.append(
+                    f"{relative}: local link escapes repository: {target}"
+                )
+                continue
+            if destination.is_file():
+                published = git_target in tracked
+            else:
+                prefix = git_target.rstrip("/") + "/"
+                published = any(item.startswith(prefix) for item in tracked)
+            if not published:
+                failures.append(
+                    f"{relative}: local link target is not published with exact "
+                    f"Git case: {target}"
+                )
 
     if failures:
         for failure in failures:
@@ -173,7 +218,7 @@ def main() -> int:
 
     print(
         f"Validated {len(files)} GitHub Markdown files: strict UTF-8, "
-        "balanced fences/math, GitHub-safe macros, and valid local links"
+        "balanced fences/math, GitHub-safe macros, and exact-case tracked links"
     )
     return 0
 

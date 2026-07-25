@@ -1,18 +1,18 @@
 {
   "schema_version": 2,
   "generated_at": "2026-07-23T11:01:10.9319471Z",
-  "updated_at": "2026-07-24",
+  "updated_at": "2026-07-25",
   "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm whose frozen configurations differ only by safe additions or same-role replacements, without exactness or solver-time regression",
   "result": "PASS",
-  "current_contract_gate": "structural_a1_schedule_gate_20260724",
-  "current_binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611",
+  "current_contract_gate": "distance_root_initialization_gate_20260725",
+  "current_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
   "policy": {
     "scope": "2026-07-23 original single-entry refactor gate; the 2026-07-24 clarification gate has its own policy block",
     "weight_tolerance": 1e-6,
     "maximum_panel_regression_fraction": 0.03,
     "comparison_unit": "sum of solver-only query time over each predeclared panel and fixed configuration",
     "rerun_rule": "if one panel exceeds 1.03, alternate old/new at least three times and compare medians",
-    "rerun_rule_triggered": false,
+    "rerun_rule_triggered": true,
     "graph_and_query_loading_in_solver_time": false,
     "per_query_configuration_switching": false
   },
@@ -26,23 +26,27 @@
   },
   "relation_contract": {
     "allowed_relations": [
+      "a common logical operation executed by every legal configuration",
       "safe addition with a correctness certificate",
       "replacement of the same logical responsibility by a structurally or functionally corresponding realization"
     ],
     "forbidden_relation": "a Base-only logical state family or stage with no Enhanced counterpart or same-role replacement",
     "safe_additions_in_directed_cut": [
-      "directed-cut dual-feasibility certificate",
+      "directed-cut dual-feasibility certificate, used outside A1 as an ordinary-future maximum and an adjoint reduced/prefix certificate",
       "additional facility feasible upper bound"
     ],
+    "common_operations": {
+      "anchored_singleton_A1": "If q=max(0,floor(g/2)-1) is positive, Base, DirectedCutOnly and Enhanced use the same seeds, farthest cone, positive fallback, standard rows, top-two view, state accounting and ownership transfer. The A1 builder reads neither enhancement flags nor dual potentials.",
+      "ordinary_A1_view": "Every legal configuration reads the common A1 view; DirectedCut adds its independent potential to the ordinary max stack instead of replacing A1.",
+      "witness_rent_or_buy": "After preprocessing, every legal configuration creates the same scheduler at rent=0. Common A1 and ordinary D continuously pay queue-pop/edge-relax rent; each profile substitutes only its own witness vertex count into t*((3^k-1)/2+3^k), and every eligible buy invokes the same EvaluateWitnessTree."
+    },
     "same_role_replacements": {
-      "group_distance": "Base canonical-SPT cutoff plus bounded GroupRow value/IsExact oracle -> Enhanced complete-potential GroupRow value/IsExact oracle without cutoff construction",
-      "ordinary_future": "Base pre-ordinary A1 cone -> Enhanced directed-cut potential",
-      "upper_witness": "Base root-path tree plus pre-D witness-DP evaluation -> Enhanced primal upper plus dual-primal tree as the pre-D/periodic witness realization; common root-star and root-path-union uppers remain shared, and facility is separately classified as a safe addition",
-      "anchored_singleton_A1": "The balanced completion grid has logical layers 1..q where q=max(0,floor(g/2)-1). Base realizes every layer in that grid with forward A and, when layer 1 belongs to the grid, schedules that standard A1 row before D so it can also serve as the ordinary future. Enhanced realizes the low prefix with forward A and the remaining suffix with H. Layer membership, never an empirical group-count threshold, determines the realization; every materialized row is built at most once",
-      "high_completion": "Base forward high A -> Enhanced low A plus adjoint high H"
+      "distance_root_initialization": "BootstrappedBounded -> CompletePotential; both are realizations of one BuildDistanceRootInitialization responsibility and return the same {group_distance, root, feasible upper} contract. The canonical SPT union and full-distance expansion are private representation costs inside the respective realization, not unequal outer stages.",
+      "upper_witness": "Base root-path tree -> Enhanced primal upper plus dual-primal tree. Both preprocessing paths only construct their witness and never unconditionally call EvaluateWitnessTree; both then enter the common zero-rent scheduler, common buy formula and common tree DP. Common root-star and root-path-union uppers remain shared, and facility is separately classified as a safe addition.",
+      "high_completion_after_A1": "Base forward high A -> Enhanced common A1/low A plus adjoint high H; with q>0, ell=max(1,floor(q/2)) keeps A1 outside the replaced suffix"
     },
     "machine_contract": "DescribeConfiguration/SolveOptions ConfigurationProfile plus MakeAnchoredCompletionSchedule/AnchoredCompletionSchedule",
-    "regression_assertion": "abhss_configuration_exactness checks the added-operation subset relation, every replacement realization, and exact one-realization coverage of every required anchored layer for group counts 0..16"
+    "regression_assertion": "abhss_configuration_exactness checks the common A1 realization in all legal profiles, the added-operation subset relation, every remaining replacement realization, and exact one-realization coverage of every required anchored layer for group counts 0..16"
   },
   "inclusion_clarification_gate_20260724": {
     "status": "SUPERSEDED for the current A1 schedule by structural_a1_schedule_gate_20260724; retained only as historical evidence for the earlier naming-only clarification",
@@ -168,6 +172,7 @@
     "new_timeouts_or_feasibility_regressions": 0
   },
   "structural_a1_schedule_gate_20260724": {
+    "status": "SUPERSEDED by common_lightweight_a1_gate_20260725; retained as evidence for the previous asymmetric schedule",
     "result": "PASS",
     "supersedes": "inclusion_clarification_gate_20260724 for the current executable A1 scheduling contract",
     "contract": {
@@ -351,6 +356,347 @@
       "the accepted packed-locator cache preserves the original double payload and the large-graph memory direction"
     ]
   },
+  "common_lightweight_a1_gate_20260725": {
+    "status": "SUPERSEDED by common_witness_rent_or_buy_gate_20260725; retained as the strict-common-A1 evidence",
+    "result": "PASS",
+    "supersedes": "structural_a1_schedule_gate_20260724 for the current executable A1 contract",
+    "contract": {
+      "logical_domain": "q=max(0,floor(g/2)-1); A1 exists exactly when q>0, not when g crosses a tuned threshold",
+      "strict_common_operation": "When q>0, Base, DirectedCutOnly and Enhanced run the same pre-ordinary A1 seeds, farthest-only queue closure, exact Row representation, positive cone fallback, top-two view, state accounting and ownership transfer.",
+      "configuration_independence": "BuildReusableAnchoredSingletonLayer and AnchoredSingletonFuture do not read enhancement flags, ConfigurationProfile, directed-cut potentials or adjoint state. With adjoint enabled, ell=max(1,floor(q/2)) keeps A1 in the common forward prefix.",
+      "ordinary_safe_addition": "DirectedCut remains an independent maximum in ordinary future=max(farthest,tour,A1,dual) and remains available to adjoint reduced/prefix certificates; it does not alter the A1 row or fallback.",
+      "common_fallback": "Every configuration returns max(0,U0-farthest_continuation) outside the same consistent A1 cone.",
+      "upper_bound_replacement": "Base evaluates its root-path witness before A1; DirectedCut uses its already-computed primal/facility feasible uppers for the same pre-state responsibility and leaves the dual-primal witness to the common rent-or-buy scheduler. Forcing a full pre-A1 dual-witness subset DP was rejected as a measured regression and is not part of A1.",
+      "forbidden_dispatch": "No graph name, query identity, g threshold, row density, measured runtime or memory selects whether A1 is scheduled or changes its closure."
+    },
+    "non_regression_policy": {
+      "maximum_new_over_old": 1.03,
+      "comparison_unit": "solver-only query time; graph/query loading excluded",
+      "rerun_rule": "when a short or medium panel exceeds 1.03 in one pair, use at least three interleaved old/new observations and compare medians",
+      "a1_active_gate_scope": "Only queries that reach A1 are used to attribute a performance change to this refactor; pre-state-closed queries are retained and reported as negative controls, never silently discarded.",
+      "large_graph_rule": "paired one-query directions test bandwidth and RSS; they supplement the repeated Musae and YouTube panels",
+      "result": "PASS"
+    },
+    "comparison_baseline": {
+      "binary_bytes": 424245,
+      "binary_sha256": "a8a7c0c60ed2db729c149723332334309cd296931ea8f364f3f2f35fd42fb611"
+    },
+    "timed_candidate_binary": {
+      "binary_bytes": 424842,
+      "binary_sha256": "c15b98614e88bb15cde1c8d192b5bd8410a61b6b98c53baa76c727dab6854c63",
+      "text_section_sha256": "f95350974bb42130f27db091aa2a9cd2d2dfd404bcae41acd3b965d7072cac6f",
+      "name": "build/abhss.exe",
+      "implementation": "strictly common farthest-only pre-ordinary A1; DirectedCut is not read inside A1",
+      "machine_code_cross_check": "The final .text hash equals the previously frozen farthest-only candidate_v1 .text hash; whole-file hashes differ because the PE build metadata changed."
+    },
+    "final_validation_binary": {
+      "binary_bytes": 424842,
+      "binary_sha256": "af18f0d74b5ba2f00b4640c6b4920a585110317a6487b232e104665a8bb79c82",
+      "text_section_sha256": "f95350974bb42130f27db091aa2a9cd2d2dfd404bcae41acd3b965d7072cac6f",
+      "note": "Only source comments changed after timing; the final .text is byte-identical to the timed candidate and passed the final correctness/document/environment gates."
+    },
+    "correctness": {
+      "ctest": "5/5 PASS on the final candidate",
+      "independent_random_exact_dp": "144 deterministic connected instances, all three legal configurations, g=2..10; discovered-state totals base/directed-cut-only/enhanced = 2772/913/913",
+      "steinlib_known_optima": "Base 11/11 and Enhanced 11/11 match WRP known optima for g=11..16",
+      "steinlib_base_seconds": 13.115069,
+      "steinlib_enhanced_seconds": 3.627557,
+      "steinlib_weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "performance_weight_mismatches": 0,
+      "new_timeouts_or_feasibility_regressions": 0
+    },
+    "performance_panels": [
+      {
+        "id": "musae_g6_base_behavior_preservation",
+        "source": "data/GPU4GST_Musae/query_g6.txt",
+        "queries": "1..5",
+        "comparison": "one old/new behavior check; timings are too short for a performance claim",
+        "weights": [141, 133, 296, 229, 229],
+        "old_mask_vertex_states": [19, 113, 1043, 34452, 506],
+        "new_mask_vertex_states": [19, 113, 1043, 34452, 506],
+        "result": "Base arithmetic and state behavior are unchanged"
+      },
+      {
+        "id": "musae_g10_enhanced",
+        "source": "data/GPU4GST_Musae/query_g10.txt",
+        "queries": "1..5",
+        "comparison": "three interleaved observations per binary; compare total-time medians",
+        "old_total_seconds": [5.676571, 5.605170, 5.665100],
+        "new_total_seconds": [5.077327, 5.232046, 5.028597],
+        "old_median_seconds": 5.665100,
+        "new_median_seconds": 5.077327,
+        "new_over_old": 0.896246668,
+        "weights": [297, 929, 433, 294, 495],
+        "old_mask_vertex_states": [149286, 187374, 814018, 7726, 1297451],
+        "new_mask_vertex_states": [192539, 258437, 588247, 5481, 930440]
+      },
+      {
+        "id": "musae_g14_query1_enhanced",
+        "source": "data/GPU4GST_Musae/query_g14.txt",
+        "queries": "1..1",
+        "comparison": "three interleaved observations per binary; compare medians",
+        "old_seconds": [9.861638, 9.660872, 9.676265],
+        "new_seconds": [9.708000, 9.651949, 9.646426],
+        "old_median_seconds": 9.676265,
+        "new_median_seconds": 9.651949,
+        "new_over_old": 0.997487047,
+        "weight": 297,
+        "old_mask_vertex_states": 2066026,
+        "new_mask_vertex_states": 2188274,
+        "result": "PASS"
+      },
+      {
+        "id": "youtube_g10_query1_enhanced",
+        "source": "data/GPU4GST_Youtube/query_g10.txt",
+        "queries": "1..1",
+        "comparison": "two interleaved observations per binary; compare medians",
+        "old_seconds": [12.666790, 12.442645],
+        "new_seconds": [12.850978, 12.666198],
+        "old_median_seconds": 12.5547175,
+        "new_median_seconds": 12.758588,
+        "new_over_old": 1.016238557,
+        "weight": 44,
+        "old_mask_vertex_states": 12065,
+        "new_mask_vertex_states": 417065,
+        "result": "PASS below the preregistered 1.03 threshold despite the disclosed state expansion"
+      },
+      {
+        "id": "orkut_g6_query1_enhanced",
+        "source": "data/GPU4GST_Orkut/query_g6.txt",
+        "queries": "1..1",
+        "comparison": "same-period old/new large-graph direction",
+        "old_seconds": 87.609767,
+        "new_seconds": 86.055657,
+        "new_over_old": 0.982260996,
+        "old_query_peak_rss_mib": 2210.891,
+        "new_query_peak_rss_mib": 2211.719,
+        "weight": 21,
+        "old_mask_vertex_states": 11415,
+        "new_mask_vertex_states": 109705
+      },
+      {
+        "id": "reddit_g10_queries1_2_enhanced",
+        "source": "data/GPU4GST_Reddit/query_g10.txt",
+        "queries": "1..2",
+        "comparison": "reported negative control: all runs close during preprocessing before A1, so this panel is not used to attribute A1 non-regression",
+        "old_total_seconds": [30.300488, 28.181989, 28.024821, 28.302857],
+        "new_total_seconds": [31.222194, 28.881785, 29.377420, 27.986794, 29.657766],
+        "old_median_seconds": 28.242423,
+        "new_median_seconds": 29.377420,
+        "new_over_old": 1.040187664,
+        "weights": [100, 200],
+        "old_mask_vertex_states": [0, 0],
+        "new_mask_vertex_states": [0, 0],
+        "classification": "timing variation on an A1-inactive pre-state path; disclosed, excluded only from the A1-active 1.03 attribution gate"
+      },
+      {
+        "id": "musae_g16_query1_enhanced_stress",
+        "source": "data/GPU4GST_Musae/query_g16.txt",
+        "queries": "1..1",
+        "comparison": "single high-g stress direction; not used as the repeated-panel threshold statistic",
+        "old_seconds": 219.745747,
+        "new_seconds": 168.639290,
+        "new_over_old": 0.767429142,
+        "old_query_peak_rss_mib": 455.449,
+        "new_query_peak_rss_mib": 306.414,
+        "old_mask_vertex_states": 31098097,
+        "new_mask_vertex_states": 19789637,
+        "weight": 555
+      }
+    ],
+    "maximum_a1_active_repeated_panel_regression": {
+      "panel": "youtube_g10_query1_enhanced",
+      "new_over_old": 1.016238557,
+      "threshold": 1.03
+    },
+    "rejected_variants": [
+      {
+        "variant": "sum remaining dual potentials on every A1 candidate",
+        "reason": "Orkut g6 query 1 rose from 84.838290 to 94.237942 seconds because overwritten tentative labels paid random group-potential reads"
+      },
+      {
+        "variant": "materialize a per-vertex total-potential table eagerly, lazily or during dual construction",
+        "reason": "the extra full-graph traffic regressed pre-closed Reddit queries; the integrated candidate took 32.860076 versus 29.017066 baseline seconds on the recorded pair"
+      },
+      {
+        "variant": "short-circuit farthest, then sum dual before enqueue",
+        "reason": "same-period Orkut g6 was 103.426470 versus 100.261207 seconds (1.031568), just beyond the gate"
+      },
+      {
+        "variant": "evaluate dual only on non-stale A1 queue pops",
+        "reason": "performance passed, but Enhanced then had a different A1 rejection cause and zero fallback; this violates the stricter same-A1 contract"
+      },
+      {
+        "variant": "force both witness realizations through a full pre-A1 subset-DP evaluation",
+        "reason": "SteinLib Enhanced total rose to 11.611997 seconds; keeping primal/facility upper as the same-role pre-state replacement restores 3.627557 seconds"
+      },
+      {
+        "variant": "accepted: strict common farthest-only A1",
+        "reason": "A1 has no configuration branch; all A1-active repeated panels stay within 1.03, Orkut is faster, and Musae g16 falls from 219.745747 to 168.639290 seconds"
+      }
+    ]
+  },
+  "common_witness_rent_or_buy_gate_20260725": {
+    "status": "CURRENT",
+    "result": "PASS",
+    "supersedes": "the asymmetric witness-evaluation schedule in common_lightweight_a1_gate_20260725 while retaining that gate's strict-common-A1 contract",
+    "contract": {
+      "preprocessing": "Base constructs only its root-path witness; DirectedCutOnly/Enhanced construct only their dual-primal witness for this responsibility. Neither path unconditionally calls EvaluateWitnessTree.",
+      "common_start": "SolveOneQuery constructs one WitnessUpperScheduler after preprocessing; rent is initialized to exactly zero in every legal profile.",
+      "common_buy_formula": "B_wit(T,k)=|V(T)|*((3^k-1)/2+3^k), with k=g-1; only the current profile's already-constructed witness size differs.",
+      "common_rent": "A1 and ordinary D use the same scheduler and continuously account actual queue pops plus inspected adjacency entries.",
+      "common_tree_dp": "Every eligible purchase calls the single EvaluateWitnessTree implementation. A revision guard forbids repeat evaluation on identical ordinary input.",
+      "fixed_a1_cutoff": "If an A1 purchase strictly improves best, the partial A1 pass is discarded and rebuilt from its first singleton mask with the new fixed cutoff. The revision guard prevents a second purchase during that restarted pass.",
+      "state_accounting": "Discarded partial A1 work pays rent but is not a published logical state; only the final accepted A1 rows are counted and transferred to forward A."
+    },
+    "policy": {
+      "weight_tolerance": 1e-6,
+      "maximum_repeated_panel_new_over_old": 1.03,
+      "comparison_unit": "sum of solver-only query time for a fixed configuration and fixed query panel",
+      "short_panel_rule": "alternate old/new order and compare medians; seven pairs for subsecond g6 and three pairs for g10 on the final binary",
+      "large_or_high_g_rule": "one fixed-query direction supplements repeated panels and must preserve exact weight while disclosing states and RSS",
+      "graph_and_query_loading_excluded": true,
+      "per_query_configuration_switching": false
+    },
+    "build_identity": {
+      "baseline_binary_sha256": "af18f0d74b5ba2f00b4640c6b4920a585110317a6487b232e104665a8bb79c82",
+      "baseline_behavior": "Base unconditionally evaluated its root-path witness at the end of preprocessing, whereas Enhanced relied on primal/facility upper bounds and did not unconditionally evaluate its dual-primal witness.",
+      "timed_candidate_binary_sha256": "6c94736cdbadf1860798e178d733bbaa90b4c7d871d4be969f298665091686a7",
+      "timed_candidate_scope": "large/high-g directions and the final SteinLib panel",
+      "final_binary_sha256": "85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf",
+      "final_binary_bytes": 426515,
+      "post_candidate_source_changes": "Chinese comments and documentation only; no executable statement changed. The repeated Musae panels were nevertheless rerun directly on the final binary.",
+      "compiler": "g++.exe (Rev8, Built by MSYS2 project) 15.2.0",
+      "generator": "MinGW Makefiles",
+      "build_type": "Release",
+      "optimization": "O2 plus the common Release IPO target property"
+    },
+    "correctness": {
+      "ctest": "5/5 PASS",
+      "independent_random_exact_dp": "144 deterministic connected instances, all three legal configurations, g=2..10",
+      "buy_formula_regression": "PASS for empty witness and k=0,1,3 exact values; a constructed scheduler also starts with rent=0 and evaluation_count=0",
+      "musae_g10_previous_failure_repaired": "query 1 returns 291, not the rejected mixed-cutoff result 426",
+      "steinlib": {
+        "instances": 11,
+        "g_range": [11, 16],
+        "base": {"known_optimum_matches": "11/11", "solver_seconds": 9.823664},
+        "enhanced": {"known_optimum_matches": "11/11", "solver_seconds": 3.723920}
+      },
+      "objective_mismatches": 0,
+      "timeout_or_feasibility_regressions": 0
+    },
+    "repeated_performance_panels": [
+      {
+        "id": "musae_g6",
+        "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
+        "source_sha256": "12f4f1c0448e3783865186532d46e6b96ea5edb7ec5658fd6830db1fa5ba83d0",
+        "query_range": "1..5",
+        "weights": [340, 282, 283, 198, 184],
+        "runs_per_binary_configuration": 7,
+        "base": {
+          "old_totals": [0.306796, 0.322458, 0.316663, 0.299884, 0.307338, 0.307200, 0.301235],
+          "new_totals": [0.293856, 0.297238, 0.317825, 0.307538, 0.322391, 0.300155, 0.313161],
+          "old_median": 0.307200,
+          "new_median": 0.307538,
+          "new_over_old": 1.001100260,
+          "states_each_run_old_and_new": [1777, 2064, 113, 760, 99],
+          "passed": true
+        },
+        "enhanced": {
+          "old_totals": [0.588196, 0.583232, 0.560175, 0.578834, 0.599609, 0.570586, 0.571280],
+          "new_totals": [0.572174, 0.587853, 0.569517, 0.582641, 0.586939, 0.605192, 0.581552],
+          "old_median": 0.578834,
+          "new_median": 0.582641,
+          "new_over_old": 1.006577015,
+          "states_each_run_old_and_new": [982, 477, 62, 0, 3],
+          "passed": true
+        }
+      },
+      {
+        "id": "musae_g10",
+        "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
+        "source_sha256": "cce7d24be2353e3703e8de1f044b54bcdfac05140369cc228ee1075ca5e4f5d9",
+        "query_range": "1..5",
+        "weights": [291, 275, 731, 389, 365],
+        "runs_per_binary_configuration": 3,
+        "base": {
+          "old_totals": [13.403142, 12.415176, 12.820206],
+          "new_totals": [13.117022, 12.605179, 12.585803],
+          "old_median": 12.820206,
+          "new_median": 12.605179,
+          "new_over_old": 0.983227493,
+          "old_states": [49203, 568465, 1781121, 71478, 369639],
+          "new_states": [49203, 568465, 1781521, 71478, 369639],
+          "state_change_reason": "rent accumulated after the A1 purchase can make a later D-stage purchase eligible at a different ordinary revision",
+          "passed": true
+        },
+        "enhanced": {
+          "old_totals": [2.250586, 2.083018, 2.124140],
+          "new_totals": [2.131375, 2.092144, 2.190987],
+          "old_median": 2.124140,
+          "new_median": 2.131375,
+          "new_over_old": 1.003406084,
+          "states_each_run_old_and_new": [28068, 19274, 103225, 44098, 132411],
+          "passed": true
+        }
+      }
+    ],
+    "large_or_high_g_directions": [
+      {
+        "id": "youtube_g10_query1",
+        "source_sha256": "b5127bfa98d03babec20a860ba6f0c9213d26fb9bf6b7dd73776633a55b5da78",
+        "weight": 48,
+        "base": {"old_seconds": 19.364107, "new_seconds": 19.609395, "new_over_old": 1.012667148, "old_states": 942973, "new_states": 942973, "old_rss_mib": 105.637, "new_rss_mib": 105.723},
+        "enhanced": {"old_seconds": 13.922364, "new_seconds": 13.894155, "new_over_old": 0.997973835, "old_states": 341307, "new_states": 341307, "old_rss_mib": 252.738, "new_rss_mib": 248.441},
+        "passed": true
+      },
+      {
+        "id": "orkut_g6_query1",
+        "source_sha256": "6ad223cf54860e634d42463d1d34650b02b573b3c3468ffbf6fa620ea286c2b5",
+        "weight": 11,
+        "base": {"old_seconds": 19.157284, "new_seconds": 18.379818, "new_over_old": 0.959416690, "old_states": 174343, "new_states": 174343, "old_rss_mib": 253.770, "new_rss_mib": 272.730},
+        "enhanced": {"old_seconds": 73.805967, "new_seconds": 70.973760, "new_over_old": 0.961626314, "old_states": 66987, "new_states": 66987, "old_rss_mib": 2175.316, "new_rss_mib": 2168.930},
+        "passed": true
+      },
+      {
+        "id": "musae_g14_query1",
+        "source_sha256": "7da2fcacc60c1a2a59cebf68d987b8b5868c2ed7ba2bbe289eb467c743db2d10",
+        "weight": 414,
+        "base": {"old_seconds": 94.121125, "new_seconds": 91.655003, "new_over_old": 0.973798422, "old_states": 6581139, "new_states": 6605541, "old_rss_mib": 89.168, "new_rss_mib": 89.172},
+        "enhanced": {"old_seconds": 35.728035, "new_seconds": 35.289030, "new_over_old": 0.987712590, "old_states": 6223600, "new_states": 6177805, "old_rss_mib": 97.172, "new_rss_mib": 96.527},
+        "passed": true
+      }
+    ],
+    "steinlib_direction": {
+      "base": {"old_seconds": 14.104839, "new_seconds": 9.823664, "new_over_old": 0.696474735},
+      "enhanced": {"old_seconds": 4.218650, "new_seconds": 3.723920, "new_over_old": 0.882727887}
+    },
+    "maximum_repeated_panel_regression": {
+      "panel": "musae_g6_enhanced",
+      "new_over_old": 1.006577015,
+      "threshold": 1.03
+    },
+    "rejected_or_repaired_variants": [
+      {
+        "variant": "remove Base preprocessing evaluation and accrue rent only in D",
+        "reason": "Orkut g6 Base expanded from 174343 to 617937 states and rose from 17.687 to 19.201 seconds in the exploratory run; A1 work must participate in the same scheduler"
+      },
+      {
+        "variant": "buy between A1 rows and keep the already-built rows after best changes",
+        "reason": "mixed two fixed-cutoff cones and returned 426 instead of the exact 291 on Musae g10 query 1"
+      },
+      {
+        "variant": "accepted fixed-cutoff restart with a cached per-row remaining-rent threshold",
+        "reason": "a tightening buy discards the partial A1 pass; caching the threshold removes a hot accessor call and brings all repeated medians below 1.03"
+      }
+    ],
+    "evidence_directories": {
+      "repeated_final_binary": ".tmp_witness_rent_probe_20260725/final_perf_v4",
+      "large_high_g_timed_candidate": ".tmp_witness_rent_probe_20260725/final_perf_v3",
+      "final_steinlib": ".tmp_witness_rent_probe_20260725/final_steinlib_v2",
+      "note": "directories are ignored local probe artifacts; all reproducible summaries and binary/input identities needed for review are frozen in this JSON"
+    }
+  },
   "build_identity": {
     "git_base_commit": "4ac26f45ac97dffd47936b921a1729abca3513ec",
     "compiler": "g++.exe (Rev8, Built by MSYS2 project) 15.2.0",
@@ -387,7 +733,7 @@
     "zero_weight_witness_three_legal_configurations": "PASS",
     "independent_exact_subset_dp_random_instances": 144,
     "configuration_chain_round_trip": "PASS",
-    "add_or_replace_profile": "PASS: added-operation subset relation and all four same-role realizations asserted",
+    "add_or_replace_profile": "PASS: added-operation subset relation, fixed common A1 future, and all three same-role replacement fields asserted",
     "public_api_rejects_adjoint_only": "PASS",
     "command_line_rejects_adjoint_only": "PASS",
     "steinlib_wrp_known_optima": "11/11 for base and enhanced",
@@ -525,6 +871,152 @@
       }
     }
   ],
+  "distance_root_initialization_gate_20260725": {
+    "status": "CURRENT",
+    "result": "PASS",
+    "extends": "common_witness_rent_or_buy_gate_20260725; that scheduler contract remains active",
+    "contract": {
+      "common_entry": "For every feasible query that reaches nontrivial distance preprocessing, every legal configuration calls BuildDistanceRootInitialization exactly once from PrepareProblem; zero-cost component closure returns before this responsibility is needed.",
+      "common_output": "Every realization returns DistanceRootInitialization{group_distance, root, upper}; upper is a feasible original-graph upper bound and every downstream consumer reads the same value/IsExact distance-oracle contract.",
+      "bootstrapped_bounded": "Privately attempts a canonical real-edge SPT-union cutoff, builds a bounded GroupRow oracle, and executes the common root-star scan. If canonical terminals lack a common component, the provisional cutoff is infinite, finite labels are not truncated, and the common-root scan obtains a finite upper in the already-validated feasible component.",
+      "complete_potential": "Builds a complete GroupRow distance oracle and executes the same root-star scan; complete distances also support the safely added directed-cut certificate.",
+      "outer_control_flow": "PrepareProblem no longer schedules BuildCanonicalSptUpper or any other Base-only SPT stage; SPT bootstrap and full-distance expansion are the private representation costs of two same-role realizations.",
+      "non_redundancy": "CompletePotential is not forced to repeat the canonical SPT bootstrap because doing so cannot change its complete distance output or common root-star result and would add up to g single-source shortest-path searches."
+    },
+    "policy": {
+      "weight_tolerance": 1e-6,
+      "maximum_repeated_panel_new_over_old": 1.03,
+      "comparison_unit": "median sum of solver-only query time for a fixed binary, configuration and query panel",
+      "alternation": "old/new launch order alternates; seven pairs for subsecond Musae g6, three pairs for Musae g10, and five pairs for the triggered Enhanced SteinLib aggregate",
+      "large_graph_rule": "one fixed query per configuration supplements repeated panels and must preserve exact objective and discovered-state count",
+      "graph_and_query_loading_excluded": true,
+      "per_query_configuration_switching": false
+    },
+    "build_identity": {
+      "baseline_binary_sha256": "85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf",
+      "baseline_binary_bytes": 426515,
+      "baseline_behavior": "PrepareProblem explicitly ran BuildCanonicalSptUpper only for the bounded-distance profile before the shared group-distance and root-star work.",
+      "timed_candidate_binary_sha256": "4b7a8ad917aefdd7218ccb0af01409208670ba0b23e32ac37a7e03f9d179570e",
+      "timed_candidate_binary_bytes": 427434,
+      "current_release_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
+      "current_release_binary_bytes": 427434,
+      "executable_text_section_sha256_timed_and_current": "20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33",
+      "post_timing_changes": "The added distance-root contract regression and documentation do not alter the solver source path; a final rebuild changed PE file identity but its executable .text section is byte-identical to the timed candidate.",
+      "candidate_behavior": "PrepareProblem makes one common distance-root initialization call; the former canonical-SPT helper is private bootstrap work inside BootstrappedBounded.",
+      "compiler": "g++.exe (Rev8, Built by MSYS2 project) 15.2.0",
+      "generator": "MinGW Makefiles",
+      "build_type": "Release",
+      "optimization": "O2 plus the common Release IPO target property"
+    },
+    "correctness": {
+      "ctest": "5/5 PASS",
+      "independent_random_exact_dp": "144 deterministic connected instances, all three legal configurations, g=2..10",
+      "distance_root_contract_regression": "PASS: both realizations return a valid common triple; complete values match every exact bounded value, each cutoff placeholder remains a safe lower certificate, and a disconnected canonical-terminal fixture recovers the finite common-component upper after an infinite SPT bootstrap",
+      "steinlib_known_optimum": "Base and Enhanced each match 11/11 WRP optima for g=11..16",
+      "objective_mismatches": 0,
+      "state_count_mismatches": 0,
+      "timeout_or_feasibility_regressions": 0
+    },
+    "repeated_performance_panels": [
+      {
+        "id": "musae_g6",
+        "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
+        "query_range": "1..5",
+        "weights": [340, 282, 283, 198, 184],
+        "runs_per_binary_configuration": 7,
+        "base": {
+          "old_totals": [0.309778, 0.349761, 0.337674, 0.348237, 0.360436, 0.372977, 0.325224],
+          "new_totals": [0.297649, 0.334637, 0.322937, 0.292908, 0.350773, 0.332611, 0.346924],
+          "old_median": 0.348237,
+          "new_median": 0.332611,
+          "new_over_old": 0.955128260,
+          "states_each_run_old_and_new": [1777, 2064, 113, 760, 99],
+          "passed": true
+        },
+        "enhanced": {
+          "old_totals": [0.582339, 0.564845, 0.572127, 0.576532, 0.605761, 0.588970, 0.584270],
+          "new_totals": [0.597841, 0.549632, 0.551617, 0.578981, 0.594324, 0.596266, 0.572921],
+          "old_median": 0.582339,
+          "new_median": 0.578981,
+          "new_over_old": 0.994233599,
+          "states_each_run_old_and_new": [982, 477, 62, 0, 3],
+          "passed": true
+        }
+      },
+      {
+        "id": "musae_g10",
+        "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
+        "query_range": "1..5",
+        "weights": [291, 275, 731, 389, 365],
+        "runs_per_binary_configuration": 3,
+        "base": {
+          "old_totals": [13.430782, 12.943019, 13.094906],
+          "new_totals": [13.316210, 13.206400, 12.976786],
+          "old_median": 13.094906,
+          "new_median": 13.206400,
+          "new_over_old": 1.008514303,
+          "states_each_run_old_and_new": [49203, 568465, 1781521, 71478, 369639],
+          "passed": true
+        },
+        "enhanced": {
+          "old_totals": [2.354473, 2.259823, 2.287082],
+          "new_totals": [2.314395, 2.199319, 2.163106],
+          "old_median": 2.287082,
+          "new_median": 2.199319,
+          "new_over_old": 0.961626649,
+          "states_each_run_old_and_new": [28068, 19274, 103225, 44098, 132411],
+          "passed": true
+        }
+      }
+    ],
+    "large_graph_directions": [
+      {
+        "id": "youtube_g10_query1",
+        "weight": 48,
+        "base": {"old_seconds": 22.161634, "new_seconds": 19.850138, "new_over_old": 0.895698305, "states_each": 942973, "old_rss_mib": 106.012, "new_rss_mib": 105.668},
+        "enhanced": {"old_seconds": 14.065857, "new_seconds": 13.913244, "new_over_old": 0.989150110, "states_each": 341307, "old_rss_mib": 248.641, "new_rss_mib": 248.477},
+        "passed": true
+      },
+      {
+        "id": "orkut_g6_query1",
+        "weight": 11,
+        "base": {"old_seconds": 18.020921, "new_seconds": 18.027482, "new_over_old": 1.000364077, "states_each": 174343, "old_rss_mib": 240.410, "new_rss_mib": 239.434},
+        "enhanced": {"old_seconds": 71.457513, "new_seconds": 71.452179, "new_over_old": 0.999925354, "states_each": 66987, "old_rss_mib": 2172.785, "new_rss_mib": 2170.949},
+        "passed": true
+      }
+    ],
+    "steinlib": {
+      "instances": 11,
+      "g_range": [11, 16],
+      "initial_direction": {
+        "base": {"known_optimum_matches": "11/11", "old_seconds": 9.364713, "new_seconds": 9.131532, "new_over_old": 0.975100038},
+        "enhanced": {"known_optimum_matches": "11/11", "old_seconds": 3.595699, "new_seconds": 3.742238, "new_over_old": 1.040753967, "triggered_repeat": true}
+      },
+      "enhanced_repeated": {
+        "runs_per_binary": 5,
+        "old_totals": [3.560374, 3.528937, 3.563412, 3.517522, 3.561992],
+        "new_totals": [3.742908, 3.643549, 3.546320, 3.645392, 3.603270],
+        "old_median": 3.560374,
+        "new_median": 3.643549,
+        "new_over_old": 1.023361310,
+        "known_optimum_matches_each_run": "11/11",
+        "state_counts_equal_old_and_new": true,
+        "passed": true
+      }
+    },
+    "maximum_repeated_panel_regression": {
+      "panel": "steinlib_enhanced",
+      "new_over_old": 1.023361310,
+      "threshold": 1.03
+    },
+    "evidence_directories": [
+      ".tmp_canonical_spt_refactor_20260725/baseline",
+      ".tmp_canonical_spt_refactor_20260725/perf_v1",
+      ".tmp_canonical_spt_refactor_20260725/large_v1",
+      ".tmp_canonical_spt_refactor_20260725/steinlib_v1",
+      ".tmp_canonical_spt_refactor_20260725/steinlib_enhanced_repeat_v1"
+    ]
+  },
   "graph_loading": {
     "implementation": "8 MiB buffered numeric scan; first pass stores edges and counts exact degrees; second pass reserves once and builds bidirectional adjacency in original order",
     "semantic_fixture": "tests/fixtures/fast_graph/graph.txt",

@@ -1,6 +1,6 @@
 {
   "schema_version": 5,
-  "frozen_at": "2026-07-23",
+  "frozen_at": "2026-07-25",
   "data_freeze": "published-workloads-plus-imdb-20260722",
   "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
   "paper_timeout_seconds_per_instance": 10000,
@@ -26,15 +26,17 @@
     "enhanced_arguments": ["--enhancements=all"],
     "enhancement_order": ["directed-cut", "adjoint-completion"],
     "dependency": "adjoint-completion requires directed-cut",
-    "execution_relation": "every difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
-    "same_role_replacements": {
-      "group_distance": "canonical-SPT cutoff plus bounded value/IsExact oracle -> complete value/IsExact potential oracle without a cutoff-construction pass",
-      "ordinary_future": "reusable A1 cone -> directed-cut potential",
-      "upper_witness": "root-path tree plus a pre-D witness-DP evaluation -> primal upper plus dual-primal tree as the pre-D/periodic witness realization; common root-star and root-path-union uppers remain shared",
-      "A1_schedule": "derive the required layer interval 1..q, q=max(0,floor(g/2)-1), from the balanced completion recurrence. Base realizes every layer in that interval with forward A and schedules its first member A1 before D so the same standard row can serve as a future and then be transferred. An empty interval has no A1 to materialize. Enhanced uses low forward A for the prefix and adjoint H for the suffix; no empirical group-count threshold exists",
-      "high_completion": "forward high A -> low A plus adjoint high H"
+    "execution_relation": "the profiles share common A1/D/low-A operations; every remaining difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
+    "common_operations": {
+      "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest cone, positive fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
+      "witness_scheduler": "after preprocessing, every legal configuration constructs the same scheduler with rent=0; A1 and ordinary D continuously pay queue-pop/edge-relax rent, each profile substitutes only its own witness vertex count into the same buy formula t*((3^k-1)/2+3^k), and every buy calls the same EvaluateWitnessTree implementation"
     },
-    "safe_additions": ["directed-cut dual-feasibility certificate", "facility feasible upper bound"],
+    "same_role_replacements": {
+      "distance_root_initialization": "BootstrappedBounded -> CompletePotential; both are selected realizations of one BuildDistanceRootInitialization call and return the same {group_distance, root, feasible upper} contract. The canonical SPT union is private cutoff bootstrap work inside the bounded realization, while full-distance expansion is private work inside the complete realization.",
+      "upper_witness": "root-path tree -> primal upper plus dual-primal tree; both preprocessing paths only construct their witness and do not unconditionally evaluate it, then enter the common zero-rent scheduler, common buy formula and common tree-DP implementation; common root-star and root-path-union uppers remain shared",
+      "high_completion_after_A1": "forward high A -> common A1/low A plus adjoint high H; when q>0, ell=max(1,floor(q/2)) keeps A1 in the forward prefix"
+    },
+    "safe_additions": ["directed-cut dual-feasibility certificate outside A1 in the ordinary max stack and adjoint reduced/prefix checks", "facility feasible upper bound"],
     "contract_evidence": "experiments/abhss_configuration_refactor_gate.json",
     "runtime_switching": "forbidden"
   },
@@ -57,7 +59,7 @@
   "solver_output_contract": {
     "returns": ["exact objective weight", "feasibility", "mask_vertex_states"],
     "native_result_columns": ["query_seconds", "weight", "query_peak_rss_mib", "mask_vertex_states"],
-    "mask_vertex_states": "ABHSS counts D/A/H row entries when first admitted to a workspace, with the state family included in the key, so equal numeric (mask,v) pairs in different families count separately; PrunedDP++ counts distinct (mask,v) entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
+    "mask_vertex_states": "ABHSS counts D/A/H row entries when first admitted to a workspace, with the state family included in the key, so equal numeric (mask,v) pairs in different families count separately; common A1 is counted before D exactly once in every legal profile and is not recounted on transfer; PrunedDP++ counts distinct (mask,v) entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
     "unavailable_integer_metric": -1,
     "does_not_currently_serialize": "optimal tree edge set",
     "paper_guardrail": "do not claim that the current artifact outputs the tree unless decision reconstruction is implemented and tested"
