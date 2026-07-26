@@ -1,8 +1,7 @@
 ﻿#include "core.h"
 
-#include "diagnostics.h"
-#include "forward.h"
 #include "adjoint.h"
+#include "forward.h"
 
 namespace gst::methods::abhss::internal
 {
@@ -13,13 +12,9 @@ namespace
  *
  * 该统一读取器让高层 adjoint 的边界求值不需要为 A(0) 物化全图 row。
  */
-double AnchoredValue(const Problem& p,
-                     const std::vector<Row>& anchored,
-                     int mask,
-                     int vertex)
+double AnchoredValue(const Problem& p, const std::vector<Row>& anchored, int mask, int vertex)
 {
-    return mask ? RowValue(anchored[mask], vertex)
-                : p.group_distance[p.anchor_group][vertex];
+    return mask ? RowValue(anchored[mask], vertex) : p.group_distance[p.anchor_group][vertex];
 }
 
 /**
@@ -28,25 +23,17 @@ double AnchoredValue(const Problem& p,
  * singleton 分块直接读取 dense 组距离；多组分块只允许使用 ordinary row
  * 中标记为不可继续同根拆分的 branch，保持与前向完成式相同的规范分解。
  */
-template <class Use>
-void ForEachBackwardBranchSum(const Problem& p,
-                              int block,
-                              const Row& backward,
-                              Use&& use)
+template <class Use> void ForEachBackwardBranchSum(const Problem& p, int block, const Row& backward, Use&& use)
 {
     if (p.popcount[block] == 1)
     {
-        const auto& singleton =
-            p.group_distance[p.bit_to_group[FirstBit(block)]];
-        ForEachValue(backward, [&](int vertex, double value)
-        {
-            use(vertex, value + singleton[vertex]);
-        });
+        const auto& singleton = p.group_distance[p.bit_to_group[FirstBit(block)]];
+        // singleton block 直接把组距离加到同根 H 值上。
+        ForEachValue(backward, [&](int vertex, double value) { use(vertex, value + singleton[vertex]); });
         return;
     }
-    ForEachRowBranchIntersection(
-        backward, p.ordinary[block],
-        [&](int vertex, double h, double d) { use(vertex, h + d); });
+    // 多组 block 只与 ordinary 的规范 branch 做同根合并。
+    ForEachRowBranchIntersection(backward, p.ordinary[block], [&](int vertex, double h, double d) { use(vertex, h + d); });
 }
 
 /** @brief 转置阶段在一个顶点处保存的普通状态及其对偶约化值。 */
@@ -61,13 +48,10 @@ struct TerminalEntry
  * @brief 按顶点转置 ordinary 状态，一次生成全部高层 adjoint 终端。
  *
  * 函数先按 64 个顶点为块聚合可用 D(S,v)，再根据补集关系、低/高层边界
- * 和 directed-cut 势筛选终端。输出按目标 mask 分组且顶点递增，后续 H
+ * 和有向割对偶势筛选终端。输出按目标 mask 分组且顶点递增，后续 H
  * 闭包可直接线性装载。所有剪枝都只使用可采纳下界，不改变精确答案。
  */
-void BuildTransposedTerminals(Problem& p,
-                              int low_last,
-                              int high_last,
-                              std::vector<std::vector<int>>& terminal_vertex,
+void BuildTransposedTerminals(Problem& p, int low_last, int high_last, std::vector<std::vector<int>>& terminal_vertex,
                               std::vector<std::vector<double>>& terminal_value)
 {
     terminal_vertex.assign(p.subset_count, {});
@@ -90,27 +74,23 @@ void BuildTransposedTerminals(Problem& p,
         for (auto& values : values_by_offset)
             values.clear();
         const int first_vertex = std::max(1, static_cast<int>(word << 6));
-        const int end_vertex =
-            std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
+        const int end_vertex = std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
         for (int mask = 1; mask < p.subset_count; ++mask)
         {
             if (p.popcount[mask] > p.half || !OrdinaryAvailable(p, mask))
                 continue;
             if (p.popcount[mask] == 1)
             {
-                const auto& row =
-                    p.group_distance[p.bit_to_group[FirstBit(mask)]];
+                const auto& row = p.group_distance[p.bit_to_group[FirstBit(mask)]];
                 for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
-                    values_by_offset[vertex & 63].push_back(
-                        {mask, row[vertex], 0.0});
+                    values_by_offset[vertex & 63].push_back({mask, row[vertex], 0.0});
                 continue;
             }
             const Row& row = p.ordinary[mask];
             size_t& index = cursor[mask];
             while (index < row.vertex.size() && row.vertex[index] < end_vertex)
             {
-                values_by_offset[row.vertex[index] & 63].push_back(
-                    {mask, row.value[index], 0.0});
+                values_by_offset[row.vertex[index] & 63].push_back({mask, row.value[index], 0.0});
                 ++index;
             }
         }
@@ -123,30 +103,25 @@ void BuildTransposedTerminals(Problem& p,
             ++potential_epoch;
             subset_stamp[0] = potential_epoch;
             subset_potential[0] = 0.0;
+            // 用最低位递归并按 epoch 缓存当前顶点上的子集势之和。
             auto Potential = [&](auto&& self, int mask) -> double
             {
                 if (subset_stamp[mask] == potential_epoch)
                     return subset_potential[mask];
                 const int bit = mask & -mask;
                 subset_stamp[mask] = potential_epoch;
-                subset_potential[mask] =
-                    self(self, mask ^ bit) +
-                    p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
+                subset_potential[mask] = self(self, mask ^ bit) + p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
                 return subset_potential[mask];
             };
-            const double full_potential =
-                p.dual.GroupAt(vertex, p.anchor_group) +
-                Potential(Potential, p.full_mask);
+            const double full_potential = p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, p.full_mask);
             const double budget = p.best - full_potential;
             if (budget < 0.0)
                 continue;
             for (auto& entry : values)
                 entry.reduced = entry.value - Potential(Potential, entry.mask);
-            std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
-            {
-                return a.reduced != b.reduced ? a.reduced < b.reduced
-                                              : a.mask < b.mask;
-            });
+            // 先按约化值排序，再用 mask 稳定破平局，便于窗口枚举。
+            std::sort(values.begin(), values.end(),
+                      [](const auto& a, const auto& b) { return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask; });
 
             ++value_epoch;
             long long submask_work = 0;
@@ -155,15 +130,13 @@ void BuildTransposedTerminals(Problem& p,
                 value_stamp[entry.mask] = value_epoch;
                 value_at_mask[entry.mask] = entry.value;
                 reduced_at_mask[entry.mask] = entry.reduced;
-                submask_work +=
-                    (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
+                submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
             }
             long long pair_work = 0;
             size_t right_limit = values.size();
             for (size_t left = 0; left + 1 < values.size(); ++left)
             {
-                while (right_limit > left + 1 &&
-                       values[left].reduced + values[right_limit - 1].reduced > budget)
+                while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
                     --right_limit;
                 if (right_limit <= left + 1)
                     break;
@@ -171,6 +144,7 @@ void BuildTransposedTerminals(Problem& p,
             }
 
             touched_targets.clear();
+            // 只更新 adjoint 负责的高层 target，并记录首次触及的 mask。
             auto Update = [&](int target, double value)
             {
                 const int size = p.popcount[target];
@@ -190,17 +164,14 @@ void BuildTransposedTerminals(Problem& p,
             {
                 for (size_t left = 0; left < values.size(); ++left)
                 {
-                    if (left + 1 == values.size() ||
-                        values[left].reduced + values[left + 1].reduced > budget)
+                    if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
                         break;
                     for (size_t right = left + 1; right < values.size(); ++right)
                     {
                         if (values[left].reduced + values[right].reduced > budget)
                             break;
                         if (!(values[left].mask & values[right].mask))
-                            Update(p.full_mask ^
-                                       (values[left].mask | values[right].mask),
-                                   values[left].value + values[right].value);
+                            Update(p.full_mask ^ (values[left].mask | values[right].mask), values[left].value + values[right].value);
                     }
                 }
             }
@@ -209,14 +180,11 @@ void BuildTransposedTerminals(Problem& p,
                 for (const auto& left : values)
                 {
                     const int complement = p.full_mask ^ left.mask;
-                    for (int right = complement; right;
-                         right = (right - 1) & complement)
+                    for (int right = complement; right; right = (right - 1) & complement)
                     {
-                        if (right <= left.mask || value_stamp[right] != value_epoch ||
-                            left.reduced + reduced_at_mask[right] > budget)
+                        if (right <= left.mask || value_stamp[right] != value_epoch || left.reduced + reduced_at_mask[right] > budget)
                             continue;
-                        Update(p.full_mask ^ (left.mask | right),
-                               left.value + value_at_mask[right]);
+                        Update(p.full_mask ^ (left.mask | right), left.value + value_at_mask[right]);
                     }
                 }
             }
@@ -226,15 +194,9 @@ void BuildTransposedTerminals(Problem& p,
                 const int included = p.anchor_bit | p.original_mask[target];
                 double farthest = p.group_distance[p.anchor_group][vertex];
                 for (int bits = target; bits; bits &= bits - 1)
-                    farthest = std::max(
-                        farthest,
-                        p.group_distance[
-                            p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
+                    farthest = std::max(farthest, p.group_distance[p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
                 const double prefix = std::max(
-                    farthest,
-                    std::max(p.tour.At(vertex, included, p.group_distance),
-                             p.dual.GroupAt(vertex, p.anchor_group) +
-                                 Potential(Potential, target)));
+                    farthest, std::max(p.tour.At(vertex, included, p.group_distance), p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, target)));
                 if (terminal_best[target] + prefix < p.best)
                 {
                     terminal_vertex[target].push_back(vertex);
@@ -246,18 +208,14 @@ void BuildTransposedTerminals(Problem& p,
     }
 }
 
-}  // namespace
+} // namespace
 
-void SolveHighAdjoint(Problem& p,
-                       const std::vector<Row>& anchored,
-                       int low_last,
-                       int high_last,
-                       const char* probe_method)
+/** @brief 用补集转置终端和反向闭包完成 Enhanced 未物化的高层 A 状态。 */
+void SolveHighAdjoint(Problem& p, const std::vector<Row>& anchored, int low_last, int high_last)
 {
     std::vector<std::vector<int>> terminal_vertex;
     std::vector<std::vector<double>> terminal_value;
-    BuildTransposedTerminals(
-        p, low_last, high_last, terminal_vertex, terminal_value);
+    BuildTransposedTerminals(p, low_last, high_last, terminal_vertex, terminal_value);
 
     std::vector<Row> backward(p.subset_count);
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
@@ -267,23 +225,24 @@ void SolveHighAdjoint(Problem& p,
     std::vector<int> touched;
     std::vector<int> settled;
 
+    // 将新完成的 H(successor) 与低层 A 及 ordinary branch 结算为完整解。
     auto EvaluateBoundary = [&](int successor)
     {
         for (int mask = 0; mask < p.subset_count; ++mask)
         {
-            if (p.popcount[mask] > low_last || (mask & ~successor) ||
-                (mask && !anchored[mask].ready))
+            if (p.popcount[mask] > low_last || (mask & ~successor) || (mask && !anchored[mask].ready))
                 continue;
             const int block = successor ^ mask;
             if (!block)
                 continue;
-            ForEachBackwardBranchSum(
-                p, block, backward[successor], [&](int vertex, double value)
-            {
-                const double anchor = AnchoredValue(p, anchored, mask, vertex);
-                if (anchor < fp::kInf)
-                    p.best = std::min(p.best, anchor + value);
-            });
+            // 枚举同根 H+D 值，再与当前前向 A 合并。
+            ForEachBackwardBranchSum(p, block, backward[successor],
+                                     [&](int vertex, double value)
+                                     {
+                                         const double anchor = AnchoredValue(p, anchored, mask, vertex);
+                                         if (anchor < fp::kInf)
+                                             p.best = std::min(p.best, anchor + value);
+                                     });
         }
     };
 
@@ -297,6 +256,7 @@ void SolveHighAdjoint(Problem& p,
             settled.clear();
             ++stamp;
             const int included = p.anchor_bit | p.original_mask[mask];
+            // 缓存当前 mask 在每个顶点的 anchor/farthest/tour/dual 前缀下界。
             auto Prefix = [&](int vertex)
             {
                 if (prefix_stamp[vertex] == stamp)
@@ -304,16 +264,11 @@ void SolveHighAdjoint(Problem& p,
                 prefix_stamp[vertex] = stamp;
                 double farthest = p.group_distance[p.anchor_group][vertex];
                 for (int bits = mask; bits; bits &= bits - 1)
-                    farthest = std::max(
-                        farthest,
-                        p.group_distance[
-                            p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
-                prefix_cache[vertex] = std::max(
-                    farthest,
-                    std::max(p.tour.At(vertex, included, p.group_distance),
-                             p.dual.At(vertex, included)));
+                    farthest = std::max(farthest, p.group_distance[p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
+                prefix_cache[vertex] = std::max(farthest, std::max(p.tour.At(vertex, included, p.group_distance), p.dual.At(vertex, included)));
                 return prefix_cache[vertex];
             };
+            // 只接纳严格改善距离且仍可能打破上界的 H seed。
             auto Set = [&](int vertex, double value)
             {
                 if (value >= distance[vertex] || !(value + Prefix(vertex) < p.best))
@@ -330,20 +285,13 @@ void SolveHighAdjoint(Problem& p,
                 const int successor = mask | block;
                 if (p.popcount[successor] > high_last || !backward[successor].ready)
                     continue;
-                ForEachBackwardBranchSum(
-                    p, block, backward[successor], [&](int vertex, double value)
-                {
-                    Set(vertex, value);
-                });
+                // 把已完成后继 H 通过一个 ordinary block 反向转移到当前 mask。
+                ForEachBackwardBranchSum(p, block, backward[successor], [&](int vertex, double value) { Set(vertex, value); });
             }
 
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
+            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue;
             for (int vertex : touched)
-                queue.push({distance[vertex] + Prefix(vertex),
-                            distance[vertex],
-                            vertex});
+                queue.push({distance[vertex] + Prefix(vertex), distance[vertex], vertex});
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();
@@ -377,9 +325,7 @@ void SolveHighAdjoint(Problem& p,
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;
         }
-        EmitAbhssProbe(
-            probe_method, "adjoint_layer", p, -1.0, &backward, size);
     }
 }
 
-}  // namespace gst::methods::abhss::internal
+} // namespace gst::methods::abhss::internal

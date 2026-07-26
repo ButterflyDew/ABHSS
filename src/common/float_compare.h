@@ -9,31 +9,12 @@ namespace gst::fp
 constexpr double kEps = 1e-9;
 constexpr double kInf = 1e100;
 
-inline int Cmp(double a, double b, double eps = kEps)
-{
-    if (std::fabs(a - b) <= eps)
-    {
-        return 0;
-    }
-    return (a < b) ? -1 : 1;
-}
-
-// 全局统一的实数比较接口，避免不同模块各自写 eps 判断。
+// 只在从浮点最短距离等式恢复真实路径时允许容差相等；上下界闭合始终用原始比较。
 inline bool Eq(double a, double b, double eps = kEps)
 {
-    return Cmp(a, b, eps) == 0;
+    return std::fabs(a - b) <= eps;
 }
 
-inline bool Lt(double a, double b, double eps = kEps)
-{
-    return Cmp(a, b, eps) < 0;
-}
+} // namespace gst::fp
 
-inline bool Le(double a, double b, double eps = kEps)
-{
-    return Cmp(a, b, eps) <= 0;
-}
-
-}  // namespace gst::fp
-
-#endif  // GST_FLOAT_COMPARE_H
+#endif // GST_FLOAT_COMPARE_H

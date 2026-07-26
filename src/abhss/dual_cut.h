@@ -36,16 +36,12 @@ public:
      * 原图边 bitmap；候选路径始终按原边权计价。
      * 调用者可在生成 witness 后用 `ReleaseResidual` 回收 2m 临时数组。
      */
-    void BuildKeepingResidualChangedArcsWithPrimalEdges(
-        const Graph& graph,
-        const Query& query,
-        const std::vector<std::vector<double>>& group_distance,
-        int root)
+    void BuildKeepingResidualChangedArcsWithPrimalEdges(const Graph& graph, const Query& query, const std::vector<std::vector<double>>& group_distance,
+                                                        int root)
     {
         BuildChangedArcs(graph, query, group_distance, root);
         primal_edge_words_.assign((static_cast<size_t>(graph.m) + 63) / 64, 0);
-        primal_upper_ = RecoverPrimal(
-            graph, query, root, residual_, primal_edge_words_);
+        primal_upper_ = RecoverPrimal(graph, query, root, residual_, primal_edge_words_);
     }
 
     /** @brief 释放只在预处理使用的 2m residual；保留势和 primal 边。 */
@@ -100,11 +96,7 @@ private:
      * 不等式，因此第 t 轮只检查此前势函数改变过的弧，再从违反处正常传播；
      * 输出写入 `potential_` 与 `residual_`，不会改动输入距离表。
      */
-    void BuildChangedArcs(
-        const Graph& graph,
-        const Query& query,
-        const std::vector<std::vector<double>>& group_distance,
-        int root)
+    void BuildChangedArcs(const Graph& graph, const Query& query, const std::vector<std::vector<double>>& group_distance, int root)
     {
         using HeapItem = std::pair<double, int>;
 
@@ -114,12 +106,14 @@ private:
 
         std::vector<int> order(g);
         std::iota(order.begin(), order.end(), 0);
-        std::sort(order.begin(), order.end(), [&](int left, int right)
-        {
-            if (group_distance[left][root] != group_distance[right][root])
-                return group_distance[left][root] > group_distance[right][root];
-            return left < right;
-        });
+        // 按根到组的距离降序处理，等距离时用组号稳定破平局。
+        std::sort(order.begin(), order.end(),
+                  [&](int left, int right)
+                  {
+                      if (group_distance[left][root] != group_distance[right][root])
+                          return group_distance[left][root] > group_distance[right][root];
+                      return left < right;
+                  });
 
         residual_.assign(static_cast<size_t>(2) * graph.m, 0.0);
         for (const UndirectedEdge& edge : graph.edges)
@@ -130,9 +124,9 @@ private:
 
         std::vector<double> distance(n + 1);
         std::vector<double> capped(n + 1);
-        std::vector<std::uint64_t> changed_arc_words(
-            (static_cast<size_t>(2) * graph.m + 63) / 64);
+        std::vector<std::uint64_t> changed_arc_words((static_cast<size_t>(2) * graph.m + 63) / 64);
 
+        // 只把首次改写的弧加入 changed-arc 位图，供后续组增量修复。
         auto MarkChangedArc = [&](int arc)
         {
             std::uint64_t& word = changed_arc_words[static_cast<size_t>(arc) >> 6];
@@ -145,17 +139,13 @@ private:
         {
             const int group = order[order_index];
             distance = group_distance[group];
-            std::priority_queue<HeapItem,
-                                std::vector<HeapItem>,
-                                std::greater<HeapItem>> heap;
+            std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>> heap;
 
             if (order_index > 0)
             {
                 // 对每条已改写弧检查一次 Bellman 松弛。这里的 residual 弧
                 // 方向与“到组距离”的传播方向相反，所以 source/target 对调。
-                for (size_t word_index = 0;
-                     word_index < changed_arc_words.size();
-                     ++word_index)
+                for (size_t word_index = 0; word_index < changed_arc_words.size(); ++word_index)
                 {
                     std::uint64_t bits = changed_arc_words[word_index];
                     while (bits)
@@ -167,14 +157,12 @@ private:
                         const int offset = __builtin_ctzll(bits);
 #endif
                         bits &= bits - 1;
-                        const int arc =
-                            static_cast<int>(word_index * 64 + offset);
+                        const int arc = static_cast<int>(word_index * 64 + offset);
                         if (arc >= 2 * graph.m)
                             continue;
 
                         const UndirectedEdge& edge = graph.edges[arc / 2];
-                        const bool forward =
-                            ArcIndex(edge.id, edge.u, edge.v) == arc;
+                        const bool forward = ArcIndex(edge.id, edge.u, edge.v) == arc;
                         const int target = forward ? edge.u : edge.v;
                         const int source = forward ? edge.v : edge.u;
                         const double next = residual_[arc] + distance[source];
@@ -214,20 +202,16 @@ private:
 
             for (const UndirectedEdge& edge : graph.edges)
             {
-                const double forward =
-                    std::max(0.0, capped[edge.u] - capped[edge.v]);
-                const double backward =
-                    std::max(0.0, capped[edge.v] - capped[edge.u]);
+                const double forward = std::max(0.0, capped[edge.u] - capped[edge.v]);
+                const double backward = std::max(0.0, capped[edge.v] - capped[edge.u]);
                 const int forward_arc = ArcIndex(edge.id, edge.u, edge.v);
                 const int backward_arc = ArcIndex(edge.id, edge.v, edge.u);
                 if (forward > 0.0)
                     MarkChangedArc(forward_arc);
                 if (backward > 0.0)
                     MarkChangedArc(backward_arc);
-                residual_[forward_arc] =
-                    std::max(0.0, residual_[forward_arc] - forward);
-                residual_[backward_arc] =
-                    std::max(0.0, residual_[backward_arc] - backward);
+                residual_[forward_arc] = std::max(0.0, residual_[forward_arc] - forward);
+                residual_[backward_arc] = std::max(0.0, residual_[backward_arc] - backward);
             }
         }
     }
@@ -239,12 +223,8 @@ private:
      * Dijkstra 仍按原边权计价，并把选中路径写入调用者持有的 edge bitmap，
      * 因此结果是可独立复核的 primal 见证，而不是只依赖对偶值的上界数字。
      */
-    static double RecoverPrimal(
-        const Graph& graph,
-        const Query& query,
-        int root,
-        const std::vector<double>& residual,
-        std::vector<std::uint64_t>& primal_edge_words)
+    static double RecoverPrimal(const Graph& graph, const Query& query, int root, const std::vector<double>& residual,
+                                std::vector<std::uint64_t>& primal_edge_words)
     {
         using HeapItem = std::pair<double, int>;
 
@@ -265,9 +245,7 @@ private:
 
         while (covered != full_mask)
         {
-            std::priority_queue<HeapItem,
-                                std::vector<HeapItem>,
-                                std::greater<HeapItem>> heap;
+            std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>> heap;
             std::fill(distance.begin(), distance.end(), fp::kInf);
             for (int vertex = 1; vertex <= graph.n; ++vertex)
             {
@@ -310,12 +288,10 @@ private:
                 return fp::kInf;
 
             cost += distance[found];
-            for (int vertex = found; vertex && !in_tree[vertex];
-                 vertex = parent[vertex])
+            for (int vertex = found; vertex && !in_tree[vertex]; vertex = parent[vertex])
             {
                 const int edge_id = parent_edge[vertex];
-                primal_edge_words[static_cast<size_t>(edge_id) >> 6] |=
-                    std::uint64_t{1} << (edge_id & 63);
+                primal_edge_words[static_cast<size_t>(edge_id) >> 6] |= std::uint64_t{1} << (edge_id & 63);
                 in_tree[vertex] = 1;
                 covered |= color[vertex];
             }
@@ -346,6 +322,6 @@ private:
     std::vector<std::uint64_t> primal_edge_words_;
     double primal_upper_ = fp::kInf;
 };
-}  // namespace gst::methods::dual_cut
+} // namespace gst::methods::dual_cut
 
-#endif  // ABHSS_DUAL_CUT_H
+#endif // ABHSS_DUAL_CUT_H

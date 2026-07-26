@@ -10,12 +10,12 @@ namespace gst::methods::abhss::internal
 /**
  * @brief 公共锚定 singleton 层在 ordinary 阶段充当 future 时的只读视图。
  *
- * 只要完成计划中存在 A1，全部合法配置都在 ordinary 之前生成该公共层，
- * 并通过此视图供全部非平凡 ordinary 层复用为 future；DirectedCut/Enhanced
- * 另在统一下界中并入 dual，不取消 A1。
+ * 只要状态格中存在 A1，Base 和 Enhanced 都在 ordinary 之前生成该公共层，
+ * 并通过此视图供全部非平凡 ordinary 层复用为 future；Enhanced 另在统一
+ * 下界中并入 dual，但不取消 A1。
  * 是否存在 A1 完全由锚定状态格的最高逻辑层决定，不使用经验性的 g 阈值。
- * 所有配置的 cone 外位置都用构造时 cutoff 与连续 farthest bound 恢复同一
- * 安全下界；DirectedCut 不进入 A1 构造，只在 ordinary 的其他 future 中
+ * 两种模式的 cone 外位置都用构造时 cutoff 与连续 farthest bound 恢复同一
+ * 安全下界；dual 不进入 A1 构造，只在 ordinary 的其他 future 中
  * 作为独立证书。每个顶点缓存最大的两个 singleton bit，并把两个 32-bit
  * payload locator 压入
  * 一个按需触页的 64-bit 项，避免跨 D row 重复二分稀疏 A1；cone 外 locator
@@ -32,15 +32,9 @@ struct AnchoredSingletonFuture
     /** @brief 读取公共 A1；cone 外返回统一的 farthest-based fallback。 */
     double Value(const Problem& problem, int bit, int vertex) const;
     /** @brief 读取 A1 并同时返回精确 payload 下标或 cone 外标志。 */
-    double ValueWithLocator(const Problem& problem,
-                            int bit,
-                            int vertex,
-                            std::uint32_t& locator) const;
+    double ValueWithLocator(const Problem& problem, int bit, int vertex, std::uint32_t& locator) const;
     /** @brief 用已缓存下标 O(1) 读取精确值，或返回统一 cone 外 fallback。 */
-    double LocatedValue(const Problem& problem,
-                        int bit,
-                        int vertex,
-                        std::uint32_t locator) const;
+    double LocatedValue(const Problem& problem, int bit, int vertex, std::uint32_t locator) const;
     /** @brief 返回未覆盖 singleton 的最大 anchor-aware future 并维护 top-two。 */
     double Future(const Problem& problem, int remaining, int vertex);
 
@@ -58,26 +52,20 @@ struct AnchoredSingletonFuture
  *
  * 调用者必须先由完成计划确认 A1 确实存在；本函数自身不按 g、图名或
  * 运行时统计分类。返回的仍是标准 `Row`，ordinary 结束后直接移交给
- * 公共前向内核，不是 Base 独有的第二套状态结构。全部配置的前向前缀在
+ * 公共前向内核，不是 Base 独有的第二套状态结构。两种模式的前向前缀在
  * 逻辑域非空时都包含 A1。若条件式 witness 购买收紧上界，未完成 pass 会
  * 被丢弃并以新 cutoff 整轮重启；最终仍只发布、移交和登记一份 row。该函数
- * 不读取 enhancement profile，因而 Base、DirectedCutOnly 与 Enhanced 的
- * A1 操作在代码层也无法分叉。
+ * 不读取模式开关，因而 Base 与 Enhanced 的 A1 操作在代码层无法分叉。
  */
-void BuildReusableAnchoredSingletonLayer(
-    Problem& problem,
-    AnchoredSingletonFuture& singleton_future,
-    class WitnessUpperScheduler& witness_scheduler);
+void BuildReusableAnchoredSingletonLayer(Problem& problem, AnchoredSingletonFuture& singleton_future, class WitnessUpperScheduler& witness_scheduler);
 
 /**
  * @brief 按统一公式估计一次 witness-tree subset DP 的 buy 工作量。
  *
- * `witness_vertices` 只允许取当前配置已经构造的真实 witness 顶点数；
- * `nonanchor_count` 决定共同的 subset 空间。函数不读取配置位，因此 Base、
- * DirectedCutOnly 与 Enhanced 只能把各自树大小代入同一公式。
+ * `witness_vertices` 取当前模式构造的真实 witness 顶点数，`nonanchor_count`
+ * 决定共同的 subset 空间；Base 与 Enhanced 只把各自树大小代入同一公式。
  */
-long long EstimateWitnessTreeDpWork(size_t witness_vertices,
-                                    int nonanchor_count);
+long long EstimateWitnessTreeDpWork(size_t witness_vertices, int nonanchor_count);
 
 /**
  * @brief Base/Enhanced 共用的 witness-tree DP rent-or-buy 调度器。
@@ -90,6 +78,7 @@ long long EstimateWitnessTreeDpWork(size_t witness_vertices,
 class WitnessUpperScheduler
 {
 public:
+    /** @brief 从当前模式的 witness 大小计算 buy，rent 从 0 开始。 */
     explicit WitnessUpperScheduler(Problem& problem);
 
     /**
@@ -100,14 +89,11 @@ public:
      */
     bool Account(long long row_work, bool ordinary_changed);
 
-    long long BuyWork() const { return buy_; }
-    long long RentWork() const { return rent_; }
-    int EvaluationCount() const { return evaluation_count_; }
-
     /** @brief 距离下一次当前输入修订可购买还需支付的 rent；不可买时返回上限。 */
     long long RemainingRentUntilBuy() const;
 
 private:
+    /** @brief 调用共用树 DP，并用所得可行值收紧 incumbent。 */
     void Evaluate();
 
     Problem& problem_;
@@ -115,14 +101,10 @@ private:
     long long buy_ = 0;
     int ordinary_revision_ = 0;
     int evaluated_revision_ = -1;
-    int evaluation_count_ = 0;
-    bool enabled_ = false;
 };
 
 /** @brief 按 |S| 递增生成 D(S,v)，仅发布不可继续同根拆分的规范 branch。 */
-void BuildOrdinaryRows(Problem& problem,
-                       AnchoredSingletonFuture* singleton_future,
-                       WitnessUpperScheduler& witness_scheduler);
+void BuildOrdinaryRows(Problem& problem, AnchoredSingletonFuture* singleton_future, WitnessUpperScheduler& witness_scheduler);
 
 /** @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。 */
 inline long long BinarySearchCost(size_t size)
@@ -139,20 +121,12 @@ inline long long BinarySearchCost(size_t size)
  * 函数按可预测比较次数在“双指针”“枚举 branch 后二分”“枚举 value 后
  * 二分”之间选择；三条路径只改变常数，不改变 row 表示或状态语义。
  */
-template <class Use>
-void ForEachRowBranchIntersection(const Row& values,
-                                  const Row& branches,
-                                  Use&& use)
+template <class Use> void ForEachRowBranchIntersection(const Row& values, const Row& branches, Use&& use)
 {
     // 三种遍历方法只是同一有序 row 上的小常数选择，不是三种存储布局。
-    const long long linear = static_cast<long long>(
-        values.vertex.size() + branches.vertex.size());
-    const long long scan_branches =
-        static_cast<long long>(branches.branch_count) *
-        BinarySearchCost(values.vertex.size());
-    const long long scan_values =
-        static_cast<long long>(values.vertex.size()) *
-        BinarySearchCost(branches.vertex.size());
+    const long long linear = static_cast<long long>(values.vertex.size() + branches.vertex.size());
+    const long long scan_branches = static_cast<long long>(branches.branch_count) * BinarySearchCost(values.vertex.size());
+    const long long scan_values = static_cast<long long>(values.vertex.size()) * BinarySearchCost(branches.vertex.size());
 
     if (scan_branches < linear && scan_branches <= scan_values)
     {
@@ -160,8 +134,7 @@ void ForEachRowBranchIntersection(const Row& values,
         {
             if (!branches.IsBranch(j))
                 continue;
-            const auto it = std::lower_bound(
-                values.vertex.begin(), values.vertex.end(), branches.vertex[j]);
+            const auto it = std::lower_bound(values.vertex.begin(), values.vertex.end(), branches.vertex[j]);
             if (it != values.vertex.end() && *it == branches.vertex[j])
             {
                 const size_t i = static_cast<size_t>(it - values.vertex.begin());
@@ -174,8 +147,7 @@ void ForEachRowBranchIntersection(const Row& values,
     {
         for (size_t i = 0; i < values.vertex.size(); ++i)
         {
-            const auto it = std::lower_bound(
-                branches.vertex.begin(), branches.vertex.end(), values.vertex[i]);
+            const auto it = std::lower_bound(branches.vertex.begin(), branches.vertex.end(), values.vertex[i]);
             if (it == branches.vertex.end() || *it != values.vertex[i])
                 continue;
             const size_t j = static_cast<size_t>(it - branches.vertex.begin());
@@ -209,47 +181,38 @@ void ForEachRowBranchIntersection(const Row& values,
  * singleton 通过 GroupRow 的精确 membership 检查，多组 row 通过较小一侧
  * 驱动二分；空侧表示零代价，不物化专门的 D(0) row。
  */
-template <class Use>
-void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
+template <class Use> void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
 {
     if (!left || !right)
     {
-        ForEachOrdinaryValue(p, left | right, [&](int vertex, double value)
-        {
-            use(vertex, left ? value : 0.0, right ? value : 0.0);
-        });
+        // 一侧为空 mask 时只枚举另一侧，并把空侧值视为 0。
+        ForEachOrdinaryValue(p, left | right, [&](int vertex, double value) { use(vertex, left ? value : 0.0, right ? value : 0.0); });
         return;
     }
 
-    const size_t left_size = p.popcount[left] == 1
-                                 ? p.group_distance[p.bit_to_group[FirstBit(left)]].ExactSize(
-                                       p.graph.n)
-                                 : p.ordinary[left].vertex.size();
-    const size_t right_size = p.popcount[right] == 1
-                                  ? p.group_distance[p.bit_to_group[FirstBit(right)]].ExactSize(
-                                        p.graph.n)
-                                  : p.ordinary[right].vertex.size();
+    const size_t left_size = p.popcount[left] == 1 ? p.group_distance[p.bit_to_group[FirstBit(left)]].ExactSize(p.graph.n) : p.ordinary[left].vertex.size();
+    const size_t right_size = p.popcount[right] == 1 ? p.group_distance[p.bit_to_group[FirstBit(right)]].ExactSize(p.graph.n) : p.ordinary[right].vertex.size();
     if (left_size <= right_size)
     {
-        ForEachOrdinaryValue(p, left, [&](int vertex, double a)
-        {
-            const double b = OrdinaryValue(p, right, vertex);
-            if (b < fp::kInf &&
-                (p.popcount[right] != 1 ||
-                 p.group_distance[p.bit_to_group[FirstBit(right)]].IsExact(vertex)))
-                use(vertex, a, b);
-        });
+        // 左侧更小时由左侧驱动，对右侧做单次读取与精确性检查。
+        ForEachOrdinaryValue(p, left,
+                             [&](int vertex, double a)
+                             {
+                                 const double b = OrdinaryValue(p, right, vertex);
+                                 if (b < fp::kInf && (p.popcount[right] != 1 || p.group_distance[p.bit_to_group[FirstBit(right)]].IsExact(vertex)))
+                                     use(vertex, a, b);
+                             });
     }
     else
     {
-        ForEachOrdinaryValue(p, right, [&](int vertex, double b)
-        {
-            const double a = OrdinaryValue(p, left, vertex);
-            if (a < fp::kInf &&
-                (p.popcount[left] != 1 ||
-                 p.group_distance[p.bit_to_group[FirstBit(left)]].IsExact(vertex)))
-                use(vertex, a, b);
-        });
+        // 右侧更小时对称地由右侧驱动交集。
+        ForEachOrdinaryValue(p, right,
+                             [&](int vertex, double b)
+                             {
+                                 const double a = OrdinaryValue(p, left, vertex);
+                                 if (a < fp::kInf && (p.popcount[left] != 1 || p.group_distance[p.bit_to_group[FirstBit(left)]].IsExact(vertex)))
+                                     use(vertex, a, b);
+                             });
     }
 }
 
@@ -259,34 +222,36 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
  * 对 singleton 特化为一次组距离 membership；其余情况调用统一 row 交集，
  * 保证 ordinary D 的 canonical split 不会在后续层重复计数。
  */
-template <class Use>
-void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use)
+template <class Use> void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use)
 {
     if (p.popcount[branch] == 1)
     {
         const int group = p.bit_to_group[FirstBit(branch)];
-        ForEachOrdinaryValue(p, accumulator, [&](int vertex, double value)
-        {
-            if (p.group_distance[group].IsExact(vertex))
-                use(vertex, value, p.group_distance[group][vertex]);
-        });
+        // branch 为 singleton 时直接检查对应组距离的精确 membership。
+        ForEachOrdinaryValue(p, accumulator,
+                             [&](int vertex, double value)
+                             {
+                                 if (p.group_distance[group].IsExact(vertex))
+                                     use(vertex, value, p.group_distance[group][vertex]);
+                             });
         return;
     }
     if (p.popcount[accumulator] == 1)
     {
         const int group = p.bit_to_group[FirstBit(accumulator)];
-        ForEachBranch(p.ordinary[branch], [&](int vertex, double value)
-        {
-            if (p.group_distance[group].IsExact(vertex))
-                use(vertex, p.group_distance[group][vertex], value);
-        });
+        // accumulator 为 singleton 时由多组 branch row 驱动交集。
+        ForEachBranch(p.ordinary[branch],
+                      [&](int vertex, double value)
+                      {
+                          if (p.group_distance[group].IsExact(vertex))
+                              use(vertex, p.group_distance[group][vertex], value);
+                      });
         return;
     }
 
-    ForEachRowBranchIntersection(
-        p.ordinary[accumulator], p.ordinary[branch], std::forward<Use>(use));
+    ForEachRowBranchIntersection(p.ordinary[accumulator], p.ordinary[branch], std::forward<Use>(use));
 }
 
-}  // namespace gst::methods::abhss::internal
+} // namespace gst::methods::abhss::internal
 
 #endif

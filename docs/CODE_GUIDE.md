@@ -1,226 +1,274 @@
-# ABHSS 代码入口与阅读指南
+# ABHSS 代码入口与审阅指南
 
-本文档回答“从哪里编译、怎样运行、一条查询经过哪些函数、每个源文件负责什么”。算法动机、递推、证明和复杂度见 [`METHOD.md`](METHOD.md)；论文实验的数据与报告口径见 [`EXPERIMENT_PLAN.md`](EXPERIMENT_PLAN.md)。
+本文档面向第一次阅读本分支代码的人，说明怎样编译、怎样运行、一条查询经过哪些函数，以及 Base 与 Enhanced 究竟在哪些代码位置不同。数学定义、正确性证明和复杂度见 [`METHOD.md`](METHOD.md)。
 
-## 1. 代码与实验的真值层级
+## 1. 分支边界
 
-为避免命令、文档和长时间结果之间漂移，当前仓库按下列顺序解释冲突：
+本分支刻意只保留最终论文方法，不包含 baseline、中间消融态、实验调度器、探针、运行时配置账本或输入合法性测试框架。公开 API 只有：
 
-1. C++ 公开接口与测试决定“程序实际做什么”。
-2. `experiments/paper_matrix.json` 决定“正式实验跑什么”。
-3. `experiment_data/**/manifest.json` 和 `experiments/query_feasibility_audit.json` 决定“具体输入是哪个文件”。
-4. `experiments/environment_lock.json` 决定 timeout、计时边界、运行配置和报告契约。
-5. 本文档和 `EXPERIMENT_PLAN.md` 是对上述机器真值的人类可读解释。`docs/archive` 只保留历史决策，不能覆盖当前口径。
+```cpp
+SolveResult SolveOneQuery(const Graph& graph, const Query& query, bool enhanced = false);
+```
 
-## 2. Linux 上的最短入口
+`enhanced=false` 是 Base，`enhanced=true` 是 Enhanced。这个布尔值在一条查询开始前确定，搜索过程中不会根据图名、组数、状态密度、时间或内存切换模式。
 
-远程服务器需要 GNU Make、CMake 3.16 或更新版本、支持 C++17 的 GCC/Clang、Python 3.10 或更新版本以及 pthread。仓库顶层 `Makefile` 是 Linux 推荐入口：
+建议按以下顺序阅读：
+
+```text
+src/main.cpp
+  -> src/abhss/abhss.h
+  -> src/abhss/solver.cpp
+  -> src/abhss/internal.h
+  -> src/abhss/preprocess.cpp
+  -> src/abhss/core.{h,cpp}
+  -> src/abhss/forward.{h,cpp}
+  -> src/abhss/adjoint.{h,cpp}
+  -> src/abhss/dual_cut.h
+```
+
+## 2. 编译、运行与接口
+
+Linux 推荐入口：
 
 ```bash
 make release JOBS=16
-make validate
 ```
 
-`make release` 配置 Release、编译当前可用的仓库内 target，然后运行 CTest。只构建论文性能运行所需的两个二进制可用：
+直接使用 CMake：
 
 ```bash
-make paper-binaries JOBS=16
-make validate-paper-binaries
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 16
 ```
 
-一次 smoke 运行的六个公共位置参数依次是 `graph_selector result_root query_selector data_root query_begin query_limit`：
+程序调用格式：
 
 ```bash
-./build/abhss example results/manual query.txt data 1 1 --enhancements=none
-./build/abhss example results/manual query.txt data 1 1 --enhancements=all
-./build/pruneddp example results/manual query.txt data 1 1 --state-storage=hash --mst-upper=on --lb2-pathmax=off
+./build/abhss <graph_folder> <query_file> <base|enhanced> [first_query] [query_count]
 ```
 
-`graph_selector` 可以是图目录的显式路径、`data_root` 下的目录名或字典序 1-based 编号；正式实验不使用会随目录变化的数字编号。`query_selector` 可以是显式查询文件路径，因此 P2/S2 panel 不必复制到大图目录中。`query_limit=-1` 表示从 `query_begin` 起运行到文件结尾。
-
-Windows 可直接用 CMake 的 Visual Studio 或 MinGW generator；多配置 generator 的二进制位于 `build/Release`，Linux/MinGW 单配置 generator 通常位于 `build`。实验 runner 会按矩阵中的主路径与 fallback 顺序查找，不需要修改矩阵。
-
-## 3. 输入、输出与计时契约
-
-### 3.1 图接口
-
-每个图目录包含 `graph.txt` 或兼容名 `Graph.txt`：
+`graph_folder` 下固定读取小写 `graph.txt`，`query_file` 是显式查询文件。图和全部查询只加载一次，单条查询计时从 `SolveOneQuery` 调用前开始。输出每行依次为：
 
 ```text
-n m
-u_1 v_1 w_1
-...
-u_m v_m w_m
+query_index seconds best_weight mask_vertex_states
 ```
 
-顶点为 `1..n`，图是无向图，边权必须是有限非负数。重边、自环和零权边均保留。读取器要求声明后恰好有 $m$ 条边，尾部多余 token 会立即报错。加载后保留原边顺序、`edge_id`、两端邻接插入顺序，并一次性构建连通分量缓存。
+程序按竞赛代码约定信任正式输入满足 README 的格式和取值范围。保留的入口判断只有参数个数、最终模式名和查询区间；算法内部的 `assert(g <= 16)` 表达方法适用域，不是另一套配置合法性系统。
 
-### 3.2 查询接口
-
-查询文件首 token 是查询数 $q$；每条查询先写组数 $g$，然后对每组写 `size vertex_1 ... vertex_size`。组内顶点数必须为正，组间允许重叠。查询读取器验证记录完整性；结合图的顶点范围与共同连通分量检查在 solver timer 内执行。
-
-### 3.3 输出契约
-
-每条结果是 `seconds weight query_peak_rss_overhead_mib mask_vertex_states`。无解时 `weight=-1`，有解时为最优权值。当前 ABHSS 公开返回结构包含 `best_weight`、`feasible` 和实际发现的主状态项数；其实际键包含状态族，因此 D/A/H 中数值相同的 `(mask,v)` 分别计数。它在内部构造可行 witness 来证明上界，但没有序列化最终最优树边集。
-
-`graph_load_seconds` 和 `query_load_seconds` 写在结果 header 与 `[Ready]` marker 中，不进入算法时间。`[Ready]` 之后，每条查询的 timer 包含可行性检查、查询预处理和搜索。1 ms RSS 采样线程只读内存统计，不参与搜索。
-
-## 4. 一条 ABHSS 查询的调用主线
+## 3. 一条查询的完整调用线
 
 ```text
 main
-  -> ParseAbhssOptions
-  -> LoadGraphFromFolder / LoadQueriesFromFolder
-  -> SolveOneQuery
-       -> ResolveQueryPrelude
-       -> PrepareProblem
-            -> ComputeComponentCover       [zero-cost cover may close here]
-            -> BuildDistanceRootInitialization [otherwise, exactly once]
-                 BootstrappedBounded or CompletePotential
-                 both return {group_distance, root, upper}
-       -> DescribeConfiguration          [fixed add-or-replace profile]
-       -> MakeAnchoredCompletionSchedule [derive logical A/H layer boundary]
-       -> WitnessUpperScheduler          [both profiles start with rent = 0]
-            buy = the same formula applied to this profile's witness size
-       -> common A1 row                  [only when the logical grid contains A1]
-            all configurations: same seed, farthest cone, positive fallback,
-                                 top-two view and forward-A ownership transfer
-            the A1 builder does not read enhancement flags or dual potentials
-            queue/edge work pays rent; a tighter tree-DP buy restarts the A1 pass
-       -> BuildOrdinaryWithProbe
-            all configurations: farthest + tour + common A1 future
-            DirectedCut/Enhanced: additionally max with dual potential
-            -> BuildOrdinaryRows         [shared D grid; continues the same rent]
-       -> RunForwardAnchoredStage        [Base / DirectedCutOnly: full A]
-          or
-          RunForwardAnchoredStage        [Enhanced: low A]
-            -> SolveHighAdjoint           [H replaces high A]
-       -> SolveResult{best_weight, feasible, mask_vertex_states}
+  LoadGraph
+    BuildConnectedComponentIndex
+  LoadQueries
+  for selected query
+    SolveOneQuery(graph, query, enhanced)
+      SolveTrivialQuery
+      Problem(graph, query, enhanced)
+      PrepareProblem
+        ComputeComponentCover
+        BuildDistanceRootInitialization
+          bounded representation     [Base]
+          complete representation    [Enhanced]
+          RootStarUpper               [共同]
+        BuildRootPathUnion            [共同]
+        choose anchor + build masks   [共同]
+        TourLowerBound::Build         [共同]
+        BuildRootPathWitness          [Base witness]
+        DualCutPotential + facility   [Enhanced certificates]
+        BuildDualWitness              [Enhanced witness]
+      WitnessUpperScheduler           [共同，rent=0]
+      BuildCommonA1
+        BuildReusableAnchoredSingletonLayer
+      BuildOrdinaryRows
+      ReleaseLookupCache
+      FinishBase
+        BuildForwardAnchoredRows through all required layers
+      or FinishEnhanced
+        BuildForwardAnchoredRows through the low prefix
+        SolveHighAdjoint for the remaining high suffix
+      return SolveResult
 ```
 
-`src/main.cpp` 是二进制公共批处理入口。CMake 通过宏将同一入口编译为 `abhss`、`pruneddp`、`dpbf` 及可选的第三方 adapter，使图加载、查询分片、计时和输出格式一致。每个 `weights.txt` 查询行依次写 time、weight、query peak RSS 和 `mask_vertex_states`；正式 ABHSS/PrunedDP++ 返回非负计数，无统一口径的 adapter 写 `-1`。
+其中 `BuildCommonA1` 只判断由递推推导出的最高逻辑层是否为 0。它不读取 `enhanced`，没有经验性的组数阈值。只要 A1 层存在，Base 与 Enhanced 都调用同一个构造函数、同一个 witness 调度器和同一种所有权移交。
 
-`SolveOneQuery` 先通过 `IsValid`（内部读取 `DescribeConfiguration`）拒绝非法开关，再处理空查询、 $g>16$、无共同分量、单组等入口情形。非平凡查询建立 `Problem` 并完成预处理后，才保存本次执行所需的 `ConfigurationProfile` 和状态层计划。`Problem` 为避免改变热对象布局，仍只读保存原来的冻结 bit mask；`UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 与 profile 映射由同一配置回归共同约束。代码与论文共用这张“新增或替换”契约，不能再把位掩码单调误写成逐指令包含。
+## 4. 核心数据对象
 
-`PrepareProblem` 依次构建零权分量下界、共同的距离—根初始化合同、真实路径并集、锚组、tour 下界和当前配置自己的 witness。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。CompletePotential 构造完整距离势。两者返回前都执行相同 root-star 扫描，返回后又共同构造 root-path-union。规范 SPT 因而是 bounded 物理表示的私有 bootstrap，不是 Base-only 的调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
+### 4.1 `Graph` 与 `Query`
 
-预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。调度器只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且树 DP 有新输入时才调用同一个 `EvaluateWitnessTree`。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。无论是否发生重启，只有最终接纳的一份 A1 row 被发布、移交和计数。
+`Graph::edges` 按输入顺序保存无向原边，`edge_id` 永远等于原边下标；`Graph::adj` 保存双向邻接项。读图时先统计每个顶点的精确度数，再一次预留邻接容量，最后构造 `component_of`。这避免大图逐边扩容，也让每条查询的可行性判断不再扫描整图。
 
-`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。域为空时，完成式直接使用隐式 $A(\varnothing)$；域非空时，A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
+`Query::groups[i]` 是第 `i` 个组的候选顶点。组可以重叠；一个顶点可同时覆盖多个组。
 
-`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核； $H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
+### 4.2 `Problem`
 
-Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAnchoredRows`，生成完整的低/高层锚定 $A$。Enhanced 仍调用同一内核生成由平衡完成域确定的低层 $A$，再由 `SolveHighAdjoint` 以补集转置终端和递减 $H$ 代替未物化的高层 $A$。切分是递推域的固定 meet-in-the-middle 边界，不读取数据集名或运行表现。
+`Problem` 是一条查询的全部上下文，只保存输入引用、一个 `enhanced` 位和算法状态。重要字段分为：
 
-从论文和代码审计角度，配置关系必须按下表理解：
+- 图与组编号：`g`、`anchor_group`、`bit_to_group`、`original_mask`；
+- 状态域：`nonanchor_count`、`subset_count`、`full_mask`、`half`；
+- 上下界：`best`、`component_cover`、`tour`、`dual`；
+- 上界 witness：`root_path_union`、`witness_tree`；
+- DP：`ordinary`、`ordinary_minimum`；
+- 报告量：`mask_vertex_states`。
 
-| 逻辑职责 | Base realization | Enhanced realization | 关系 |
-|---|---|---|---|
-| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest cone 与正 fallback，随后移交前向 A | 逐项执行同一 seed、cone、fallback、top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支 |
-| 距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段 |
-| ordinary 的其他 future | farthest、tour | farthest、tour，再与 directed-cut potential 取最大 | 安全新增证书；A1 future 仍共同存在 |
-| witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
-| A1 之后的高层锚定完成 | 完整前向高层 $A$ | A1/低层 $A$ 加高层 $H$ | 等价完成式的方向替换；A1 不属于替换后缀 |
-| 无 Base 对应物的工作 | 无 | directed-cut 可行证书、额外 facility 收紧 | 安全新增 |
+构造函数不做预处理。所有字段的建立顺序集中在 `PrepareProblem`，审阅时不需要追踪配置对象或延迟合法性映射。
 
-`DirectedCutOnly` 采用表中的 DirectedCut 距离与 witness realization，增加 dual/facility 证书，但仍保留完整前向高层 $A$，只作为隔离 `AdjointCompletion` 的正确性/消融配置。表中不允许出现“Base 独有且 Enhanced 没有同职责替代物”的逻辑阶段。
+### 4.3 `Row`
 
-## 5. ABHSS 源文件导读
+ordinary D、前向 A 和反向 H 共用唯一物理格式：
 
-| 文件 | 主要职责 | 阅读时需要抓住的不变式 |
-|---|---|---|
-| `src/abhss/abhss.h` | 公开 `SolveOptions`、增强位、`ConfigurationProfile`、`AnchoredCompletionSchedule` 和 `SolveResult` | 开关链只表达安全新增/同职责替换；层计划只表达平衡递推域及 A/H realization |
-| `src/abhss/solver.cpp` | 单一 solver 入口与配置调度 | 只在这里选择完整前向或 adjoint 完成；不存在按查询 oracle |
-| `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
-| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、 $A$、 $H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
-| `src/abhss/preprocess.cpp` | 零权 cover、组距离、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；`best` 只由真实可行子图收紧 |
-| `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
-| `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常生成 row 都走同一完成函数 |
-| `src/abhss/dual_cut.h` | `DirectedCut` 的对偶势、residual、primal 边恢复 | 势只作下界，上界必须由原图真实边计价 |
-| `src/abhss/adjoint.{h,cpp}` | ordinary 按顶点转置、高层 $H$ 递减、低层 $A$ 边界结算 | $H(S)$ 覆盖 $S$ 外侧，与 $A(L)+D(S\setminus L)$ 恰好覆盖全组 |
-| `src/abhss/diagnostics.h` | 编译期可关闭的稀疏 phase 诊断 | 正式构建不因诊断改变状态或配置 |
+```text
+vertex[]       严格递增的顶点
+value[]        与 vertex 对齐的精确状态值
+branch_bits[]  ordinary D 专用的规范 branch 位图
+branch_count   branch 数量
+ready          已计算标志；与 payload 是否为空无关
+```
 
-建议阅读顺序是 `abhss.h -> solver.cpp -> internal.h -> preprocess.cpp -> core.cpp -> forward.cpp -> adjoint.cpp -> dual_cut.h`。若先读 adjoint 热循环而未理解 `Problem::original_mask` 和 $H$ 的补集语义，很容易把“外侧已付”误读成普通 rooted DP。
+`ready=false` 表示依赖尚未生成；`ready=true` 且数组为空表示该逻辑 row 已完整处理，但严格上界锥体中没有候选。三种状态不各自维护 dense/hash 容器。
 
-## 6. 公共工程与 baseline 文件
+### 4.4 `GroupRow`
 
-| 路径 | 作用 | 论文角色 |
-|---|---|---|
-| `src/common/fast_numeric_reader.h` | 求解器与离线审计共用的 8 MiB ASCII 数字扫描器，含旧 libstdc++ 浮点回退 | 统一大图读取热路径，避免工具与 solver 语义/速度分叉 |
-| `src/common/graph_io.{h,cpp}` | 精确度数预留、边/邻接构建、连通分量缓存 | 所有本地方法的共同 I/O，不是 ABHSS speedup |
-| `src/common/query_io.{h,cpp}` | 查询路径解析、批量读取与格式拒绝 | 所有方法共用 |
-| `src/common/query_feasibility.{h,cpp}` | 使用加载期分量索引判定查询是否有共同分量 | 算法 timer 内的共同入口检查 |
-| `src/common/memory_usage.{h,cpp}` | Windows/Linux RSS 读取与逐查询采样 | 工程监控，不是第二个计算线程 |
-| `src/common/output_manager.{h,cpp}` | 安全创建结果目录并追加 header/记录 | artifact 输出 |
-| `src/pruneddp` | PrunedDP++ 论文路径的本仓库重建，支持 Safe、strict-pathmax 与实际 StateStore 项数 | Safe 是当前主性能 baseline；Hash 直接用容器 size，Dense 只数 present，不是原作者 2016 代码的 bit-for-bit 镜像 |
-| `src/dpbf` | 稠密全子集 Dreyfus–Wagner/DPBF | 小图正确性 baseline，80M cell 安全上限 |
-| `src/baselines/basic_plus.*` | PVLDB 2021 作者 header 的输入 adapter | 可选 correctness-only， $g\le14$ |
-| `src/baselines/gpu4gst_pruneddp.*` | GPU4GST artifact 内 CPU PrunedDP++ header 的输入 adapter | 可选 artifact 核验，只接受非负整数边权，不在冻结性能矩阵 |
+`GroupRow` 保存一个查询组到全图的多源最短距离。Base 使用安全 cutoff 下的有界表示，Enhanced 使用完整 dense 表。有界表示可以是 dense cutoff 数组，也可以是“递增顶点和值 + membership/rank 位图”。所有布局只暴露三种共同操作：读取值、`IsExact`、枚举精确值。
 
-`basic_plus` 和 `gpu4gst_pruneddp_artifact` 只在所需 `third_party` header 已恢复时由 CMake 创建。SCIP-Jack 是独立外部二进制，由 Python runner 适配，不链接到本项目。
+cutoff 外的位置不是精确距离，不能作为 singleton seed。所有需要真实子树值的交集都通过 `IsExact` 或 `ForEachExact` 进入；作为下界读取时，cutoff 值仍然安全。
 
-## 7. 测试与正确性门禁
+### 4.5 `WitnessTree` 与 `AnchoredSingletonFuture`
 
-| CTest | 覆盖范围 | 防止的回归 |
-|---|---|---|
-| `fast_graph_io_structure` | 零/小数/科学计数边权、原边和邻接顺序、自环双邻接项、连通分量、错误 token | 快速读取改变图语义或静默接受损坏输入 |
-| `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
-| `abhss_zero_weight_witness` | 历史零权父指针环反例 | witness 重根不终止或误计上界 |
-| `abhss_configuration_exactness` | 144 个确定性随机连通小图， $2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言共同 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通图中规范终端失败后的共同分量 fallback、`ConfigurationProfile` 的新增位/其余 realization、共同 witness `buy` 公式、调度器从 `rent=0` 且零次求值启动、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新暴露 Base-only SPT 调度、把规范终端失败误判为查询无解、恢复 Base 预买、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
-| `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、A1 所有权交接后重复计数、误把 Dense 容量或辅助预处理当实际状态 |
+`WitnessTree` 只存局部顶点、父亲和父边权。Base 与 Enhanced 的树来源不同，但随后交给同一个 `WitnessUpperScheduler` 和同一个 `EvaluateWitnessTree`。
 
-本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。
+`AnchoredSingletonFuture` 同时持有标准 A1 row 与 ordinary 阶段需要的只读 top-two 索引。ordinary 结束后只释放索引缓存，随后把原 A1 row 移动到前向 A 容器；不会重新生成，也不会重复计数。
 
-## 8. 实验工具链
+## 5. 逐文件与逐函数导读
 
-| 路径 | 职责 |
+### 5.1 `src/main.cpp`
+
+`main` 只做四件事：解析最终模式和查询区间、加载输入、逐条调用求解器、打印结果。没有结果目录管理、RSS 线程、baseline 分派或诊断开关，因此计时边界可以直接从函数看出。
+
+### 5.2 `src/common/`
+
+| 函数或类型 | 作用 |
 |---|---|
-| `tools/data/build_published_workloads.py` | 从 MonoGST+/GPU4GST 作者输入生成 P1 接口与身份 manifest |
-| `tools/data/build_gpu_query_panels.py` | 对已生成的 300 条 P2 候选按输入组大小分层固定 5 条 |
-| `tools/data/generate_controlled_queries.py` | 生成 DBLP/IMDb 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
-| `tools/data/build_query_feasibility_audit.py` | 重用图分量扫描并将每个矩阵 case 的可行性与当前矩阵哈希绑定 |
-| `tools/experiments/validate_environment.py` | 在运行前检查矩阵总数、方法配置、路径、哈希和可行性审计 |
-| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，拒绝与中文标点或词内连字号相贴的行内公式开界，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
-| `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录，并解析行末状态数 |
-| `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成时间/状态倍率、timeout 方向、目标值和可行性不一致 |
-| `tools/experiments/plot_results.py` | 从冻结 supervisor JSON records 绘制 P2/S2 曲线，不重新挑选查询 |
+| `FastNumericReader` | 以 8 MiB 缓冲无分配扫描整数和浮点 token；`ReadDouble` 使用 C++17 `from_chars` |
+| `BuildConnectedComponentIndex` | 一次遍历邻接表，建立稠密分量编号 |
+| `LoadGraph` | 两遍构造图：保存原边和度数，再按精确容量建立双向邻接表 |
+| `LoadQueries` | 从显式路径一次读取全部查询 |
+| `GroupComponents` | 把一个组映射为去重、递增的分量集合 |
+| `IsQueryFeasible` | 在非连通图上逐组求分量集合交；连通图直接返回 |
+| `fp::Eq` | 只用于从浮点距离等式恢复真实路径；上下界闭合不用容差 |
 
-一次正式运行不直接循环调用二进制，而是由 `run_experiments.py` 展开机器矩阵。runner 用 case/method/query 的稳定 key 分片，为每个任务写独立 JSON；同一 `run-dir` 下已完成 key 不会重跑。Linux 上保留 `PATH` 的大小写并为外部 solver 同步添加 `LD_LIBRARY_PATH`；Windows 上会合并大小写重复的 Path 环境项。
+### 5.3 `src/abhss/solver.cpp`
 
-## 9. 修改算法时的最小安全流程
+| 函数 | 作用 |
+|---|---|
+| `SolveTrivialQuery` | 处理空查询、单组查询和不存在共同可行分量的查询 |
+| `BuildCommonA1` | 逻辑 A 正层存在时调用共同 A1；否则返回空 future 指针 |
+| `FinishBase` | 把 A1 移入共同前向内核，并把前向 A 做到最高必需层 |
+| `FinishEnhanced` | 用同一前向内核做到固定低层边界，再调用 H 完成高层 |
+| `SolveOneQuery` | 唯一公开求解主线；公共阶段只写一次，末尾选择完成方式 |
 
-1. 先写明要保持的数学不变式：真实上界、可采纳下界、精确 row 还是 cutoff 证书。
-2. 优先在公共 `Problem`/`Row`/future/交集函数中实现，不得恢复另一套 Base/Enhanced 数据结构。
-3. 若是增强操作，从 `SolveOptions::Base()` 通过 `With` 增加，在 `DescribeConfiguration` 中明确登记为“安全新增”或“同职责替换”，并在 `IsValid` 中执行依赖检查；不得出现 Base 独有但 Enhanced 无同职责 realization 的阶段，也不得依据图名、 $g$、当前速度或内存自动开关。
-4. 为最小反例增加 CTest，然后运行 `make release`。修改剪枝、闭合、零权边或 adjoint 时，三种合法配置都必须对照独立 DP。
-5. 运行 SteinLib 已知最优 gate；任何目标值/可行性不一致都先当正确性错误，不能用“浮点容差”直接解释。
-6. 只在正确性门禁通过后跑旧/新性能 panel；保留每个 panel 的权重序列和超时方向，不仅比较总时间。
+最高锚定层直接由 `max(0, g / 2 - 1)` 得出。Enhanced 的低层边界在最高层为 0 时取 0，否则取 `max(1, highest_layer / 2)`。这两个值来自状态分解域，不是性能启发式。
 
-## 10. GitHub 文档上传与渲染注意
+### 5.4 `src/abhss/preprocess.cpp`
 
-后续 LLM 或人工修改 Markdown 时必须遵守以下仓库级约定。它们不是 LaTeX 数学语义限制，而是 GitHub 当前 Markdown 渲染器的兼容性边界。
+| 函数 | 作用 |
+|---|---|
+| `ComputeComponentCover` | 压缩零权连通分量并在组 mask 上做 set-cover DP，产生零代价判定与下界 |
+| `BootstrapBoundedDistanceUpper` | 在统一距离—根职责内部，为有界距离构造真实 cutoff |
+| `BuildGroupDistances` | 对每组运行多源 Dijkstra，形成有界或完整 `GroupRow` |
+| `RootStarUpper` | 在共同根连接全部组；严格小于 cutoff 的判断阻止非精确占位更新上界 |
+| `BuildDistanceRootInitialization` | 屏蔽两种距离表示差异，一次返回距离表、根和上界 |
+| `BuildRootPathUnion` | 沿真实最短路边连接各组，按原 `edge_id` 去重计价 |
+| `BuildWitnessFromEdges` | 把一组真实原边严格重根为无父指针环的树 |
+| `BuildRootPathWitness` | 把共同路径并集转成 Base witness |
+| `BuildDualWitness` | 把 Enhanced primal bitmap 转成相同格式的 witness |
+| `TourLowerBound::Build` | 在组间松弛度量上预计算固定端点 Hamilton 路径 |
+| `TourLowerBound::At` | 把当前顶点接到路径两端，返回可采纳 tour 下界 |
+| `EvaluateWitnessTree` | 在真实 witness 上执行唯一一份 subset DP 上界求值 |
+| `BuildPrimalFacilityUpper` | 在 Enhanced primal facilities 上构造支撑度量并做小型 DP 上界 |
+| `FarthestRemaining` | 返回当前顶点到剩余组的最大单组距离 |
+| `FutureBound` | Base 取 farthest/tour 最大值；Enhanced 再与 dual 取最大值 |
+| `PrepareProblem` | 按固定顺序建立上述对象，并只构造当前模式的 witness |
 
-1. 块公式统一使用带 `math` info string 的 fenced block，不使用“首尾各一行 `$$`”的三行式写法。标准形态为：
+`PrepareProblem` 是最长的预处理编排函数，按代码块依次阅读：零权闭合；距离—根合同；真实路径并集；锚组与 mask；farthest 缓存；tour；witness 分支；ordinary 容器初始化。只有 witness 块按模式分支，其余控制流共同。
 
-   ````markdown
-   ```math
-   E = mc^2
-   ```
-   ````
+### 5.5 `src/abhss/core.{h,cpp}`
 
-2. 不得在行内或块公式中使用 `\operatorname` 或 `\operatorname*`。截至 2026-07-24，GitHub 会显示 “The following macros are not allowed: operatorname”，并把公式源文回退成灰色代码块。普通命名使用 `\mathrm{name}`；例如 `\mathrm{OPT}`、`\mathrm{dist}` 和 `\mathrm{clamp}`。当前渲染器也曾把语法完整的 `\begin{cases}...\end{cases}` 报成 “Missing `\end{cases}`”；本仓库因此把分段函数拆成多个独立 `math` block，不再使用 `cases` 环境。
-3. 不要把含下划线的代码标识符塞进数学文本命令，例如不要写 `$S\subseteq\texttt{full\_mask}$`。GitHub 曾把其中的 `_` 送到文本模式并报 “`'_' allowed only in math mode`”。代码名应留在公式外，用 Markdown 行内代码表示；若确实需要数学记号，则改写为 `$M_{\mathrm{full}}$` 这一类结构。
-4. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
-5. 行内公式的开界 `$` 前必须有安全边界。GitHub 已实测会把紧跟中文标点或词内连字号的后续公式留成原文：不要写 `$D$、$A$、$H$` 或 `fixed-$U_0$`，而应写成 $D$、 $A$、 $H$ 以及“固定的 $U_0$”。注意“定界符数量配对”不能发现这类问题，必须同时检查边界和上传后的实际 MathML 数量。
-6. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符及安全左边界、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
-7. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
+| 函数或类型 | 作用 |
+|---|---|
+| `EstimateWitnessTreeDpWork` | 按 witness 顶点数和非锚组数计算共同 buy |
+| `WitnessUpperScheduler::Account` | 让 A1 与 D 连续支付实际 queue/edge 工作，达到 buy 后调用树 DP |
+| `AnchoredSingletonFuture::ValueWithLocator` | 二分读取精确 A1，或返回 cone 外正下界并编码 locator |
+| `AnchoredSingletonFuture::Future` | 每顶点缓存最大、次大 singleton future，常见查询 O(1) |
+| `BuildReusableAnchoredSingletonLayer` | 在 ordinary 前构造两种模式完全共用的 A1 |
+| `ForEachRowBranchIntersection` | 在双指针与较小侧二分之间按估计工作量选择同一交集结果 |
+| `ForEachCommonValue` | 统一 singleton 和多组 ordinary 的同顶点交集 |
+| `ForEachPivotBranch` | 只让一个互补块走规范 branch，消除重复拆分 |
+| `ForEachTriple` | 用三个 ordinary 块加锚组及时结算完整上界 |
+| `BuildOrdinaryRows` | 按 mask 大小生成 ordinary D、做图闭包、标 branch、更新上界和 witness rent |
 
-语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。
+`BuildReusableAnchoredSingletonLayer` 的块顺序是：固定本轮 cutoff；逐 singleton 初始化精确 seed；以 farthest continuation 做 A* 闭包；在安全点向共同 scheduler 支付 rent；若树 DP 收紧上界则整轮重启；最终发布所有 A1 row；建立 top-two locator 缓存。函数体中不存在 `p.enhanced`。
 
-## 11. 当前明确边界
+`BuildOrdinaryRows` 的块顺序是：枚举规范 split；分阶段计算 dual、farthest、A1、tour 下界；多源闭包；写回有序 row 与 branch bitmap；登记状态；支付 witness rent；执行两块和三块完整完成式；清理 touched 工作区。
 
-- ABHSS 只支持无向、有限非负边权与 $g\le16$。
-- 当前公开二进制输出精确权值和 feasibility，不输出最优树边集。
-- 代码对解析后 `double` 边权做组合精确搜索；上下界闭合使用原始顺序比较，但跨实现结果报告仍使用 $10^{-6}$ 核验容差。
-- PrunedDP++-Safe 是对公开论文路径的纠错重建，不能在 artifact 中写成“2016 原作者原码”。GPU4GST 2025 artifact 的 CPU 版本是独立核验对象。
-- MonoGST+ 论文与作者 workload 目前是本地来源，不应假设已获得公开再分发许可。这是 artifact 发布问题，不改变本地哈希冻结的实验身份。
+### 5.6 `src/abhss/forward.{h,cpp}`
+
+| 函数或类型 | 作用 |
+|---|---|
+| `ForwardAnchoredPlan` | 只表达前向内核要做到哪一层、是否用隐式 A0 完成、末层是否保留 |
+| `AnchoredAvailable` | 判断隐式 A0 或物化 A row 是否可读 |
+| `ForEachAnchoredSum` | 枚举 A 与 ordinary branch 的同根 seed |
+| `CompleteAnchoredRow` | 用 A 加至多两个 ordinary 块结算完整解 |
+| `BuildForwardAnchoredRows` | 复用已有 A1，生成其余前向 A，并持续收紧上界 |
+
+这里不读取 `p.enhanced`。公共代码直接查看 `GroupRow::bounded`：有界 singleton 必须检查 `IsExact`，完整表天然精确。A 的递推、闭包、稀疏 row 和完成式始终是同一实现。
+
+### 5.7 `src/abhss/dual_cut.h`
+
+`DualCutPotential` 只在 Enhanced 预处理中构造。`BuildChangedArcs` 按组建立有向割势和 residual；`MarkChangedArc` 记录本轮真正改变的弧；`RecoverPrimal` 在数值零 residual 支撑上恢复真实原图路径；`At` 与 `GroupAt` 读取可采纳势；`ReleaseResidual` 在 facility 与 witness 完成后释放 `2m` 临时数组。
+
+该文件是 header-only 模块，因为热访问器需要内联。每个 lambda 都有紧邻中文注释；64-bit changed-arc 位图只是串行批处理结构，不表示 64 线程。
+
+### 5.8 `src/abhss/adjoint.{h,cpp}`
+
+| 函数 | 作用 |
+|---|---|
+| `AnchoredValue` | 统一读取低层 A；空 mask 映射为隐式锚组距离 |
+| `ForEachBackwardBranchSum` | 合并 H 与一个 ordinary singleton 或规范 branch |
+| `BuildTransposedTerminals` | 以 64 顶点块把 mask-major ordinary row 转成高层 H 终端 |
+| `SolveHighAdjoint` | 按 mask 大小递减构造 H，并与低层 A 做边界结算 |
+
+64 顶点块与一个 `uint64_t` membership word 对齐，只限制临时工作集；不是并行单元。H 的含义不是另一棵树 DP，而是“mask 外侧已经支付的代价”。
+
+## 6. Base 与 Enhanced 的代码级差异
+
+整个活动源码中，模式位只在下列位置产生算法效果：
+
+| 位置 | Base | Enhanced | 关系 |
+|---|---|---|---|
+| `BuildDistanceRootInitialization` | 先构造 cutoff，保存有界组距离 | 保存完整组距离 | 同一距离—根职责的两种表示 |
+| `PrepareProblem` witness 块 | root-path witness | dual/primal、facility 上界、dual-primal witness | witness 来源替换，并安全新增 dual/facility 证书 |
+| `FutureBound` 与 ordinary `CanImprove` | farthest、A1、tour | 再与 dual 取最大值 | 可采纳下界安全新增 |
+| `SolveOneQuery` 末尾 | 完整前向高层 A | 低层 A 后以 H 完成高层 | 同一完成职责的方向替换 |
+
+有界或完整表示的后果由公共 `GroupRow::bounded`、`IsExact` 和 `ForEachExact` 消费，不再读取模式位。以下操作也明确没有模式分支：A1 的 seed、cone、fallback、图闭包和所有权移交；ordinary D 的状态定义、split 和 branch；witness rent 从 0 开始；buy 公式；`EvaluateWitnessTree`；稀疏 `Row`；前向 A 内核。审阅者可以直接搜索 `enhanced`，除入口解析和字段传递外，有算法效果的命中应只对应上表四行。
+
+## 7. 状态数口径
+
+`mask_vertex_states` 统计 D、A、H 每张逻辑 row 中首次进入工作区的不同顶点数。一个顶点在同一 row 内被改进多次只计一次；同一 `(mask,v)` 出现在不同状态族时分别计数。A1 在提前构造时计数，移动到前向容器后不重复。组距离、dual、tour、转置临时候选、队列过期项和完整解结算不计。
+
+## 8. 人工 review 清单
+
+1. 搜索 `enhanced`，确认模式差异没有越出第 6 节。
+2. 搜索所有 lambda，确认紧邻中文注释说明枚举集合或缓存语义。
+3. 检查写 `best` 的位置，确认候选可展开为真实原图边或精确 DP 状态。
+4. 检查 singleton 消费者，确认 Base 的 bounded 位置经过 `IsExact`。
+5. 检查所有剪枝，确认形式是“已付值 + 可采纳下界不可能严格优于真实上界”。
+6. 检查 row 生命周期，确认构造完成后才设 `ready`，A1 移交不重复生成或计数。
+7. 检查 H 的 mask 方向，确认 target、successor、boundary 三者的集合并恰好覆盖非锚全集。
+8. 检查长函数的中文块注释是否仍与紧随代码一致；若移动代码块，应同时移动说明。
+
+## 9. GitHub Markdown 注意
+
+后续修改本文档或 `METHOD.md` 时，块公式统一使用 GitHub 支持的 `math` 围栏，不使用单独三行的 `$$`。不要使用 GitHub 曾拒绝的 `\operatorname`，用 `\mathrm{name}`；表格中的绝对值使用 `\lvert S\rvert`，避免裸竖线被当成列分隔符。行内公式开界前留空格，尤其不要写成中文标点后立即接 `$`。上传后应在 GitHub 网页逐段检查，确认没有黄色错误框、灰色公式源码回退或未解析的 `$`。

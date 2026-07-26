@@ -1,20 +1,14 @@
-# Local agent/editor state
+# Editor and local-agent state
 /.agents/
 /.codex/
 /.vs/
 /.vscode/
 .DS_Store
 Thumbs.db
-*.lnk
 
 # Build trees and native artifacts
-/build/
-/build_external/
-/result/
-/results/
-/tmp/
-/.tmp_*/
-/ABHSS_ignored_data_before_workload_redesign_*.tar.gz
+/build*/
+/cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -23,69 +17,26 @@ cmake_install.cmake
 *.lib
 *.obj
 *.pdb
-*.ilk
-*.exp
 
-# Python caches
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-# Large graph/query payloads. Keep the tiny smoke inputs, deterministic
-# generator, and per-dataset provenance manifests in Git.
+# Local experiment data and results
 /data/*
 !/data/example/
-!/data/generate_queries_for_noGPU4GST.py
-!/data/*/
-/data/*/*
-!/data/example/**
-!/data/*/dataset_manifest.json
+!/data/example/graph.txt
+!/data/example/query.txt
+/data_origin/
+/data_sources/
+/experiment_data/
+/experiments/
+/result*/
+/results*/
+/.tmp_*/
+/tmp/
+/ABHSS_ignored_data_before_workload_redesign_*.tar.gz
 
-# Downloaded source graphs and CSR payloads. The README, manifests, hashes,
-# small author-query CSV files, and download/verification scripts remain.
-/data_origin/*.g
-/data_origin/*.in
-/data_origin/*.bin
-/data_origin/*.pdf
-
-# Expanded paper queries are deterministic products of the tracked manifests
-# and generators.  Keep their selection metadata, not duplicated vertex lists.
-/experiment_data/p2_cross_g/**/*.txt
-/experiment_data/s1_controlled_gf/**/*.txt
-
-# Vendored dependencies include unlicensed author repositories, Boost, SCIP,
-# build products, and a nested Git object pack. Publish acquisition metadata
-# instead of redistributing those trees.
+# Local paper copies and third-party code
+/docs/papers/
 /third_party/
 
-# Local paper copies include copyrighted publications and an unpublished
-# manuscript. Documentation cites them but the public repository must not.
-/docs/papers/
-
-# Official-upstream benchmark freeze.  Raw archives, extracted dumps and
-# conversion scratch space are reproducible but far too large for Git.  Keep
-# the catalog, download manifest, build manifests and documentation tracked.
-/data_sources/official/**/raw/
-/data_sources/official/**/extracted/
-/data_sources/official/**/work/
-/data_sources/official/**/*.part
-/data_sources/official/**/*.tmp
-
-# The converted official interface data is regenerated from the frozen raw
-# hashes.  Per-dataset manifests remain tracked through the general exception
-# above; the multi-gigabyte graph/query payloads do not.
-/data/official-*/**/graph.txt
-/data/official-*/**/query*.txt
-/data/official-*/**/candidate_groups.txt
-
-# Keep only compact identity/normalization manifests for the nested official
-# interface directories.  Graphs, groups, URI maps and expanded query payloads
-# are rebuilt from the frozen official hashes.
-!/data/official-*/
-!/data/official-*/*/
-/data/official-*/*/*
-!/data/official-*/*/dataset_manifest.json
-!/data/official-*/*/source_normalization.json
-!/data/official-*/*/source_query_manifest.json
-!/data/official-*/*/build_manifest.json
-!/data/official-*/*/build_stats.json
+# Script caches left by local analysis
+__pycache__/
+*.py[cod]

@@ -1,122 +1,36 @@
 #include "query_io.h"
 
-#include <filesystem>
-#include <fstream>
 #include <stdexcept>
-#include <string>
 
-namespace fs = std::filesystem;
+#include "fast_numeric_reader.h"
 
 namespace gst
 {
 
-std::string ResolveQueryFile(const std::string& graph_folder, const std::string& query_selector)
+/** @brief 按仓库查询格式顺序读入 q 条查询；正式输入默认已经满足格式约定。 */
+std::vector<Query> LoadQueries(const std::string& query_file)
 {
-    const fs::path folder_path = fs::path(graph_folder);
-    if (!query_selector.empty())
+    io::FastNumericReader input(query_file);
+    int query_count = 0;
+    if (!input.IsOpen() || !input.ReadInt(query_count))
+        throw std::runtime_error("Cannot read " + query_file);
+
+    std::vector<Query> queries(query_count);
+    for (Query& query : queries)
     {
-        // 论文 panel 通常位于很大的图目录之外，因此先接受显式文件路径，
-        // 再尝试兼容旧命名选择器。
-        const fs::path explicit_path = fs::path(query_selector);
-        if (fs::exists(explicit_path) && fs::is_regular_file(explicit_path))
+        int group_count = 0;
+        input.ReadInt(group_count);
+        query.groups.resize(group_count);
+        for (auto& group : query.groups)
         {
-            return fs::absolute(explicit_path).string();
+            int group_size = 0;
+            input.ReadInt(group_size);
+            group.resize(group_size);
+            for (int& vertex : group)
+                input.ReadInt(vertex);
         }
-
-        std::vector<std::string> candidates;
-        candidates.push_back(query_selector);
-        if (fs::path(query_selector).extension().empty())
-        {
-            candidates.push_back(query_selector + ".txt");
-            if (query_selector.rfind("query_", 0) != 0 && query_selector.rfind("Query_", 0) != 0)
-            {
-                candidates.push_back("query_" + query_selector + ".txt");
-                candidates.push_back("Query_" + query_selector + ".txt");
-            }
-        }
-
-        for (const auto& candidate : candidates)
-        {
-            fs::path query_path = folder_path / candidate;
-            if (fs::exists(query_path))
-            {
-                return query_path.string();
-            }
-        }
-
-        throw std::runtime_error("Query file not found under " + graph_folder + ": " + query_selector);
-    }
-
-    fs::path query_path = folder_path / "query.txt";
-    if (fs::exists(query_path))
-    {
-        return query_path.string();
-    }
-
-    fs::path query_path_alt = folder_path / "Query.txt";
-    if (fs::exists(query_path_alt))
-    {
-        return query_path_alt.string();
-    }
-
-    throw std::runtime_error("query.txt / Query.txt not found under: " + graph_folder);
-}
-
-std::vector<Query> LoadQueriesFromFolder(const std::string& graph_folder, const std::string& query_selector)
-{
-    fs::path query_path = ResolveQueryFile(graph_folder, query_selector);
-    std::ifstream fin(query_path);
-    if (!fin)
-    {
-        throw std::runtime_error("Failed to open query file: " + query_path.string());
-    }
-
-    int q = 0;
-    fin >> q;
-    if (!fin || q < 0)
-    {
-        throw std::runtime_error("Invalid query count in: " + query_path.string());
-    }
-
-    std::vector<Query> queries;
-    queries.reserve(q);
-    for (int qi = 0; qi < q; ++qi)
-    {
-        int g = 0;
-        fin >> g;
-        if (!fin || g < 0)
-        {
-            throw std::runtime_error("Invalid group count in query " + std::to_string(qi));
-        }
-        Query query;
-        query.groups.resize(g);
-        for (int gi = 0; gi < g; ++gi)
-        {
-            int s = 0;
-            fin >> s;
-            if (!fin || s <= 0)
-            {
-                throw std::runtime_error("Invalid group size in query " + std::to_string(qi));
-            }
-            query.groups[gi].resize(s);
-            for (int i = 0; i < s; ++i)
-            {
-                fin >> query.groups[gi][i];
-                if (!fin)
-                {
-                    throw std::runtime_error("Invalid node id in query " + std::to_string(qi));
-                }
-            }
-        }
-        queries.push_back(std::move(query));
-    }
-    std::string trailing;
-    if (fin >> trailing)
-    {
-        throw std::runtime_error("Unexpected trailing token in query file: " +
-                                 query_path.string());
     }
     return queries;
 }
 
-}  // namespace gst
+} // namespace gst

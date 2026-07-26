@@ -2,22 +2,17 @@
 
 #include <numeric>
 
-#include "diagnostics.h"
-
 namespace gst::methods::abhss::internal
 {
 namespace
 {
 /** 高位表示该 top-two 值来自 cone 外公式，而非 row.value 下标。 */
 constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
-}
+} // namespace
 
-long long EstimateWitnessTreeDpWork(size_t witness_vertices,
-                                    int nonanchor_count)
+/** @brief 计算 witness-tree subset DP 的理论 buy 工作量。 */
+long long EstimateWitnessTreeDpWork(size_t witness_vertices, int nonanchor_count)
 {
-    if (!witness_vertices || nonanchor_count < 0)
-        return 0;
-
     // 对 k 个非锚组，固定最低 bit 消除左右对称后的非空局部拆分总数为
     // (3^k-1)/2；一条父子关系的全 mask/submask 卷积总数为 3^k。
     // WitnessTree 对每个真实顶点恰有一次局部处理和一条通向父亲（含虚拟
@@ -26,34 +21,19 @@ long long EstimateWitnessTreeDpWork(size_t witness_vertices,
     long long ternary_subsets = 1;
     for (int bit = 0; bit < nonanchor_count; ++bit)
         ternary_subsets *= 3;
-    const long long work_per_vertex =
-        (ternary_subsets - 1) / 2 + ternary_subsets;
+    const long long work_per_vertex = (ternary_subsets - 1) / 2 + ternary_subsets;
     return static_cast<long long>(witness_vertices) * work_per_vertex;
 }
 
-WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
-    : problem_(problem)
+/** @brief 绑定当前查询，并由 witness 大小计算共同 buy 阈值。 */
+WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem) : problem_(problem)
 {
-    buy_ = EstimateWitnessTreeDpWork(
-        problem_.witness_tree.vertex.size(),
-        problem_.nonanchor_count);
-    enabled_ = buy_ > 0;
-    // 诊断构建把共同零起点与 buy 写入事件；正式构建会在编译期消除。
-    EmitAbhssProbe(
-        ProbeFamilyMethod(problem_),
-        "witness_rent_start",
-        problem_,
-        -1.0,
-        nullptr,
-        -1,
-        buy_);
+    buy_ = EstimateWitnessTreeDpWork(problem_.witness_tree.vertex.size(), problem_.nonanchor_count);
 }
 
-bool WitnessUpperScheduler::Account(long long row_work,
-                                    bool ordinary_changed)
+/** @brief 累计实际工作，在 rent 达到 buy 且 DP 输入更新后购买树 DP。 */
+bool WitnessUpperScheduler::Account(long long row_work, bool ordinary_changed)
 {
-    if (!enabled_)
-        return false;
     if (ordinary_changed)
         ++ordinary_revision_;
     rent_ += row_work;
@@ -64,87 +44,60 @@ bool WitnessUpperScheduler::Account(long long row_work,
     if (rent_ < buy_ || evaluated_revision_ == ordinary_revision_)
         return false;
 
-    const long long paid_rent = rent_;
     const double old_best = problem_.best;
     Evaluate();
     rent_ = 0;
     evaluated_revision_ = ordinary_revision_;
-    ++evaluation_count_;
-    EmitAbhssProbe(
-        ProbeFamilyMethod(problem_),
-        "witness_buy",
-        problem_,
-        -1.0,
-        &problem_.ordinary,
-        evaluation_count_,
-        paid_rent);
     return problem_.best < old_best;
 }
 
+/** @brief 返回距离下一次可购买树 DP 还需累计的工作量。 */
 long long WitnessUpperScheduler::RemainingRentUntilBuy() const
 {
-    if (!enabled_ || evaluated_revision_ == ordinary_revision_)
+    if (evaluated_revision_ == ordinary_revision_)
         return std::numeric_limits<long long>::max();
     return rent_ >= buy_ ? 0 : buy_ - rent_;
 }
 
+/** @brief 调用两种模式共用的 witness-tree DP 收紧可行上界。 */
 void WitnessUpperScheduler::Evaluate()
 {
-    problem_.best = std::min(
-        problem_.best,
-        EvaluateWitnessTree(
-            problem_.witness_tree, problem_, problem_.ordinary));
+    problem_.best = std::min(problem_.best, EvaluateWitnessTree(problem_.witness_tree, problem_, problem_.ordinary));
 }
 
-double AnchoredSingletonFuture::Value(const Problem& p,
-                                      int bit,
-                                      int vertex) const
+/** @brief 读取一个 A1 值，不需要下标缓存的调用点使用本入口。 */
+double AnchoredSingletonFuture::Value(const Problem& p, int bit, int vertex) const
 {
     std::uint32_t locator = 0;
     return ValueWithLocator(p, bit, vertex, locator);
 }
 
-double AnchoredSingletonFuture::ValueWithLocator(
-    const Problem& p,
-    int bit,
-    int vertex,
-    std::uint32_t& locator) const
+/** @brief 读取 A1 值，并返回精确 payload 下标或 cone 外标记。 */
+double AnchoredSingletonFuture::ValueWithLocator(const Problem& p, int bit, int vertex, std::uint32_t& locator) const
 {
     const Row& values = row[bit];
-    const auto it = std::lower_bound(
-        values.vertex.begin(), values.vertex.end(), vertex);
+    const auto it = std::lower_bound(values.vertex.begin(), values.vertex.end(), vertex);
     if (it != values.vertex.end() && *it == vertex)
     {
-        locator = static_cast<std::uint32_t>(
-            it - values.vertex.begin());
+        locator = static_cast<std::uint32_t>(it - values.vertex.begin());
         return values.value[locator];
     }
     locator = kA1FallbackLocator;
-    const int continuation =
-        p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(
-        0.0,
-        cutoff - FarthestRemaining(p, vertex, continuation));
+    const int continuation = p.nonanchor_original_mask ^ p.original_mask[bit];
+    return std::max(0.0, cutoff - FarthestRemaining(p, vertex, continuation));
 }
 
-double AnchoredSingletonFuture::LocatedValue(
-    const Problem& p,
-    int bit,
-    int vertex,
-    std::uint32_t locator) const
+/** @brief 用先前缓存的 locator 直接读取 A1 值或重算 cone 外公式。 */
+double AnchoredSingletonFuture::LocatedValue(const Problem& p, int bit, int vertex, std::uint32_t locator) const
 {
     if (!(locator & kA1FallbackLocator))
         return row[bit].value[locator];
-    const int continuation =
-        p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(
-        0.0,
-        cutoff - FarthestRemaining(p, vertex, continuation));
+    const int continuation = p.nonanchor_original_mask ^ p.original_mask[bit];
+    return std::max(0.0, cutoff - FarthestRemaining(p, vertex, continuation));
 }
 
-double AnchoredSingletonFuture::Future(const Problem& p,
-                                       int remaining,
-                                       int vertex)
+/** @brief 返回剩余 singleton 中最大的 A1 future，并缓存每个顶点的前两名。 */
+double AnchoredSingletonFuture::Future(const Problem& p, int remaining, int vertex)
 {
     if (first.empty() || !remaining)
         return 0.0;
@@ -161,8 +114,7 @@ double AnchoredSingletonFuture::Future(const Problem& p,
             if (!row[bit].ready)
                 continue;
             std::uint32_t locator = 0;
-            const double value =
-                ValueWithLocator(p, bit, vertex, locator);
+            const double value = ValueWithLocator(p, bit, vertex, locator);
             if (value > first_value)
             {
                 second_value = first_value;
@@ -184,26 +136,16 @@ double AnchoredSingletonFuture::Future(const Problem& p,
             first[vertex] = static_cast<unsigned char>(first_bit);
             if (second_bit >= 0)
                 second[vertex] = static_cast<unsigned char>(second_bit);
-            cached_locator_pair[vertex] =
-                static_cast<std::uint64_t>(first_locator) |
-                (static_cast<std::uint64_t>(second_locator) << 32);
+            cached_locator_pair[vertex] = static_cast<std::uint64_t>(first_locator) | (static_cast<std::uint64_t>(second_locator) << 32);
         }
     }
 
     const int a = first[vertex];
     if (a != 255 && (remaining & (1 << a)))
-        return LocatedValue(
-            p,
-            1 << a,
-            vertex,
-            static_cast<std::uint32_t>(cached_locator_pair[vertex]));
+        return LocatedValue(p, 1 << a, vertex, static_cast<std::uint32_t>(cached_locator_pair[vertex]));
     const int b = second[vertex];
     if (b != 255 && (remaining & (1 << b)))
-        return LocatedValue(
-            p,
-            1 << b,
-            vertex,
-            static_cast<std::uint32_t>(cached_locator_pair[vertex] >> 32));
+        return LocatedValue(p, 1 << b, vertex, static_cast<std::uint32_t>(cached_locator_pair[vertex] >> 32));
 
     double value = 0.0;
     for (int bits = remaining; bits; bits &= bits - 1)
@@ -215,10 +157,8 @@ double AnchoredSingletonFuture::Future(const Problem& p,
     return value;
 }
 
-void BuildReusableAnchoredSingletonLayer(
-    Problem& p,
-    AnchoredSingletonFuture& singleton_future,
-    WitnessUpperScheduler& witness_scheduler)
+/** @brief 在 ordinary D 之前构造 Base/Enhanced 完全共用的 A1 层。 */
+void BuildReusableAnchoredSingletonLayer(Problem& p, AnchoredSingletonFuture& singleton_future, WitnessUpperScheduler& witness_scheduler)
 {
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> continuation_cache(p.graph.n + 1);
@@ -244,43 +184,39 @@ void BuildReusableAnchoredSingletonLayer(
             long long row_work = 0;
             const int group = p.bit_to_group[FirstBit(mask)];
             ++stamp;
-            const int continuation =
-                p.nonanchor_original_mask ^ p.original_mask[mask];
+            const int continuation = p.nonanchor_original_mask ^ p.original_mask[mask];
+            // 按顶点惰性缓存当前 singleton row 尚未覆盖组的最远距离下界。
             auto Continuation = [&](int vertex)
             {
                 if (continuation_stamp[vertex] != stamp)
                 {
                     continuation_stamp[vertex] = stamp;
-                    continuation_cache[vertex] =
-                        FarthestRemaining(p, vertex, continuation);
+                    continuation_cache[vertex] = FarthestRemaining(p, vertex, continuation);
                 }
                 return continuation_cache[vertex];
             };
             touched.clear();
             settled.clear();
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
-            long long rent_until_buy =
-                witness_scheduler.RemainingRentUntilBuy();
-            p.group_distance[group].ForEachExact(
-                p.graph.n, [&](int vertex, double value)
-            {
-                const auto& anchor = p.group_distance[p.anchor_group];
-                if (!anchor.IsExact(vertex))
-                    return;
-                const double candidate = value + anchor[vertex];
-                if (!(candidate < singleton_future.cutoff) ||
-                    candidate >= distance[vertex])
-                    return;
-                const double key = candidate + Continuation(vertex);
-                if (!(key < p.best))
-                    return;
-                if (distance[vertex] >= fp::kInf)
-                    touched.push_back(vertex);
-                distance[vertex] = candidate;
-                queue.push({key, candidate, vertex});
-            });
+            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue;
+            long long rent_until_buy = witness_scheduler.RemainingRentUntilBuy();
+            // 用组距离的精确 support 初始化当前 A1 row 的多源最短路。
+            p.group_distance[group].ForEachExact(p.graph.n,
+                                                 [&](int vertex, double value)
+                                                 {
+                                                     const auto& anchor = p.group_distance[p.anchor_group];
+                                                     if (!anchor.IsExact(vertex))
+                                                         return;
+                                                     const double candidate = value + anchor[vertex];
+                                                     if (!(candidate < singleton_future.cutoff) || candidate >= distance[vertex])
+                                                         return;
+                                                     const double key = candidate + Continuation(vertex);
+                                                     if (!(key < p.best))
+                                                         return;
+                                                     if (distance[vertex] >= fp::kInf)
+                                                         touched.push_back(vertex);
+                                                     distance[vertex] = candidate;
+                                                     queue.push({key, candidate, vertex});
+                                                 });
 
             while (!queue.empty())
             {
@@ -293,28 +229,23 @@ void BuildReusableAnchoredSingletonLayer(
                 // 当前工作区并重启整轮。未收紧时 incumbent 与固定 U0 均不变。
                 if (row_work >= rent_until_buy)
                 {
-                    const bool improved =
-                        witness_scheduler.Account(row_work, false);
+                    const bool improved = witness_scheduler.Account(row_work, false);
                     row_work = 0;
                     if (improved)
                     {
                         restart = true;
                         break;
                     }
-                    rent_until_buy =
-                        witness_scheduler.RemainingRentUntilBuy();
+                    rent_until_buy = witness_scheduler.RemainingRentUntilBuy();
                 }
-                if (node.distance != distance[node.vertex] ||
-                    !(node.distance < singleton_future.cutoff) ||
-                    !(node.key < p.best))
+                if (node.distance != distance[node.vertex] || !(node.distance < singleton_future.cutoff) || !(node.key < p.best))
                     continue;
                 settled.push_back(node.vertex);
                 for (const auto& edge : p.graph.adj[node.vertex])
                 {
                     ++row_work;
                     const double next = node.distance + edge.w;
-                    if (!(next < singleton_future.cutoff) ||
-                        next >= distance[edge.to])
+                    if (!(next < singleton_future.cutoff) || next >= distance[edge.to])
                         continue;
                     const double key = next + Continuation(edge.to);
                     if (!(key < p.best))
@@ -334,8 +265,7 @@ void BuildReusableAnchoredSingletonLayer(
             }
 
             std::sort(settled.begin(), settled.end());
-            settled.erase(
-                std::unique(settled.begin(), settled.end()), settled.end());
+            settled.erase(std::unique(settled.begin(), settled.end()), settled.end());
             Row& row = singleton_future.row[mask];
             row.vertex = settled;
             row.value.reserve(settled.size());
@@ -367,8 +297,7 @@ void BuildReusableAnchoredSingletonLayer(
     singleton_future.second.assign(p.graph.n + 1, 255);
     // 每个实际查询过 future 的顶点只写一次 packed locator；未访问顶点的
     // 虚拟页面不触发物理 RSS，也避免两个独立数组的两次随机首次写入。
-    singleton_future.cached_locator_pair.reset(
-        new std::uint64_t[static_cast<size_t>(p.graph.n) + 1]);
+    singleton_future.cached_locator_pair.reset(new std::uint64_t[static_cast<size_t>(p.graph.n) + 1]);
 }
 
 namespace
@@ -379,8 +308,7 @@ namespace
  * 从实际可枚举值最少的一侧驱动，缺失状态立即拒绝。该完成式在三分块
  * 大小达到平衡点时收紧上界，但不替代后续精确状态枚举。
  */
-template <class Use>
-void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use)
+template <class Use> void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use)
 {
     const int masks[3] = {first, second, third};
     int driver = 0;
@@ -389,16 +317,14 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
     {
         if (!mask)
             continue;
-        const size_t size = p.popcount[mask] == 1
-                                ? p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactSize(
-                                      p.graph.n)
-                                : p.ordinary[mask].vertex.size();
+        const size_t size = p.popcount[mask] == 1 ? p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactSize(p.graph.n) : p.ordinary[mask].vertex.size();
         if (size < driver_size)
         {
             driver = mask;
             driver_size = size;
         }
     }
+    // 在候选根上读取三个 ordinary 分块并提交完整完成式。
     auto Visit = [&](int vertex)
     {
         double total = p.group_distance[p.anchor_group][vertex];
@@ -426,16 +352,16 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
         use(vertex, total);
     };
     if (driver)
+        // 非空时由最短 row 驱动候选根，避免扫描全部顶点。
         ForEachOrdinaryValue(p, driver, [&](int vertex, double) { Visit(vertex); });
     else
         for (int vertex = 1; vertex <= p.graph.n; ++vertex)
             Visit(vertex);
 }
-}  // namespace
+} // namespace
 
-void BuildOrdinaryRows(Problem& p,
-                       AnchoredSingletonFuture* singleton_future,
-                       WitnessUpperScheduler& witness_scheduler)
+/** @brief 按子集大小递增构造 ordinary D，并持续执行共同上界调度。 */
+void BuildOrdinaryRows(Problem& p, AnchoredSingletonFuture* singleton_future, WitnessUpperScheduler& witness_scheduler)
 {
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
@@ -450,7 +376,6 @@ void BuildOrdinaryRows(Problem& p,
 
     for (int size = 1; size <= p.half; ++size)
     {
-        long long layer_work = 0;
         for (int mask = 1; mask < p.subset_count; ++mask)
         {
             if (p.popcount[mask] != size || size == 1)
@@ -461,6 +386,7 @@ void BuildOrdinaryRows(Problem& p,
             const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
             const int remaining_nonanchor = p.full_mask ^ mask;
             ++stamp;
+            // 按顶点缓存当前 row 的完整 future，只在队列键需要时求值。
             auto Bound = [&](int vertex)
             {
                 if (bound_stamp[vertex] != stamp)
@@ -468,46 +394,39 @@ void BuildOrdinaryRows(Problem& p,
                     bound_stamp[vertex] = stamp;
                     bound_cache[vertex] = FutureBound(p, vertex, remaining_original);
                     if (singleton_future)
-                        bound_cache[vertex] = std::max(
-                            bound_cache[vertex],
-                            singleton_future->Future(
-                                p, remaining_nonanchor, vertex));
+                        bound_cache[vertex] = std::max(bound_cache[vertex], singleton_future->Future(p, remaining_nonanchor, vertex));
                 }
                 return bound_cache[vertex];
             };
 
+            // 分阶段计算便宜到昂贵的下界，尽早拒绝不能改善上界的状态。
             auto CanImprove = [&](int vertex, double value)
             {
                 if (bound_stamp[vertex] == stamp)
                     return value + bound_cache[vertex] < p.best;
 
                 double lower = 0.0;
-                if (p.UsesDirectedCut())
+                if (p.enhanced)
                 {
                     lower = p.dual.At(vertex, remaining_original);
                     if (!(value + lower < p.best))
                         return false;
                 }
-                lower = std::max(
-                    lower, FarthestRemaining(p, vertex, remaining_original));
+                lower = std::max(lower, FarthestRemaining(p, vertex, remaining_original));
                 if (!(value + lower < p.best))
                     return false;
                 if (singleton_future)
                 {
-                    lower = std::max(
-                        lower,
-                        singleton_future->Future(
-                            p, remaining_nonanchor, vertex));
+                    lower = std::max(lower, singleton_future->Future(p, remaining_nonanchor, vertex));
                     if (!(value + lower < p.best))
                         return false;
                 }
-                lower = std::max(
-                    lower,
-                    p.tour.At(vertex, remaining_original, p.group_distance));
+                lower = std::max(lower, p.tour.At(vertex, remaining_original, p.group_distance));
                 bound_stamp[vertex] = stamp;
                 bound_cache[vertex] = lower;
                 return value + lower < p.best;
             };
+            // 接纳一个更优且仍有希望完成的 seed，并登记首次触及的顶点。
             auto Set = [&](int vertex, double value)
             {
                 if (value >= distance[vertex] || !CanImprove(vertex, value))
@@ -521,10 +440,8 @@ void BuildOrdinaryRows(Problem& p,
             {
                 const int first = mask & -mask;
                 const int second = mask ^ first;
-                ForEachCommonValue(p, first, second, [&](int vertex, double a, double b)
-                {
-                    Set(vertex, a + b);
-                });
+                // 两个 singleton 在同一根相交，形成 size=2 的全部 seed。
+                ForEachCommonValue(p, first, second, [&](int vertex, double a, double b) { Set(vertex, a + b); });
             }
             else
             {
@@ -532,28 +449,19 @@ void BuildOrdinaryRows(Problem& p,
                 for (int branch = domain; branch; branch = (branch - 1) & domain)
                 {
                     const int accumulator = mask ^ branch;
-                    if (!OrdinaryAvailable(p, accumulator) ||
-                        !OrdinaryAvailable(p, branch))
+                    if (!OrdinaryAvailable(p, accumulator) || !OrdinaryAvailable(p, branch))
                         continue;
-                    ForEachPivotBranch(p,
-                                       accumulator,
-                                       branch,
-                                       [&](int vertex, double a, double b)
-                    {
-                        Set(vertex, a + b);
-                    });
+                    // 合并互补的规范 branch，生成当前 mask 的候选 seed。
+                    ForEachPivotBranch(p, accumulator, branch, [&](int vertex, double a, double b) { Set(vertex, a + b); });
                 }
             }
 
             seeds = touched;
             for (int vertex : seeds)
                 split[vertex] = distance[vertex];
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
+            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue;
             for (int vertex : touched)
-                queue.push({distance[vertex] + Bound(vertex),
-                            distance[vertex], vertex});
+                queue.push({distance[vertex] + Bound(vertex), distance[vertex], vertex});
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();
@@ -588,8 +496,7 @@ void BuildOrdinaryRows(Problem& p,
                 row.value.push_back(distance[vertex]);
                 if (distance[vertex] < split[vertex])
                 {
-                    row.branch_bits[index >> 6] |=
-                        std::uint64_t{1} << (index & 63);
+                    row.branch_bits[index >> 6] |= std::uint64_t{1} << (index & 63);
                     ++row.branch_count;
                 }
                 minimum = std::min(minimum, distance[vertex]);
@@ -601,22 +508,19 @@ void BuildOrdinaryRows(Problem& p,
             // 统计同一顶点的多次改进或过期队列项。
             p.AccountMaskVertexStates(touched.size());
 
-            layer_work += row_work;
             witness_scheduler.Account(row_work, true);
 
             if (size == p.half)
             {
                 const int complement = p.full_mask ^ mask;
-                if (OrdinaryAvailable(p, complement) &&
-                    (p.popcount[complement] < size ||
-                     (p.popcount[complement] == size && complement < mask)))
-                    ForEachCommonValue(p, mask, complement, [&](int vertex, double a, double b)
-                    {
-                        if (p.group_distance[p.anchor_group].IsExact(vertex))
-                            p.best = std::min(
-                                p.best,
-                                a + b + p.group_distance[p.anchor_group][vertex]);
-                    });
+                if (OrdinaryAvailable(p, complement) && (p.popcount[complement] < size || (p.popcount[complement] == size && complement < mask)))
+                    // 两个半层 row 在同根相交，并补上永久锚组完成解。
+                    ForEachCommonValue(p, mask, complement,
+                                       [&](int vertex, double a, double b)
+                                       {
+                                           if (p.group_distance[p.anchor_group].IsExact(vertex))
+                                               p.best = std::min(p.best, a + b + p.group_distance[p.anchor_group][vertex]);
+                                       });
             }
 
             if (size == three_block_limit)
@@ -625,14 +529,10 @@ void BuildOrdinaryRows(Problem& p,
                 for (int second = remaining;; second = (second - 1) & remaining)
                 {
                     const int third = remaining ^ second;
-                    if (second <= third && p.popcount[second] <= size &&
-                        p.popcount[third] <= size &&
-                        (!second || OrdinaryAvailable(p, second)) &&
+                    if (second <= third && p.popcount[second] <= size && p.popcount[third] <= size && (!second || OrdinaryAvailable(p, second)) &&
                         (!third || OrdinaryAvailable(p, third)))
-                        ForEachTriple(p, mask, second, third, [&](int, double value)
-                        {
-                            p.best = std::min(p.best, value);
-                        });
+                        // 三个平衡分块在同根相交，用完成式及时收紧上界。
+                        ForEachTriple(p, mask, second, third, [&](int, double value) { p.best = std::min(p.best, value); });
                     if (!second)
                         break;
                 }
@@ -643,15 +543,7 @@ void BuildOrdinaryRows(Problem& p,
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;
         }
-
-        EmitAbhssProbe(ProbeFamilyMethod(p),
-                       "ordinary_layer",
-                       p,
-                       -1.0,
-                       &p.ordinary,
-                       size,
-                       layer_work);
     }
 }
 
-}  // namespace gst::methods::abhss::internal
+} // namespace gst::methods::abhss::internal
