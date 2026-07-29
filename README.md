@@ -1,6 +1,6 @@
 # ABHSS：单线程精确 Group Steiner Tree
 
-本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“共同操作”“增加安全证书”或“替换同一逻辑职责的 realization”。对通过共同分量检查且未被零代价前置条件闭合的查询，所有配置在外层都只调用一次 `BuildDistanceRootInitialization`，取得相同的 `{group_distance, root, upper}` 合同；规范 SPT cutoff bootstrap 与完整距离扩展只是两种距离表示各自的内部成本，不是 Base 独占的论文阶段。例如，只要平衡完成格包含 A1，三个合法配置都在 ordinary 前以相同 seed、farthest cone、正 fallback 和 top-two 视图生成同一类标准 A1 row，并把同一对象移交前向阶段；A1 内核不读取增强位或 directed-cut 势。Base 与 Enhanced 在预处理中只构造各自的 root-path/dual-primal witness，都不无条件运行树 DP；预处理后两边从 `rent=0` 开始，让 A1 与 ordinary 连续支付同一种工作量，达到由各自树大小代入的共同 `buy` 阈值且树 DP 输入修订已变化时调用同一个树 DP。DirectedCut 只在 A1 之外加强 ordinary/adjoint 证书，Adjoint $H$ 仅替换 A1 之后的高层前向 $A$。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
+本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“共同操作”“增加安全证书”或“替换同一逻辑职责的 realization”。通过共同分量检查且未被零代价前置条件闭合后， $g\le3$ 的查询由所有配置先调用同一个 bounded root-star 初始化包，再用精确恒等式直接返回；它们不构造 witness、dual 或指数状态。这是一条逐项共同的数学基例，不是按组数选择配置。对仍需搜索的 $g>3$ 查询，所有配置在外层都只调用一次 `BuildDistanceRootInitialization`，取得相同的 `{group_distance, root, upper}` 合同；规范 SPT cutoff bootstrap 与完整距离扩展只是两种距离表示各自的内部成本，不是 Base 独占的论文阶段。例如，只要尚未闭包且平衡完成格包含 A1，三个合法配置都在 ordinary 前以相同 seed、farthest cone、正 fallback 和 top-two 视图生成同一类标准 A1 row，并把同一对象移交前向阶段；A1 内核不读取增强位或 directed-cut 势。Base 与 Enhanced 在预处理中只构造各自的 root-path/dual-primal witness，都不无条件运行树 DP；预处理后两边从 `rent=0` 开始，让 A1 与 ordinary 连续支付同一种工作量，达到由各自树大小代入的共同 `buy` 阈值且树 DP 输入修订已变化时调用同一个树 DP。DirectedCut 只在 A1 之外加强 ordinary/adjoint 证书，Adjoint $H$ 仅替换 A1 之后的高层前向 $A$。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
 
 当前冻结性能矩阵包含三类实验：
 
@@ -61,7 +61,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `src/pruneddp` | PrunedDP++-Safe 及 strict-pathmax 复现开关 | 主精确 baseline；必须标注为 corrected reconstruction |
 | `src/dpbf` | 透明的稠密全子集 DPBF | correctness-only baseline |
 | `src/baselines` | Basic+ 和 GPU4GST CPU PrunedDP++ 作者代码的可选 adapter | 只在恢复 `third_party` 后构建，不在冻结大图性能矩阵 |
-| `tests` | 图/查询 I/O、零权 witness、入口契约、144 随机精确对照和双方实际状态计数 | 每次构建的快速 correctness gate |
+| `tests` | 图/查询 I/O、零权 witness、低组闭包、逐弧 residual、144 随机精确对照和双方实际状态计数 | 每次构建的快速 correctness gate |
 | `tools` | 数据转换、实验执行与第三方恢复构建脚本的总入口 | 工具代码真值 |
 | `tools/data` | P1/P2/S2/SteinLib 构建、IMDb 转换、哈希和可行性审计 | 输入生成与审计链 |
 | `tools/experiments` | 环境校验、稳定分片运行、timeout/断点续跑、汇总和绘图 | 执行与报告链 |
@@ -81,7 +81,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 
 ## 正确性与声称边界
 
-- 零权边合法并原样保留。图加载期一次计算普通连通分量，使逐查询可行性检查只处理组成员，不为可行性重新扫描 Orkut 等大图；ABHSS 自身的零权分量下界仍属于算法预处理并计入 solver 时间。
+- 零权边合法并原样保留。图加载期一次计算普通连通分量和最小边权，使逐查询可行性检查只处理组成员；正权图上的 ABHSS 分量 cover 也不再扫描 Orkut 等大图。确实含零权边时，ABHSS 仍在 solver timer 内扫描原边并构造零权分量下界。
 - 所有算法上下界闭合使用原始 `double` 顺序比较，不用 epsilon 将微小正 gap 误判为最优。跨实现结果文件仍用 $10^{-6}$ 作为报告核验容差。
 - MonoGST+ 自然查询中已审计出 55 条无可行树：LinkedMDB 46 条、DBpedia 9 条。P1 承诺全查询，因此它们被保留并必须一致返回 infeasible；P2/S2 新生成查询则要求全部可行。
 - 当前 `abhss` 输出精确最优权值、feasibility 和实际发现的主状态项数，不序列化最优树边集。ABHSS 以“状态族、mask、vertex”为实际键，所以 D/A/H 中数值相同的 `(mask,v)` 是不同项；该指标不能冒充跨算法完全同成本的基本操作。在未增加决策回溯前，论文和 artifact 不得声称当前程序已输出树本身。

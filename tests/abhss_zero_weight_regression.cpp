@@ -44,7 +44,9 @@ int main()
     AddEdge(graph, 4, 1, 0.125);
 
     gst::Query query;
-    query.groups = {{2}, {4}};
+    // 重复的逻辑组合法且不会改变最优树；使用四组可确保新的 g<=3 数学闭包
+    // 不会绕过本测试要覆盖的 witness 重根代码。
+    query.groups = {{2}, {4}, {2}, {4}};
 
     CheckAnswer("ABHSS-Base",
                 gst::methods::abhss::SolveOneQuery(
@@ -64,6 +66,30 @@ int main()
                     query,
                     gst::methods::abhss::SolveOptions::Enhanced()),
                 1.0);
+
+    // 按 (v,v-1) 顺序扫描会形成 1->2->... 的并查集父链。迭代 Find 必须在
+    // 不依赖线程栈深度的前提下压缩该链，并由共同零权 cover 返回 0。
+    constexpr int kChainVertices = 50000;
+    gst::Graph chain;
+    chain.n = kChainVertices;
+    chain.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    chain.adj.assign(chain.n + 1, {});
+    for (int vertex = 2; vertex <= chain.n; ++vertex)
+        AddEdge(chain, vertex, vertex - 1, 0.0);
+    gst::Query chain_query;
+    chain_query.groups = {{1}, {chain.n}, {1}, {chain.n}};
+    CheckAnswer("ABHSS-Base deep zero chain",
+                gst::methods::abhss::SolveOneQuery(
+                    chain,
+                    chain_query,
+                    gst::methods::abhss::SolveOptions::Base()),
+                0.0);
+    CheckAnswer("ABHSS-Enhanced deep zero chain",
+                gst::methods::abhss::SolveOneQuery(
+                    chain,
+                    chain_query,
+                    gst::methods::abhss::SolveOptions::Enhanced()),
+                0.0);
     std::cout << "zero-weight witness regression passed\n";
     return 0;
 }

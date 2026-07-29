@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "date": "2026-07-29",
+  "purpose": "local directional probe for the shared g<=3 exact closure, positive-weight preprocessing path/workspace reuse, and directed-cut truncated potential-cone update",
+  "formal_claim": false,
+  "result": "LOCAL_PASS_SERVER_RERUN_REQUIRED",
+  "scope_warning": "These are same-machine Windows MinGW direction checks, not Linux-server P1 results. Absolute times and ratios may differ on the submission server; the full 13-graph P1 matrix must be rerun there before any paper claim.",
+  "policy": {
+    "comparison_unit": "sum of solver-only query time over the listed fixed query range and frozen configuration",
+    "graph_and_query_loading_in_solver_time": false,
+    "per_query_configuration_switching": false,
+    "required_semantics": "weight and mask_vertex_states must match the latest-main binary query by query",
+    "configuration_contract": "g<=3 closure and positive-weight preprocessing are common to every legal configuration; potential cone is internal to the DirectedCut safe addition; no graph-name, empirical-g, timing, memory, or per-query mode switch is allowed"
+  },
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.19045.0",
+    "cpu": "Intel Xeon Gold 5220R @ 2.20GHz",
+    "logical_processors_visible": 48,
+    "compiler": "MSYS2 MinGW-w64 g++ 15.2.0",
+    "cmake_build_type": "Release",
+    "compile_flags": "-O3 -DNDEBUG -O2 -std=c++17 -flto=auto -fno-fat-lto-objects -Wall -Wextra -Wpedantic"
+  },
+  "baseline": {
+    "git_commit": "762c9431069a5bbd7b523e4919f32d4a103ff415",
+    "binary_sha256": "0918cba9fbaef998df355977a491e771fa347ce0c71a00396aeac46a6855e4bb"
+  },
+  "final_validation_candidate": {
+    "branch": "codex/p1-cone-optimizations",
+    "timed_binary_sha256": "93a5582baecfc38c7683fd6b44c34f0d4a31b1ab05c1f309cc9506933b8cbd9e",
+    "final_validation_rebuild_binary_sha256": "e2db08db82f7d7f47ff9db14898dd242dcc39ffd59d537615a684490c2897160",
+    "preprocess_cpp_sha256": "9a7136729b804731471ab6f32d280308904fef8744771da9cde024e90dbb300a",
+    "dual_cut_h_sha256": "e6f3b0bccf74995ce78de14079cde97f75f1b2bfc0e722d94b4dc1dafd1457f1",
+    "configuration_test_sha256": "0dd115a0eafd5093c885863882b991d4cd9758fa67c787e79fbc3a9bc95f030f",
+    "zero_weight_test_sha256": "e80bd77942f9365d28c4103603d2e913911f26081116c7867c9d7c7a88c13b79",
+    "post_timing_changes": "No executable-source change: a source-review trial was fully reverted, the final source hashes equal the timed source hashes, and the source-identical Windows MinGW LTO validation rebuild passed 5/5 tests; documentation and this experiment record were then updated"
+  },
+  "accepted_changes": [
+    {
+      "id": "shared_low_group_exact_closure",
+      "statement": "For g<=3, OPT equals min_v sum_i d_i(v); before any enhancement realization, every legal configuration runs the same BootstrappedBounded DistanceRootInitialization package and closes immediately.",
+      "contract_reason": "This is a common mathematical base case, not an empirical group-count configuration switch."
+    },
+    {
+      "id": "positive_weight_cover_and_workspace",
+      "statement": "Positive-weight graphs use the load-time minimum edge weight, sort only F query-terminal records, and avoid a per-query m-edge scan and n-sized component arrays; safe dense workspaces are reused inside their existing realization.",
+      "contract_reason": "Component cover is common. Workspace reuse changes only storage lifetime inside an already documented distance realization."
+    },
+    {
+      "id": "directed_cut_truncated_potential_cone",
+      "statement": "Residual capacity updates skip edges whose two capped potentials both equal the root cap and enumerate the same remaining support through the cheaper of sparse-cone adjacency and dense edge traversal.",
+      "contract_reason": "It preserves every potential, residual update, primal edge rule, and downstream state; it is internal to the existing DirectedCut addition."
+    },
+    {
+      "id": "dual_cold_noinline_boundary",
+      "statement": "The once-per-query dual build is kept out of PrepareProblem by a cross-compiler noinline boundary.",
+      "contract_reason": "This only isolates cold Enhanced machine code so that an unexecuted branch does not perturb Base instruction layout."
+    }
+  ],
+  "rejected_intermediate": {
+    "description": "The first cone candidate allowed IPO to inline the enlarged dual cold path into the shared preprocessing translation unit.",
+    "orkut_g6_query1_base_main_median_seconds": 30.660223,
+    "orkut_g6_query1_base_candidate_median_seconds": 32.161013,
+    "candidate_over_main": 1.048951,
+    "weight_and_states_match": true,
+    "decision": "Rejected. The final noinline cold boundary removed this Base regression before acceptance."
+  },
+  "final_panels": [
+    {
+      "panel": "GPU4GST_Youtube author g3 queries 1..5",
+      "configuration": "Base",
+      "queries": 5,
+      "main_seconds": 3.686119,
+      "candidate_seconds": 3.240606,
+      "candidate_over_main": 0.879138,
+      "main_peak_mib": 40.527,
+      "candidate_peak_mib": 35.586,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Youtube author g3 queries 1..5",
+      "configuration": "Enhanced",
+      "queries": 5,
+      "main_seconds": 13.220844,
+      "candidate_seconds": 3.199866,
+      "candidate_over_main": 0.242032,
+      "main_peak_mib": 123.133,
+      "candidate_peak_mib": 35.562,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Youtube author g5 queries 1..5",
+      "configuration": "Base",
+      "queries": 5,
+      "main_seconds": 23.914524,
+      "candidate_seconds": 23.224964,
+      "candidate_over_main": 0.971166,
+      "main_peak_mib": 86.926,
+      "candidate_peak_mib": 88.137,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Youtube author g5 queries 1..5",
+      "configuration": "Enhanced",
+      "queries": 5,
+      "main_seconds": 25.268008,
+      "candidate_seconds": 23.722211,
+      "candidate_over_main": 0.938824,
+      "main_peak_mib": 169.930,
+      "candidate_peak_mib": 167.789,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Youtube author g7 queries 1..3",
+      "configuration": "Base",
+      "queries": 3,
+      "main_seconds": 24.437060,
+      "candidate_seconds": 23.565183,
+      "candidate_over_main": 0.964322,
+      "main_peak_mib": 119.285,
+      "candidate_peak_mib": 117.926,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Youtube author g7 queries 1..3",
+      "configuration": "Enhanced",
+      "queries": 3,
+      "main_seconds": 29.503628,
+      "candidate_seconds": 28.355726,
+      "candidate_over_main": 0.961093,
+      "main_peak_mib": 205.539,
+      "candidate_peak_mib": 203.309,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Musae author g5 queries 1..100",
+      "configuration": "Base",
+      "queries": 100,
+      "main_seconds": 6.062077,
+      "candidate_seconds": 6.026033,
+      "candidate_over_main": 0.994054,
+      "main_peak_mib": 2.488,
+      "candidate_peak_mib": 2.605,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Musae author g5 queries 1..100",
+      "configuration": "Enhanced",
+      "queries": 100,
+      "main_seconds": 7.072846,
+      "candidate_seconds": 6.532474,
+      "candidate_over_main": 0.923599,
+      "main_peak_mib": 10.020,
+      "candidate_peak_mib": 10.125,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Orkut generated g6 query 1",
+      "configuration": "Base",
+      "queries": 1,
+      "repetitions_per_binary": 2,
+      "aggregation": "median of two contemporaneous samples per binary",
+      "execution_order": "candidate, main, candidate, main",
+      "main_samples_seconds": [32.067757, 32.265204],
+      "candidate_samples_seconds": [32.993386, 32.688774],
+      "paired_candidate_over_main": [1.028865, 1.013128],
+      "main_seconds": 32.166481,
+      "candidate_seconds": 32.841080,
+      "candidate_over_main": 1.020972,
+      "main_peak_mib": 262.176,
+      "candidate_peak_mib": 256.359,
+      "weights_and_states_match": true
+    },
+    {
+      "panel": "GPU4GST_Orkut generated g6 query 1",
+      "configuration": "Enhanced",
+      "queries": 1,
+      "main_seconds": 85.414253,
+      "candidate_seconds": 84.168028,
+      "candidate_over_main": 0.985410,
+      "main_peak_mib": 2211.711,
+      "candidate_peak_mib": 2216.664,
+      "weights_and_states_match": true
+    }
+  ],
+  "validation": {
+    "release_build": "PASS",
+    "ctest": "5/5 PASS",
+    "configuration_exactness": "144 deterministic random instances with g=2..10 plus explicit all-configuration low-group closure and per-arc residual accounting PASS",
+    "zero_weight_robustness": "historical four-group witness regression and a 50000-vertex reverse-order zero-weight DSU chain PASS",
+    "final_panel_answer_and_state_identity": "PASS: every listed query matches the latest-main binary in objective weight and mask_vertex_states",
+    "local_performance_gate": "PASS: maximum final candidate/main panel ratio is the contemporaneous two-sample Orkut Base median ratio 1.020972, below the repository's existing 1.03 local-noise threshold",
+    "github_markdown_validation": "15/15 tracked Markdown files PASS"
+  },
+  "required_next_step": "Build this branch with the formal Linux server toolchain, rerun the full P1 13-graph/8318-query matrix against PrunedDP++-Safe with the frozen 10000-second timeout, and diagnose any graph where PrunedDP++ still beats both ABHSS configurations in aggregate."
+}

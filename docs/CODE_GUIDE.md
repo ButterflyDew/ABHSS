@@ -75,9 +75,12 @@ main
        -> ResolveQueryPrelude
        -> PrepareProblem
             -> ComputeComponentCover       [zero-cost cover may close here]
-            -> BuildDistanceRootInitialization [otherwise, exactly once]
-                 BootstrappedBounded or CompletePotential
+            -> if g<=3: common BuildDistanceRootInitialization
+                 BootstrappedBounded root-star package, then exact return
+            -> otherwise: BuildDistanceRootInitialization [exactly once]
+                 frozen profile selects BootstrappedBounded or CompletePotential
                  both return {group_distance, root, upper}
+            -> root paths / tour / selected witness [only for open g>3 queries]
        -> DescribeConfiguration          [fixed add-or-replace profile]
        -> MakeAnchoredCompletionSchedule [derive logical A/H layer boundary]
        -> WitnessUpperScheduler          [both profiles start with rent = 0]
@@ -102,11 +105,13 @@ main
 
 `SolveOneQuery` 先通过 `IsValid`（内部读取 `DescribeConfiguration`）拒绝非法开关，再处理空查询、 $g>16$、无共同分量、单组等入口情形。非平凡查询建立 `Problem` 并完成预处理后，才保存本次执行所需的 `ConfigurationProfile` 和状态层计划。`Problem` 为避免改变热对象布局，仍只读保存原来的冻结 bit mask；`UsesBoundedGroupDistances`、`UsesDirectedCut` 和 `UsesAdjointCompletion` 与 profile 映射由同一配置回归共同约束。代码与论文共用这张“新增或替换”契约，不能再把位掩码单调误写成逐指令包含。
 
-`PrepareProblem` 依次构建零权分量下界、共同的距离—根初始化合同、真实路径并集、锚组、tour 下界和当前配置自己的 witness。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。CompletePotential 构造完整距离势。两者返回前都执行相同 root-star 扫描，返回后又共同构造 root-path-union。规范 SPT 因而是 bounded 物理表示的私有 bootstrap，不是 Base-only 的调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
+`PrepareProblem` 依次构建零权分量下界、距离—根初始化，再决定是否需要真实路径并集、锚组、tour 下界和当前配置自己的 witness。正权图的 `ComputeComponentCover` 直接使用加载期最小边权，只聚合查询触及的至多 $F$ 个单点分量；确实含零权边的图才扫描原边并建立并查集。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。 $g\le3$ 时全部配置统一选择 BootstrappedBounded root-star 基例并立即返回； $g>3$ 时才由冻结 profile 在 BootstrappedBounded 与 CompletePotential 之间实现同职责替换。前者在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。后者构造完整距离势。两者都返回同一三元合同。
+
+当 $g\le3$ 时，任意三终端树在分叉点处分解可证明最优值恰为 $\min_v\sum_i d_i(v)$。BootstrappedBounded 的 cutoff 若严格大于最优值，则最优根的所有组距离都已精确保留；若等于最优值，则真实 cutoff 本身已经闭合。因此三个合法配置在进入任何 enhancement realization 前逐项执行同一个 bounded root-star 包并直接返回，不构造 complete potential、witness、dual、tour 或主状态。这是共同数学基例，不是按组数选择 Base/Enhanced。仅当 $g>3$ 仍未闭合时，公共外层才构造 root-path-union。规范 SPT 是 bounded 物理表示的内部 bootstrap，不是 Base-only 的外层调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
 
 预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。调度器只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且树 DP 有新输入时才调用同一个 `EvaluateWitnessTree`。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。无论是否发生重启，只有最终接纳的一份 A1 row 被发布、移交和计数。
 
-`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。域为空时，完成式直接使用隐式 $A(\varnothing)$；域非空时，A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
+`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。 $g\le3$ 查询在进入层计划前已经由全部配置共同的精确恒等式闭包，这与依据性能选择配置无关。对其余查询，域为空时完成式直接使用隐式 $A(\varnothing)$；域非空时 A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
 
 `BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核； $H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
 
@@ -117,9 +122,9 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | 逻辑职责 | Base realization | Enhanced realization | 关系 |
 |---|---|---|---|
 | A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest cone 与正 fallback，随后移交前向 A | 逐项执行同一 seed、cone、fallback、top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支 |
-| 距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段 |
+| $g>3$ 的距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段；低组基例在此之前共同闭包 |
 | ordinary 的其他 future | farthest、tour | farthest、tour，再与 directed-cut potential 取最大 | 安全新增证书；A1 future 仍共同存在 |
-| witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
+| witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 对未被共同闭包的查询，树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
 | A1 之后的高层锚定完成 | 完整前向高层 $A$ | A1/低层 $A$ 加高层 $H$ | 等价完成式的方向替换；A1 不属于替换后缀 |
 | 无 Base 对应物的工作 | 无 | directed-cut 可行证书、额外 facility 收紧 | 安全新增 |
 
@@ -133,10 +138,10 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/abhss/solver.cpp` | 单一 solver 入口与配置调度 | 只在这里选择完整前向或 adjoint 完成；不存在按查询 oracle |
 | `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
 | `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、 $A$、 $H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆 |
-| `src/abhss/preprocess.cpp` | 零权 cover、组距离、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；`best` 只由真实可行子图收紧 |
+| `src/abhss/preprocess.cpp` | 正权 cover 快路径、零权 cover、组距离、 $g\le3$ 闭包、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；数学闭包必须对全部配置相同；`best` 只由真实可行子图收紧 |
 | `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
 | `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常生成 row 都走同一完成函数 |
-| `src/abhss/dual_cut.h` | `DirectedCut` 的对偶势、residual、primal 边恢复 | 势只作下界，上界必须由原图真实边计价 |
+| `src/abhss/dual_cut.h` | `DirectedCut` 的 changed-arc 势、截断 potential cone、residual 与 primal 边恢复 | cone 只能跳过两端势都等于根 cap 的零梯度边；一次性构造保持非内联冷边界，避免 IPO 污染 Base 热布局；势只作下界，上界必须由原图真实边计价 |
 | `src/abhss/adjoint.{h,cpp}` | ordinary 按顶点转置、高层 $H$ 递减、低层 $A$ 边界结算 | $H(S)$ 覆盖 $S$ 外侧，与 $A(L)+D(S\setminus L)$ 恰好覆盖全组 |
 | `src/abhss/diagnostics.h` | 编译期可关闭的稀疏 phase 诊断 | 正式构建不因诊断改变状态或配置 |
 
@@ -165,8 +170,8 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 |---|---|---|
 | `fast_graph_io_structure` | 零/小数/科学计数边权、原边和邻接顺序、自环双邻接项、连通分量、错误 token | 快速读取改变图语义或静默接受损坏输入 |
 | `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
-| `abhss_zero_weight_witness` | 历史零权父指针环反例 | witness 重根不终止或误计上界 |
-| `abhss_configuration_exactness` | 144 个确定性随机连通小图， $2\le g\le10$，三个合法配置对照独立全子集 DP；同时断言共同 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通图中规范终端失败后的共同分量 fallback、`ConfigurationProfile` 的新增位/其余 realization、共同 witness `buy` 公式、调度器从 `rent=0` 且零次求值启动、未知增强位/adjoint-only 拒绝，以及 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次 | 配置重构丢解、重新暴露 Base-only SPT 调度、把规范终端失败误判为查询无解、恢复 Base 预买、重新引入经验组数分派、“新增/替换”契约漂移、非法配置漏入、零权错误或 epsilon 误闭合 |
+| `abhss_zero_weight_witness` | 用四个逻辑组保留历史零权父指针环反例的真实 witness 路径；另含 50,000 顶点逆序零权并查集链 | 低组闭包意外绕过 witness 回归，或递归 Find 在深链上爆栈 |
+| `abhss_configuration_exactness` | 144 个确定性随机连通小图， $2\le g\le10$，三个合法配置对照独立全子集 DP；显式断言 $g=2,3$ 在零主状态处共同闭包，并逐弧复算全部势梯度与 residual；同时覆盖 `DistanceRootInitialization` 的 bounded/complete 值与 `IsExact` 合同、非连通 fallback、`ConfigurationProfile`、共同 witness `buy`、零起点调度、非法开关和每个必需 A/H 层 | 配置重构丢解、错误推广/配置化低组闭包、potential cone 漏边、重新暴露 Base-only SPT 调度、恢复 Base 预买、经验组数分派、“新增/替换”契约漂移、非法配置、零权错误或 epsilon 误闭合 |
 | `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、A1 所有权交接后重复计数、误把 Dense 容量或辅助预处理当实际状态 |
 
 本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。

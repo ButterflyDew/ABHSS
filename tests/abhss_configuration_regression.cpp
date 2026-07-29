@@ -397,6 +397,90 @@ void CheckDistanceRootInitializationContract()
         throw std::runtime_error(
             "ABHSS distance-root initialization failed its disconnected canonical-terminal fallback.");
 }
+
+/** @brief 锁定 g<=3 root-star 数学闭包在全部合法配置中的共同精确语义。 */
+void CheckLowGroupExactClosure(const gst::methods::abhss::SolveOptions& base,
+                               const gst::methods::abhss::SolveOptions& directed,
+                               const gst::methods::abhss::SolveOptions& enhanced)
+{
+    gst::Graph graph;
+    graph.n = 8;
+    graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    graph.adj.assign(9, {});
+    AddEdge(graph, 1, 4, 2.0);
+    AddEdge(graph, 2, 4, 3.0);
+    AddEdge(graph, 3, 4, 5.0);
+    AddEdge(graph, 4, 5, 1.0);
+    AddEdge(graph, 5, 6, 7.0);
+    AddEdge(graph, 6, 7, 2.0);
+    AddEdge(graph, 7, 8, 4.0);
+
+    const std::vector<gst::Query> queries{{{{1, 8}, {2, 7}}}, {{{1, 8}, {2, 7}, {3, 6}}}};
+    const std::vector<gst::methods::abhss::SolveOptions> options{base, directed, enhanced};
+    for (int query_index = 0; query_index < static_cast<int>(queries.size()); ++query_index)
+    {
+        const double expected = ExactSubsetDp(graph, queries[query_index]);
+        for (int option_index = 0; option_index < static_cast<int>(options.size()); ++option_index)
+        {
+            const auto answer = gst::methods::abhss::SolveOneQuery(graph, queries[query_index], options[option_index]);
+            Check("ABHSS low-group closure", answer, expected, 10 * query_index + option_index);
+            if (answer.mask_vertex_states != 0)
+                throw std::runtime_error("ABHSS g<=3 closure entered the exponential state tables.");
+        }
+    }
+}
+
+/** @brief 独立复算每条有向弧的势梯度，锁定 cone 遍历没有漏减 residual。 */
+void CheckDirectedCutResidualAccounting()
+{
+    gst::Graph graph;
+    graph.n = 7;
+    graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    graph.adj.assign(8, {});
+    AddEdge(graph, 1, 2, 1.0);
+    AddEdge(graph, 2, 3, 2.0);
+    AddEdge(graph, 3, 4, 3.0);
+    AddEdge(graph, 4, 5, 4.0);
+    AddEdge(graph, 5, 6, 5.0);
+    AddEdge(graph, 6, 7, 6.0);
+    AddEdge(graph, 1, 7, 12.0);
+    AddEdge(graph, 2, 6, 8.0);
+    AddEdge(graph, 3, 5, 2.5);
+    AddEdge(graph, 4, 4, 0.75);
+
+    gst::Query query;
+    query.groups = {{1}, {3}, {5}, {7}};
+    const auto initialization = gst::methods::abhss::internal::BuildDistanceRootInitialization(
+        graph, query, gst::methods::abhss::DistanceRootRealization::CompletePotential);
+    std::vector<std::vector<double>> distance(query.groups.size());
+    for (size_t group = 0; group < query.groups.size(); ++group)
+        distance[group] = initialization.group_distance[group].value;
+
+    gst::methods::dual_cut::DualCutPotential dual;
+    dual.BuildKeepingResidualChangedArcsWithPrimalEdges(graph, query, distance, initialization.root);
+    const auto& residual = dual.Residual();
+    if (residual.size() != static_cast<size_t>(2 * graph.m))
+        throw std::runtime_error("ABHSS directed-cut residual has the wrong size.");
+
+    // 按实现约定把一条无向边的指定方向映射到 residual 数组中的弧编号。
+    auto Arc = [](const gst::UndirectedEdge& edge, int from, int to)
+    {
+        return 2 * edge.id + (from < to ? 0 : 1);
+    };
+    for (const gst::UndirectedEdge& edge : graph.edges)
+    {
+        double forward = edge.w;
+        double backward = edge.w;
+        for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
+        {
+            forward = std::max(0.0, forward - std::max(0.0, dual.GroupAt(edge.u, group) - dual.GroupAt(edge.v, group)));
+            backward = std::max(0.0, backward - std::max(0.0, dual.GroupAt(edge.v, group) - dual.GroupAt(edge.u, group)));
+        }
+        if (std::fabs(residual[Arc(edge, edge.u, edge.v)] - forward) > 1e-10 ||
+            std::fabs(residual[Arc(edge, edge.v, edge.u)] - backward) > 1e-10)
+            throw std::runtime_error("ABHSS potential-cone traversal skipped a nonzero arc gradient.");
+    }
+}
 }  // namespace
 
 /** @brief 运行入口契约及 g=2..10 的 144 个确定性随机精确性实例。 */
@@ -539,6 +623,8 @@ int main()
 
     CheckPreludeContracts(base, enhanced);
     CheckSubNanogapClosure(base);
+    CheckLowGroupExactClosure(base, directed_only, enhanced);
+    CheckDirectedCutResidualAccounting();
 
     std::mt19937 random(0xAB455u);
     constexpr int kInstances = 144;

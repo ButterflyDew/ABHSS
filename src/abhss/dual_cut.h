@@ -16,6 +16,16 @@
 #include "../common/graph_io.h"
 #include "../common/query_io.h"
 
+// dual 构造每条查询至多调用一次，却包含较大的 changed-arc/cone 冷路径。
+// 明确禁止 IPO 把它并入 PrepareProblem，避免未开启增强的 Base 热布局受污染。
+#if defined(_MSC_VER)
+#define ABHSS_DUAL_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define ABHSS_DUAL_NOINLINE __attribute__((noinline))
+#else
+#define ABHSS_DUAL_NOINLINE
+#endif
+
 namespace gst::methods::dual_cut
 {
 /**
@@ -32,11 +42,12 @@ public:
      * @brief 构造全部组势、保留 residual，并恢复一棵 primal 可行树。
      *
      * 各组按根距离递减分配有向边容量；每轮只从此前真正改写过的弧启动
-     * residual 最短路修复。最后在固定容差内的数值零 residual 弧上恢复
-     * 原图边 bitmap；候选路径始终按原边权计价。
+     * residual 最短路修复，并只在截断势 cone 支撑上扣减容量。函数保持冷
+     * 非内联边界；最后在固定容差内的数值零 residual 弧上恢复原图边
+     * bitmap，候选路径始终按原边权计价。
      * 调用者可在生成 witness 后用 `ReleaseResidual` 回收 2m 临时数组。
      */
-    void BuildKeepingResidualChangedArcsWithPrimalEdges(
+    ABHSS_DUAL_NOINLINE void BuildKeepingResidualChangedArcsWithPrimalEdges(
         const Graph& graph,
         const Query& query,
         const std::vector<std::vector<double>>& group_distance,
@@ -130,6 +141,8 @@ private:
 
         std::vector<double> distance(n + 1);
         std::vector<double> capped(n + 1);
+        std::vector<unsigned char> in_cone(n + 1);
+        std::vector<int> cone;
         std::vector<std::uint64_t> changed_arc_words(
             (static_cast<size_t>(2) * graph.m + 63) / 64);
 
@@ -206,13 +219,26 @@ private:
             }
 
             const double root_distance = distance[root];
+            cone.clear();
+            size_t cone_degree = 0;
             for (int vertex = 1; vertex <= n; ++vertex)
             {
                 capped[vertex] = std::min(distance[vertex], root_distance);
                 potential_[group][vertex] = capped[vertex];
+                // potential cone 只含严格低于根 cap 的顶点。cone 外势值全都等于
+                // root_distance，因此两端都在 cone 外的边梯度严格为零。
+                if (capped[vertex] < root_distance)
+                {
+                    in_cone[vertex] = 1;
+                    cone.push_back(vertex);
+                    cone_degree += graph.adj[vertex].size();
+                }
             }
 
-            for (const UndirectedEdge& edge : graph.edges)
+            // 无论采用稀疏 cone 邻接还是稠密原边扫描，都只枚举同一批可能有
+            // 非零梯度的边并执行同一 residual 更新。这只是确定性的物理遍历
+            // 选择，不读取图名、g、时间或配置，也不改变 directed-cut 证书。
+            auto ApplyPotentialGradient = [&](const UndirectedEdge& edge)
             {
                 const double forward =
                     std::max(0.0, capped[edge.u] - capped[edge.v]);
@@ -228,7 +254,32 @@ private:
                     std::max(0.0, residual_[forward_arc] - forward);
                 residual_[backward_arc] =
                     std::max(0.0, residual_[backward_arc] - backward);
+            };
+            if (cone_degree < graph.edges.size())
+            {
+                // cone 较小时只扫其邻接。cone 内边由原边记录的 u 端处理一次；
+                // 跨边只有一个 cone 端，自然也只处理一次。自环梯度恒为零。
+                for (int vertex : cone)
+                {
+                    for (const AdjEdge& adjacent : graph.adj[vertex])
+                    {
+                        const UndirectedEdge& edge = graph.edges[adjacent.edge_id];
+                        if (edge.u == edge.v)
+                            continue;
+                        if (in_cone[adjacent.to] && edge.u != vertex)
+                            continue;
+                        ApplyPotentialGradient(edge);
+                    }
+                }
             }
+            else
+            {
+                for (const UndirectedEdge& edge : graph.edges)
+                    if (in_cone[edge.u] || in_cone[edge.v])
+                        ApplyPotentialGradient(edge);
+            }
+            for (int vertex : cone)
+                in_cone[vertex] = 0;
         }
     }
 
@@ -347,5 +398,7 @@ private:
     double primal_upper_ = fp::kInf;
 };
 }  // namespace gst::methods::dual_cut
+
+#undef ABHSS_DUAL_NOINLINE
 
 #endif  // ABHSS_DUAL_CUT_H

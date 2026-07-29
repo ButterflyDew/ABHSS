@@ -192,7 +192,8 @@ size_t GroupRow::ExactSize(int n) const
  * @brief 在零权连通分量覆盖超图上计算全局下界和候选代表根。
  *
  * 覆盖数为 1 时可直接证明零代价可行；否则结合最小正边权给出不超过任意
- * 可行树的连接代价。返回根只用于构造上界，不影响下界有效性。
+ * 可行树的连接代价。正权图使用加载期最小边权并只排序查询终端；含零权边
+ * 时才扫描原边和建立并查集。返回根只用于构造上界，不影响下界有效性。
  */
 ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
 {
@@ -200,56 +201,101 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     const int g = static_cast<int>(query.groups.size());
     const int full_mask = (1 << g) - 1;
 
-    bool has_zero = false;
-    double minimum_positive = fp::kInf;
-    for (const auto& edge : graph.edges)
+    // 正权图是正式数据的主路径：加载器已经缓存全图最小边权，因此无需每条
+    // 查询再次扫描 m 条边。只有确实含零权边时才建立并查集并寻找最小正权。
+    const bool has_zero = graph.minimum_edge_weight == 0.0;
+    double minimum_positive = graph.minimum_edge_weight > 0.0 ? graph.minimum_edge_weight : fp::kInf;
+    std::vector<int> parent;
+    if (has_zero)
     {
-        has_zero = has_zero || edge.w == 0.0;
-        if (edge.w > 0.0)
-            minimum_positive = std::min(minimum_positive, edge.w);
+        parent.resize(graph.n + 1);
+        std::iota(parent.begin(), parent.end(), 0);
     }
-
-    std::vector<int> parent(graph.n + 1);
-    std::iota(parent.begin(), parent.end(), 0);
-    auto Find = [&](auto&& self, int x) -> int
+    // 迭代寻找根并压缩整条访问路径，避免恶意零权边顺序形成深链后递归爆栈。
+    auto Find = [&](int x)
     {
-        return parent[x] == x ? x : parent[x] = self(self, parent[x]);
+        int root = x;
+        while (parent[root] != root)
+            root = parent[root];
+        while (parent[x] != x)
+        {
+            const int next = parent[x];
+            parent[x] = root;
+            x = next;
+        }
+        return root;
     };
     if (has_zero)
     {
         for (const auto& edge : graph.edges)
         {
-            if (edge.w != 0.0)
+            if (edge.w > 0.0)
+            {
+                minimum_positive = std::min(minimum_positive, edge.w);
                 continue;
-            int u = Find(Find, edge.u);
-            int v = Find(Find, edge.v);
+            }
+            int u = Find(edge.u);
+            int v = Find(edge.v);
             if (u != v)
                 parent[v] = u;
         }
-        for (int v = 1; v <= graph.n; ++v)
-            parent[v] = Find(Find, v);
     }
 
-    std::vector<int> component_mask(graph.n + 1);
-    std::vector<int> representative(graph.n + 1);
-    std::vector<int> components;
-    for (int group = 0; group < g; ++group)
+    // 只为询问中实际出现的零权分量保存掩码；正权图中每个顶点本身就是分量。
+    // 这把公共预处理的辅助空间从 O(n) 降为 O(F)，其中 F 是终端出现总数。
+    struct TerminalHit
     {
+        int component = 0;
+        int group = 0;
+        int vertex = 0;
+        int order = 0;
+    };
+    struct QueryComponent
+    {
+        int mask = 0;
+        int representative = 0;
+        int first_order = 0;
+    };
+    size_t terminal_count = 0;
+    for (const auto& group : query.groups)
+        terminal_count += group.size();
+    std::vector<TerminalHit> hits;
+    hits.reserve(terminal_count);
+    int input_order = 0;
+    for (int group = 0; group < g; ++group)
         for (int vertex : query.groups[group])
+            hits.push_back({has_zero ? Find(vertex) : vertex, group, vertex, input_order++});
+    // 先把相同物理分量排在一起；组内保留输入顺序以稳定选择代表顶点。
+    std::sort(hits.begin(), hits.end(), [](const TerminalHit& left, const TerminalHit& right)
+    {
+        if (left.component != right.component)
+            return left.component < right.component;
+        return left.order < right.order;
+    });
+
+    std::vector<QueryComponent> components;
+    components.reserve(terminal_count);
+    for (size_t begin = 0; begin < hits.size();)
+    {
+        size_t end = begin;
+        QueryComponent component{0, hits[begin].vertex, hits[begin].order};
+        while (end < hits.size() && hits[end].component == hits[begin].component)
         {
-            const int component = has_zero ? parent[vertex] : vertex;
-            if (!component_mask[component])
-            {
-                representative[component] = vertex;
-                components.push_back(component);
-            }
-            component_mask[component] |= 1 << group;
+            component.mask |= 1 << hits[end].group;
+            ++end;
         }
+        components.push_back(component);
+        begin = end;
     }
+    // 恢复旧实现按查询首次触及分量的顺序，保持 set-cover 并列根完全稳定。
+    std::sort(components.begin(), components.end(), [](const QueryComponent& left, const QueryComponent& right)
+    {
+        return left.first_order < right.first_order;
+    });
 
     std::vector<int> superset(full_mask + 1, -1);
-    for (int component : components)
-        superset[component_mask[component]] = component;
+    for (int index = 0; index < static_cast<int>(components.size()); ++index)
+        superset[components[index].mask] = index;
     for (int bit = 0; bit < g; ++bit)
         for (int mask = 0; mask <= full_mask; ++mask)
             if (!(mask & (1 << bit)) && superset[mask] < 0)
@@ -279,7 +325,7 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
         const int block = choice[remaining];
         if (!block)
             break;
-        result.roots.push_back(representative[superset[block]]);
+        result.roots.push_back(components[superset[block]].representative);
         remaining ^= block;
     }
     if (minimum_positive < fp::kInf)
@@ -320,6 +366,11 @@ double BootstrapBoundedDistanceUpper(const Graph& graph,
 
     double best = fp::kInf;
     std::vector<int> roots;
+    // 候选根共用同一批连续工作区。每轮顺序重置距离和边位图；parent_edge
+    // 只会沿本轮已发现顶点读取，无需清零，从而避免反复申请大块内存。
+    std::vector<double> distance(graph.n + 1, fp::kInf);
+    std::vector<int> parent_edge(graph.n + 1, -1);
+    std::vector<std::uint64_t> used((static_cast<size_t>(graph.m) + 63) / 64);
     for (const auto& [unused_size, root, unused_group] : order)
     {
         (void)unused_size;
@@ -328,9 +379,8 @@ double BootstrapBoundedDistanceUpper(const Graph& graph,
             continue;
         roots.push_back(root);
 
-        std::vector<double> distance(graph.n + 1, fp::kInf);
-        std::vector<int> parent_edge(graph.n + 1, -1);
-        std::vector<std::uint64_t> used((static_cast<size_t>(graph.m) + 63) / 64);
+        std::fill(distance.begin(), distance.end(), fp::kInf);
+        std::fill(used.begin(), used.end(), 0);
         Heap heap;
         distance[root] = 0.0;
         heap.push({0.0, root});
@@ -397,10 +447,15 @@ GroupTable BuildGroupDistances(const Graph& graph,
                                double cutoff)
 {
     GroupTable table(query.groups.size());
+    // 稀疏 bounded row 构造完成后只重置实际触及位置并复用 dense scratch；
+    // 完整或 dense row 取得数组所有权后，下一组再申请必需的新数组。
+    std::vector<double> distance(graph.n + 1, fp::kInf);
+    std::vector<int> touched;
     for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
     {
-        std::vector<double> distance(graph.n + 1, fp::kInf);
-        std::vector<int> touched;
+        if (distance.empty())
+            distance.assign(graph.n + 1, fp::kInf);
+        touched.clear();
         Heap heap;
         for (int terminal : query.groups[group])
         {
@@ -475,6 +530,8 @@ GroupTable BuildGroupDistances(const Graph& graph,
             row.rank[word] = prefix;
             prefix += static_cast<std::uint32_t>(Popcount64(row.bits[word]));
         }
+        for (int vertex : row.vertex)
+            distance[vertex] = fp::kInf;
     }
     return table;
 }
@@ -1025,6 +1082,18 @@ bool PrepareProblem(Problem& p)
     if (p.component_cover.cover_number == 1)
     {
         p.best = 0.0;
+        return true;
+    }
+
+    // 对至多三个组，最优 GST 等于 min_v sum_i d(v,K_i)：任意三终端树在
+    // 分叉点处分解成三条路径给出下界，反向取三条最短路并集给出上界。
+    // 全部配置先执行同一个 bounded root-star 包并直接返回；既然不会进入
+    // directed-cut，下游需要的 complete-potential 表没有理由在基例中构造。
+    if (p.g <= 3)
+    {
+        const DistanceRootInitialization exact = BuildDistanceRootInitialization(
+            p.graph, p.query, DistanceRootRealization::BootstrappedBounded);
+        p.best = exact.upper;
         return true;
     }
 

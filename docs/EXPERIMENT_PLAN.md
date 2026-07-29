@@ -198,8 +198,8 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 1. 求解器与可行性审计共用的快速数字读取器保留原边、`edge_id`、双向邻接顺序、自环双邻接项、零/小数/科学计数边权和连通分量缓存，并拒绝尾部 token/非法权重。
 2. 查询读取器保留合法多查询与空查询，并拒绝负查询/组计数、空组、截断 payload 和声明记录之后的多余 token。
-3. Base、DirectedCutOnly 和 Enhanced 都通过历史零权 witness 父指针环反例。
-4. 三个合法配置在 144 个确定性随机连通小图、 $2\le g\le10$ 上逐例匹配独立全子集 DP；同一测试还覆盖空/单组、重叠零代价、非连通无解、 $g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
+3. Base、DirectedCutOnly 和 Enhanced 都通过以四个逻辑组保留的历史零权 witness 父指针环反例；50,000 顶点逆序零权并查集链还必须在不依赖递归栈深度的情况下闭合为 0。
+4. 三个合法配置在 144 个确定性随机连通小图、 $2\le g\le10$ 上逐例匹配独立全子集 DP；显式 $g=2,3$ 非零最优实例要求全部配置在零主状态处共同闭包，directed-cut 固定图还要逐弧复算全部组势梯度与最终 residual；同一测试另覆盖空/单组、重叠零代价、非连通无解、 $g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
 5. ABHSS Base/Enhanced 的状态数重复运行稳定；PrunedDP++ Hash 与 Dense 后端报告相同实际状态数；平凡查询报告 0。
 
 然后运行 `S1_steinlib_exactness_gate`。当前冻结证据包含 11 个 $11\le g\le16$ 的 WRP 已知最优实例：ABHSS Base/Enhanced、PrunedDP++-Safe、DPBF 和 SCIP-Jack 已全部匹配；Basic+ 只在其 $g\le14$ 能力范围内参加。当前证据摘要在 [`experiments/correctness_audit.json`](../experiments/correctness_audit.json)。未恢复第三方二进制时可先跑仓库内 gate，但不能因此声称完成了六方 SteinLib 核验。
@@ -259,7 +259,7 @@ B_{\mathrm{wit}}(T,k)
 
 ### 7.4 距离—根初始化重构门
 
-当前代码不再让 `PrepareProblem` 显式执行一个 Base-only 的 `BuildCanonicalSptUpper`。对进入非平凡距离预处理的查询，所有配置只调用一次 `BuildDistanceRootInitialization`，并接收同一个 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 把规范 SPT 边并集封装为自身的 cutoff bootstrap；若规范终端在非连通图中没有共同分量，它允许临时无穷 cutoff，并由不截断的多源距离与共同 root-star 在已知公共分量中取得有限上界。CompletePotential 把全图距离扩展封装为自身的表示成本。两者返回前都执行同一个 root-star 扫描，返回后共同进入 root-path-union。该组织符合“同职责替换”，又避免强迫 Enhanced 支付不改变完整距离输出的额外 SPT。
+这一历史门使 `PrepareProblem` 不再显式执行 Base-only 的 `BuildCanonicalSptUpper`。对进入非平凡距离预处理的查询，所有配置只调用一次 `BuildDistanceRootInitialization`，并接收同一个 `DistanceRootInitialization{group_distance, root, upper}`。BootstrappedBounded 把规范 SPT 边并集封装为自身的 cutoff bootstrap；若规范终端在非连通图中没有共同分量，它允许临时无穷 cutoff，并由不截断的多源距离与共同 root-star 在已知公共分量中取得有限上界。CompletePotential 把全图距离扩展封装为自身的表示成本。两者返回前都执行同一个 root-star 扫描；在该门对应的版本中，返回后共同进入 root-path-union。后续第 7.5 节增加了全部配置共享的 $g\le3$ 精确闭包：当前代码在进入配置替换职责前让三个配置统一运行 BootstrappedBounded root-star 基例，只有 $g>3$ 才按 profile 选择距离 realization 并进入共同 root-path-union。这两层组织都符合“共同操作或同职责替换”，又避免强迫 Enhanced 支付不被低组基例消费的完整势。
 
 性能旧版为上一节最终二进制 `85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf`，计时候选为 `4b7a8ad917aefdd7218ccb0af01409208670ba0b23e32ac37a7e03f9d179570e`。加入合同回归测试、中文注释并最终重建后的发布二进制为 `d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319`；它与计时候选的可执行 `.text` 节逐字节相同，SHA-256 均为 `20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33`，因此计时对应当前 solver 指令。短面板按旧/新顺序交替，比较五条固定查询的 solver-only 总时中位数；所有权值与 `(mask,v)` 状态向量逐项相同：
 
@@ -283,7 +283,30 @@ SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命
 
 完整逐次时间、RSS、状态、输入身份和二进制身份冻结在 [`experiments/abhss_configuration_refactor_gate.json`](../experiments/abhss_configuration_refactor_gate.json) 的 `distance_root_initialization_gate_20260725`。本地 `.tmp_canonical_spt_refactor_20260725` 仅为 Git 忽略的原始运行目录。
 
-### 7.5 Linux 编译与服务器锁定
+### 7.5 三项 P1 优化的本地方向探针
+
+2026-07-29 在远端最新 `main` 提交 `762c9431069a5bbd7b523e4919f32d4a103ff415` 上冻结旧二进制，并在同一台 Windows/MinGW 机器上探测三项改动：全部配置共享的 $g\le3$ root-star 精确闭包、正权 cover 快路径与安全工作区复用、DirectedCut 的截断 potential cone。该探针沿用本仓库配置重构门的 `candidate/main <= 1.03` 本地噪声阈值。它不是正式 Linux 服务器 gate：本机绝对时间已经与旧服务器记录明显不同，表中比值只能用来拒绝明显退化、决定是否值得进入全量复跑，不能进入论文主表。
+
+| 固定面板 | 配置 | 查询数 | main 秒 | 候选秒 | candidate/main | 权值与状态 |
+|---|---|---:|---:|---:|---:|---|
+| YouTube author `g=3`, q1--q5 | Base | 5 | 3.686119 | 3.240606 | 0.879138 | 逐条相同，状态均为 0 |
+| YouTube author `g=3`, q1--q5 | Enhanced | 5 | 13.220844 | 3.199866 | 0.242032 | 逐条相同，状态均为 0 |
+| YouTube author `g=5`, q1--q5 | Base | 5 | 23.914524 | 23.224964 | 0.971166 | 逐条相同 |
+| YouTube author `g=5`, q1--q5 | Enhanced | 5 | 25.268008 | 23.722211 | 0.938824 | 逐条相同 |
+| YouTube author `g=7`, q1--q3 | Base | 3 | 24.437060 | 23.565183 | 0.964322 | 逐条相同 |
+| YouTube author `g=7`, q1--q3 | Enhanced | 3 | 29.503628 | 28.355726 | 0.961093 | 逐条相同 |
+| Musae author `g=5`, q1--q100 | Base | 100 | 6.062077 | 6.026033 | 0.994054 | 逐条相同 |
+| Musae author `g=5`, q1--q100 | Enhanced | 100 | 7.072846 | 6.532474 | 0.923599 | 逐条相同 |
+| Orkut generated `g=6`, q1 | Base | 1 | 32.166481 | 32.841080 | 1.020972 | 相同，111,044 states；同时段各两次中位数 |
+| Orkut generated `g=6`, q1 | Enhanced | 1 | 85.414253 | 84.168028 | 0.985410 | 相同，109,705 states |
+
+探针中曾出现一个必须公开保留的被否决中间态：cone 代码继续留在类内可内联后，Orkut Base 三次交替的中位数从 30.660223 秒增到 32.161013 秒，比值 1.048951，尽管权值和状态不变。原因不是 Base 执行了 cone，而是 Release IPO 把增大的 Enhanced 冷分支并入共同预处理，污染了 Base 指令布局。最终代码给一次性 dual 构造增加跨编译器非内联冷边界；随后 Orkut Base/Enhanced 都回到表中的非退化方向。这个边界不增加或替换任何论文逻辑操作，只限制机器码布局。
+
+表中所有候选值均来自 SHA-256 为 `93a5582baecfc38c7683fd6b44c34f0d4a31b1ab05c1f309cc9506933b8cbd9e` 的同一计时二进制。最终审阅没有再改变可执行源码；以完全相同的源文件重链接并重跑 5/5 CTest 后，Windows/MinGW LTO 产物 SHA-256 为 `e2db08db82f7d7f47ff9db14898dd242dcc39ffd59d537615a684490c2897160`，因此记录同时保存计时产物和最终验证产物身份，而不把重链接哈希冒充原计时文件。除 Orkut Base 外均为单次本地方向值；Orkut Base 首次结果贴近门限，因此按候选/main/候选/main 在同一时段各运行两次，表中为两边两样本中位数，两个配对比值分别为 1.028865 和 1.013128。其 1.020972 只表示没有超过既定 1.03 本地噪声门，不能宣称加速。`g=3` 的 Base 与 Enhanced 逐项执行同一个 bounded root-star 包，二者总时间只相差约 1.3%，且每条查询均为 0 个主状态；Enhanced 相对 main 的大幅下降来自不再为已经由共同数学基例闭合的查询构造完整势、dual、witness 与 facility，而不是逐查询关闭增强。单次差异只能视为本机噪声，不能宣称配置间在该基例上存在速度差异。
+
+最终候选通过 Release 全构建、5/5 CTest、显式 $g=2,3$ 共同闭包回归、逐弧 residual 复算和 15/15 GitHub Markdown 校验。完整机器信息、二进制/源文件 SHA-256、RSS 和被否决中间态记录在 [`p1_local_optimization_probe_20260729.json`](../experiments/p1_local_optimization_probe_20260729.json)。下一步必须在正式 Linux 服务器上重新构建，并全量运行 P1 的 13 图、8,318 条查询；只有服务器结果才能回答“13 图中是否仍存在 PrunedDP++ 同时快于 Base 与 Enhanced”的论文底线。
+
+### 7.6 Linux 编译与服务器锁定
 
 正式服务器推荐用顶层 GNU `Makefile`：`make release JOBS=<physical-core-count>` 完成 Release 配置、当前可用 target 编译和 CTest；`make validate-paper-binaries` 只要求两个正式性能二进制 `abhss`/`pruneddp`，`make validate-all-binaries` 才要求已恢复的 Basic+/SCIP-Jack。CMake 禁用 compiler extensions，在工具链支持时对正式本地 target 统一开启 Release IPO/LTO，并在 GCC 9/10 没有可链接浮点 `from_chars` 时自动回退 `strtod`。
 
