@@ -1,6 +1,6 @@
 # ABHSS：单线程精确 Group Steiner Tree
 
-本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“共同操作”“增加安全证书”或“替换同一逻辑职责的 realization”。通过共同分量检查且未被零代价前置条件闭合后， $g\le3$ 的查询由所有配置先调用同一个 bounded root-star 初始化包，再用精确恒等式直接返回；它们不构造 witness、dual 或指数状态。这是一条逐项共同的数学基例，不是按组数选择配置。对仍需搜索的 $g>3$ 查询，所有配置在外层都只调用一次 `BuildDistanceRootInitialization`，取得相同的 `{group_distance, root, upper}` 合同；规范 SPT cutoff bootstrap 与完整距离扩展只是两种距离表示各自的内部成本，不是 Base 独占的论文阶段。例如，只要尚未闭包且平衡完成格包含 A1，三个合法配置都在 ordinary 前以相同 seed、farthest cone、正 fallback 和 top-two 视图生成同一类标准 A1 row，并把同一对象移交前向阶段；A1 内核不读取增强位或 directed-cut 势。Base 与 Enhanced 在预处理中只构造各自的 root-path/dual-primal witness，都不无条件运行树 DP；预处理后两边从 `rent=0` 开始，让 A1 与 ordinary 连续支付同一种工作量，达到由各自树大小代入的共同 `buy` 阈值且树 DP 输入修订已变化时调用同一个树 DP。DirectedCut 只在 A1 之外加强 ordinary/adjoint 证书，Adjoint $H$ 仅替换 A1 之后的高层前向 $A$。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
+本仓库是面向 SIGMOD/VLDB 投稿的单计算线程、精确、无向非负边权 Group Steiner Tree 实现与实验 artifact。ABHSS 只有一个公开 solver 入口和一个正式二进制：Base 不开增强，然后依次开启 `DirectedCut` 与 `AdjointCompletion` 得到全增强配置。执行关系严格分为“共同操作”“增加安全证书”或“替换同一逻辑职责的 realization”。通过共同分量检查且未被零代价前置条件闭合后， $g\le3$ 的查询由所有配置先调用同一个 bounded root-star 初始化包，再用精确恒等式直接返回；它们不构造 witness、dual 或指数状态。这是一条逐项共同的数学基例，不是按组数选择配置。对仍需搜索的 $g>3$ 查询，所有配置在外层都只调用一次 `BuildDistanceRootInitialization`，取得相同的 `{group_distance, root, upper}` 合同；规范 SPT cutoff bootstrap 与完整距离扩展只是两种距离表示各自的内部成本，不是 Base 独占的论文阶段。例如，只要尚未闭包且平衡完成格包含 A1，三个合法配置都在 ordinary 前以相同 seed、farthest + endpoint-floor cone、正 fallback 和 top-two 视图生成同一类标准 A1 row，并把同一对象移交前向阶段；A1 内核不读取增强位或 directed-cut 势。Base 与 Enhanced 在预处理中只构造各自的 root-path/dual-primal witness，都不无条件运行树 DP；预处理后两边从 `rent=0` 开始，让 A1 与 ordinary 连续支付同一种工作量，达到由各自树大小代入的共同 `buy` 阈值且树 DP 输入修订已变化时调用同一个树 DP。DirectedCut 只在 A1 之外加强 ordinary/adjoint 证书，Adjoint $H$ 仅替换 A1 之后的高层前向 $A$。实现不存在按组数经验阈值切换的 A1 路径。两条曲线是查询批次开始前预声明的同一算法配置，不做逐查询 oracle 选择。
 
 当前冻结性能矩阵包含三类实验：
 
@@ -75,6 +75,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 |---|---|
 | `CMakeLists.txt` | C++17 target、警告、Release 优化/IPO 探测、可选第三方 adapter 与 CTest |
 | `Makefile` | Linux 推荐的配置、编译、测试和 manifest 校验入口 |
+| `run_p1_full.sh` | Linux 上完整 P1 的构建、深度校验、分片与断点续跑入口 |
 | `RUN.md` | 从恢复数据到正式分片、续跑、诊断和汇总的命令手册 |
 | `.gitignore` | 排除大图、展开查询、结果、编译产物和未授权第三方源码 |
 | `ABHSS_ignored_data_before_workload_redesign_20260723.tar.gz` | 工作区本地的旧忽略数据恢复包；不是当前矩阵输入，不应上传或用于正式运行 |

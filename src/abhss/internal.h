@@ -178,7 +178,7 @@ class TourLowerBound
 public:
     /**
      * @brief 在组间最短路度量上预计算所有固定端点 Hamilton 路径。
-     * @param metric 组到组的对称/非对称最短连接代价矩阵。
+     * @param metric 无向输入图导出的对称组间最短连接代价矩阵。
      */
     void Build(const std::vector<std::vector<double>>& metric);
     /**
@@ -186,6 +186,12 @@ public:
      * @return 不超过任何可行剩余树代价的 admissible lower bound。
      */
     double At(int vertex, int mask, const GroupTable& distance) const;
+    /**
+     * @brief 返回固定规范起点组、终点自由的常数时间路径下界。
+     *
+     * 多组 mask 选择终点自由 Hamilton 路径代价最大的起点组；查询时只读取该组到 vertex 的距离。单组直接返回组距离，空集返回 0。
+     */
+    double EndpointFloorAt(int vertex, int mask, const GroupTable& distance) const;
 
 private:
     struct Endpoint
@@ -196,6 +202,8 @@ private:
     };
     int group_count_ = 0;
     std::vector<std::vector<Endpoint>> endpoints_;
+    std::vector<unsigned char> endpoint_floor_left_;
+    std::vector<double> endpoint_floor_value_;
 };
 
 struct Problem

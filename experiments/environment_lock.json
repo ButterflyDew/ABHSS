@@ -28,7 +28,7 @@
     "dependency": "adjoint-completion requires directed-cut",
     "execution_relation": "the profiles share common A1/D/low-A operations; every remaining difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
     "common_operations": {
-      "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest cone, positive fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
+      "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest + endpoint-floor cone, positive fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
       "witness_scheduler": "after preprocessing, every legal configuration constructs the same scheduler with rent=0; A1 and ordinary D continuously pay queue-pop/edge-relax rent, each profile substitutes only its own witness vertex count into the same buy formula t*((3^k-1)/2+3^k), and every buy calls the same EvaluateWitnessTree implementation"
     },
     "same_role_replacements": {

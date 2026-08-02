@@ -86,7 +86,7 @@ main
        -> WitnessUpperScheduler          [both profiles start with rent = 0]
             buy = the same formula applied to this profile's witness size
        -> common A1 row                  [only when the logical grid contains A1]
-            all configurations: same seed, farthest cone, positive fallback,
+            all configurations: same seed, farthest + endpoint-floor cone, positive fallback,
                                  top-two view and forward-A ownership transfer
             the A1 builder does not read enhancement flags or dual potentials
             queue/edge work pays rent; a tighter tree-DP buy restarts the A1 pass
@@ -113,7 +113,7 @@ main
 
 `MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。 $g\le3$ 查询在进入层计划前已经由全部配置共同的精确恒等式闭包，这与依据性能选择配置无关。对其余查询，域为空时完成式直接使用隐式 $A(\varnothing)$；域非空时 A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
 
-`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核； $H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
+`BuildOrdinaryRows` 按 mask 大小生成普通 $D$，将同根 split seed 做图闭包，并标准化 branch。所有配置都读取共同 A1 future；开启 `DirectedCut` 后，统一 future 栈在 A1 之外再与对偶势取最大，而不是替换、关闭或修改 A1。`BuildReusableAnchoredSingletonLayer` 不读取配置位或 dual，三个配置使用相同的 farthest + endpoint-floor cone 与正 fallback。DirectedCutOnly 与 Enhanced 随后都把已经生成的 A1 交给同一 `BuildForwardAnchoredRows` 内核； $H$ 只负责 A1 之后的高层后缀。`complete_implicit_anchor` 仅表示完整正层域为空。
 
 Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAnchoredRows`，生成完整的低/高层锚定 $A$。Enhanced 仍调用同一内核生成由平衡完成域确定的低层 $A$，再由 `SolveHighAdjoint` 以补集转置终端和递减 $H$ 代替未物化的高层 $A$。切分是递推域的固定 meet-in-the-middle 边界，不读取数据集名或运行表现。
 
@@ -121,7 +121,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 
 | 逻辑职责 | Base realization | Enhanced realization | 关系 |
 |---|---|---|---|
-| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest cone 与正 fallback，随后移交前向 A | 逐项执行同一 seed、cone、fallback、top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支 |
+| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest + endpoint-floor cone 与正 fallback，随后移交前向 A | 逐项执行同一 seed、cone、fallback、top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支 |
 | $g>3$ 的距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段；低组基例在此之前共同闭包 |
 | ordinary 的其他 future | farthest、tour | farthest、tour，再与 directed-cut potential 取最大 | 安全新增证书；A1 future 仍共同存在 |
 | witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 对未被共同闭包的查询，树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |

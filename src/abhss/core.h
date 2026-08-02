@@ -14,7 +14,7 @@ namespace gst::methods::abhss::internal
  * 并通过此视图供全部非平凡 ordinary 层复用为 future；DirectedCut/Enhanced
  * 另在统一下界中并入 dual，不取消 A1。
  * 是否存在 A1 完全由锚定状态格的最高逻辑层决定，不使用经验性的 g 阈值。
- * 所有配置的 cone 外位置都用构造时 cutoff 与连续 farthest bound 恢复同一
+ * 所有配置的 cone 外位置都用构造时 cutoff 与同一个连续 continuation 恢复
  * 安全下界；DirectedCut 不进入 A1 构造，只在 ordinary 的其他 future 中
  * 作为独立证书。每个顶点缓存最大的两个 singleton bit，并把两个 32-bit
  * payload locator 压入
@@ -29,7 +29,7 @@ struct AnchoredSingletonFuture
     std::vector<unsigned char> second;
     std::unique_ptr<std::uint64_t[]> cached_locator_pair;
 
-    /** @brief 读取公共 A1；cone 外返回统一的 farthest-based fallback。 */
+    /** @brief 读取公共 A1；cone 外返回由共同 continuation 定义的统一 fallback。 */
     double Value(const Problem& problem, int bit, int vertex) const;
     /** @brief 读取 A1 并同时返回精确 payload 下标或 cone 外标志。 */
     double ValueWithLocator(const Problem& problem,

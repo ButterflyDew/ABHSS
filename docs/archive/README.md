@@ -7,5 +7,6 @@
 - `DATA_PROVENANCE.md`：实验方案冻结过程中的数据取得、归档与再分发说明。
 - `GPU4GST_DATA.md`：GPU4GST 作者文件、转换器和跨 `g` 查询生成细节。
 - `THIRD_PARTY.md`：Basic+、SCIP-Jack、Boost 等 correctness-only 依赖的恢复方法。
+- `communication/`：算法候选筛选、跨图结构统计和 YouTube/P1/P2 探针记录；只作决策证据，不替代正式实验结果。
 
 归档表示“辅助审计”，不表示内容作废。若归档材料与三个正式文档或机器清单冲突，以机器清单和正式文档为准，并应修正归档材料而不是同时保留两种现行口径。

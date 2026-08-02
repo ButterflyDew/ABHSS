@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
   "generated_at": "2026-07-23T11:01:10.9319471Z",
-  "updated_at": "2026-07-25",
+  "updated_at": "2026-08-02",
   "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm whose frozen configurations differ only by safe additions or same-role replacements, without exactness or solver-time regression",
   "result": "PASS",
-  "current_contract_gate": "distance_root_initialization_gate_20260725",
-  "current_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
+  "current_contract_gate": "endpoint_floor_a1_gate_20260802",
+  "current_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
   "policy": {
     "scope": "2026-07-23 original single-entry refactor gate; the 2026-07-24 clarification gate has its own policy block",
     "weight_tolerance": 1e-6,
@@ -36,7 +36,7 @@
       "additional facility feasible upper bound"
     ],
     "common_operations": {
-      "anchored_singleton_A1": "If q=max(0,floor(g/2)-1) is positive, Base, DirectedCutOnly and Enhanced use the same seeds, farthest cone, positive fallback, standard rows, top-two view, state accounting and ownership transfer. The A1 builder reads neither enhancement flags nor dual potentials.",
+      "anchored_singleton_A1": "If q=max(0,floor(g/2)-1) is positive, Base, DirectedCutOnly and Enhanced use the same seeds, farthest + endpoint-floor cone, positive fallback, standard rows, top-two view, state accounting and ownership transfer. The A1 builder reads neither enhancement flags nor dual potentials.",
       "ordinary_A1_view": "Every legal configuration reads the common A1 view; DirectedCut adds its independent potential to the ordinary max stack instead of replacing A1.",
       "witness_rent_or_buy": "After preprocessing, every legal configuration creates the same scheduler at rent=0. Common A1 and ordinary D continuously pay queue-pop/edge-relax rent; each profile substitutes only its own witness vertex count into t*((3^k-1)/2+3^k), and every eligible buy invokes the same EvaluateWitnessTree."
     },
@@ -537,7 +537,7 @@
     ]
   },
   "common_witness_rent_or_buy_gate_20260725": {
-    "status": "CURRENT",
+    "status": "ACTIVE prerequisite; extended by distance_root_initialization_gate_20260725 and endpoint_floor_a1_gate_20260802",
     "result": "PASS",
     "supersedes": "the asymmetric witness-evaluation schedule in common_lightweight_a1_gate_20260725 while retaining that gate's strict-common-A1 contract",
     "contract": {
@@ -872,7 +872,7 @@
     }
   ],
   "distance_root_initialization_gate_20260725": {
-    "status": "CURRENT",
+    "status": "ACTIVE prerequisite; extended by endpoint_floor_a1_gate_20260802",
     "result": "PASS",
     "extends": "common_witness_rent_or_buy_gate_20260725; that scheduler contract remains active",
     "contract": {
@@ -898,9 +898,9 @@
       "baseline_behavior": "PrepareProblem explicitly ran BuildCanonicalSptUpper only for the bounded-distance profile before the shared group-distance and root-star work.",
       "timed_candidate_binary_sha256": "4b7a8ad917aefdd7218ccb0af01409208670ba0b23e32ac37a7e03f9d179570e",
       "timed_candidate_binary_bytes": 427434,
-      "current_release_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
-      "current_release_binary_bytes": 427434,
-      "executable_text_section_sha256_timed_and_current": "20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33",
+      "validated_pre_endpoint_floor_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
+      "validated_pre_endpoint_floor_binary_bytes": 427434,
+      "executable_text_section_sha256_timed_and_validated": "20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33",
       "post_timing_changes": "The added distance-root contract regression and documentation do not alter the solver source path; a final rebuild changed PE file identity but its executable .text section is byte-identical to the timed candidate.",
       "candidate_behavior": "PrepareProblem makes one common distance-root initialization call; the former canonical-SPT helper is private bootstrap work inside BootstrappedBounded.",
       "compiler": "g++.exe (Rev8, Built by MSYS2 project) 15.2.0",
@@ -1016,6 +1016,40 @@
       ".tmp_canonical_spt_refactor_20260725/steinlib_v1",
       ".tmp_canonical_spt_refactor_20260725/steinlib_enhanced_repeat_v1"
     ]
+  },
+  "endpoint_floor_a1_gate_20260802": {
+    "status": "CURRENT",
+    "result": "PASS",
+    "extends": "distance_root_initialization_gate_20260725; all earlier common-operation and replacement contracts remain active",
+    "contract": "Every legal configuration uses the same A1 continuation max(farthest, endpoint-floor), the same cone and the same positive fallback; the builder has no configuration, graph-name or empirical group-count branch.",
+    "implementation": "TourLowerBound reuses its fixed-endpoint Hamilton-path table, selects one maximum endpoint-free start per remaining mask in O(g^2 2^g) additional preprocessing and stores O(2^g) values; each A1 continuation query adds one constant-time group-distance read.",
+    "source_sha256": {
+      "core_cpp": "2b783f9d6a8af994b416fda58054cc008f9920884dbe4e0af391f8eb7b781bda",
+      "internal_h": "361fb31ee728f556ff71431ad532cbd893694e89db03fd498dea495a9c108e31",
+      "preprocess_cpp": "722904a0ac8310e317e8042289296b6781e29a262f970eca6faf2adde5ce9309"
+    },
+    "release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+    "correctness": {
+      "ctest": "5/5 PASS",
+      "independent_random_exact_dp": "144 deterministic connected instances, all three legal configurations, g=2..10",
+      "youtube_p1_candidate_queries": 1800,
+      "youtube_p1_weight_mismatches": 0,
+      "p1_other_same_machine_runs": 300,
+      "p1_other_weight_mismatches": 0,
+      "p2_youtube_dblp_runs": 120,
+      "p2_weight_mismatch_cells": 0,
+      "candidate_timeout_regressions": 0
+    },
+    "performance": {
+      "youtube_p1_base_seconds": 2953.211649,
+      "youtube_p1_pruneddp_seconds": 3004.472131,
+      "youtube_margin_seconds": 51.260482,
+      "youtube_target_pass": true,
+      "p2_youtube_fastest_abhss_wins": "12/12 g=5..16 samples",
+      "p2_dblp_fastest_abhss_wins": "10/12 samples; only g=5 and g=6 lose slightly",
+      "rejected_lazy_endpoint_read": "DBLP-Mono two-query three-round aggregate was 3.80% slower with identical states; reverted"
+    },
+    "report": "docs/archive/communication/TEN_HOUR_OURS_ONLY_YOUTUBE_PROBE.md"
   },
   "graph_loading": {
     "implementation": "8 MiB buffered numeric scan; first pass stores edges and counts exact degrees; second pass reserves once and builds bidirectional adjacency in original order",

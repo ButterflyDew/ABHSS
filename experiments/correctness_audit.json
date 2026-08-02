@@ -1,6 +1,6 @@
 {
-  "schema_version": 5,
-  "audited_at": "2026-07-25",
+  "schema_version": 6,
+  "audited_at": "2026-08-02",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
@@ -15,7 +15,7 @@
   "configuration_refactor_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json",
     "panel_definitions": 5,
-    "configuration_panel_comparisons": "current distance-root initialization gate uses repeated Musae g6/g10 comparisons, YouTube/Orkut fixed-query directions for both Base and Enhanced, and a triggered five-pair Enhanced SteinLib aggregate",
+    "configuration_panel_comparisons": "the active endpoint-floor extension adds YouTube P1 full, 12-graph same-machine P1 samples and YouTube/DBLP P2 samples to the retained distance-root, witness-scheduler and strict-common-A1 gates",
     "objective_mismatches": 0,
     "timeout_or_feasibility_regressions": 0,
     "maximum_new_over_old_panel_time": 1.023361310,
@@ -23,8 +23,8 @@
     "result": "PASS"
   },
   "repository_consistency_audit": {
-    "current_release_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
-    "github_markdown": "PASS: all 15 tracked Markdown files are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
+    "current_release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+    "github_markdown": "PASS: all 19 tracked Markdown files are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
     "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 26,484 performance tasks (P1=8,318, P2=360, S2=150 queries across three methods)",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
     "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common-A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, recurrence-derived A/H schedule, output fields, timeout, workload counts and source limitations as the code and machine manifests"
@@ -100,12 +100,12 @@
   },
   "distance_root_initialization_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#distance_root_initialization_gate_20260725",
-    "status": "CURRENT",
+    "status": "ACTIVE prerequisite; extended by endpoint_floor_a1_gate_20260802",
     "contract": "every legal configuration calls one BuildDistanceRootInitialization entry and receives the same {group_distance, root, feasible upper} contract; canonical-SPT cutoff bootstrap and complete-distance expansion are private costs of two same-role realizations, so no Base-only outer SPT stage remains",
     "baseline_binary_sha256": "85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf",
     "timed_candidate_binary_sha256": "4b7a8ad917aefdd7218ccb0af01409208670ba0b23e32ac37a7e03f9d179570e",
-    "current_release_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
-    "timed_and_current_text_section_sha256": "20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33",
+    "validated_pre_endpoint_floor_binary_sha256": "d93d44ec97ea19c49b9fb2c96b833bded549559a2c8ea1eab3351c6b5a50c319",
+    "timed_and_validated_text_section_sha256": "20473d68886e07607c5dd1efa3c2bc2e385832df75f1f9877948bd78508f0f33",
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
     "distance_root_contract_regression": "bounded exact entries equal complete distances, bounded placeholders remain lower-safe, both roots are valid and both upper bounds finite; a disconnected fixture also verifies recovery when canonical SPT roots fail but another component covers every group",
@@ -117,6 +117,21 @@
     "timeout_or_feasibility_regressions": 0,
     "maximum_repeated_panel_new_over_old": 1.023361310,
     "threshold": 1.03,
+    "result": "PASS"
+  },
+  "endpoint_floor_a1_gate": {
+    "evidence": "experiments/abhss_configuration_refactor_gate.json#endpoint_floor_a1_gate_20260802",
+    "status": "CURRENT",
+    "contract": "all legal configurations use the same max(farthest, endpoint-floor) A1 continuation, cone, positive fallback, row representation and ownership transfer, without configuration, graph-name or empirical group-count branches",
+    "current_release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+    "local_ctest": "5/5 PASS",
+    "independent_random_exact_dp_cases": 144,
+    "youtube_p1_candidate_queries": 1800,
+    "p1_other_same_machine_runs": 300,
+    "p2_youtube_dblp_runs": 120,
+    "objective_mismatches": 0,
+    "candidate_timeout_regressions": 0,
+    "youtube_p1_target": "PASS: Base 2953.211649 seconds versus PrunedDP++ 3004.472131 seconds",
     "result": "PASS"
   },
   "known_optimum_panel": {

@@ -649,6 +649,37 @@ void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
             }
         }
     }
+
+    // 每个端点对只访问一次，使新增预计算为 O(g^2 2^g)，不增加原 tour
+    // DP 的渐近复杂度。随后固定终点自由路径值最大的起点组；并列时由组号
+    // 扫描顺序确定，整个选择只依赖查询度量，不含图名或经验阈值。
+    endpoint_floor_left_.assign(subset_count, 255);
+    endpoint_floor_value_.assign(subset_count, 0.0);
+    std::array<double, 16> endpoint_floor;
+    for (int mask = 1; mask < subset_count; ++mask)
+    {
+        if (!(mask & (mask - 1)))
+            continue;
+        endpoint_floor.fill(fp::kInf);
+        for (const Endpoint& endpoint : endpoints_[mask])
+        {
+            endpoint_floor[endpoint.left] = std::min(endpoint_floor[endpoint.left], endpoint.path);
+            endpoint_floor[endpoint.right] = std::min(endpoint_floor[endpoint.right], endpoint.path);
+        }
+        int selected = -1;
+        double selected_floor = -1.0;
+        for (int bits = mask; bits; bits &= bits - 1)
+        {
+            const int group = FirstBit(bits & -bits);
+            if (endpoint_floor[group] > selected_floor)
+            {
+                selected = group;
+                selected_floor = endpoint_floor[group];
+            }
+        }
+        endpoint_floor_left_[mask] = static_cast<unsigned char>(selected);
+        endpoint_floor_value_[mask] = selected_floor;
+    }
 }
 
 /** @brief 把当前顶点接到预计算路径两端，返回剩余 mask 的 admissible tour 下界。 */
@@ -672,6 +703,16 @@ double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) cons
     for (int bits = mask; bits; bits &= bits - 1)
         value = std::max(value, fixed[FirstBit(bits & -bits)]);
     return value * 0.5;
+}
+
+/** @brief 用预选起点组和终点自由路径值计算 A1 的常数时间下界。 */
+double TourLowerBound::EndpointFloorAt(int vertex, int mask, const GroupTable& distance) const
+{
+    if (!mask)
+        return 0.0;
+    if (!(mask & (mask - 1)))
+        return distance[FirstBit(mask)][vertex];
+    return (distance[endpoint_floor_left_[mask]][vertex] + endpoint_floor_value_[mask]) * 0.5;
 }
 
 /**

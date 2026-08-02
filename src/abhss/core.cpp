@@ -10,6 +10,17 @@ namespace
 {
 /** 高位表示该 top-two 值来自 cone 外公式，而非 row.value 下标。 */
 constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
+
+/**
+ * @brief 返回 A1 cone 与正 fallback 共同使用的剩余代价下界。
+ *
+ * farthest 与 endpoint-floor 都可采纳且沿边至多下降边权；取最大后仍保持
+ * 该性质，因此既能安全决定 Dijkstra cone，也能用于 cone 外的 U-B fallback。
+ */
+double AnchoredSingletonContinuation(const Problem& p, int vertex, int continuation)
+{
+    return std::max(FarthestRemaining(p, vertex, continuation), p.tour.EndpointFloorAt(vertex, continuation, p.group_distance));
+}
 }
 
 long long EstimateWitnessTreeDpWork(size_t witness_vertices,
@@ -124,7 +135,7 @@ double AnchoredSingletonFuture::ValueWithLocator(
         p.nonanchor_original_mask ^ p.original_mask[bit];
     return std::max(
         0.0,
-        cutoff - FarthestRemaining(p, vertex, continuation));
+        cutoff - AnchoredSingletonContinuation(p, vertex, continuation));
 }
 
 double AnchoredSingletonFuture::LocatedValue(
@@ -139,7 +150,7 @@ double AnchoredSingletonFuture::LocatedValue(
         p.nonanchor_original_mask ^ p.original_mask[bit];
     return std::max(
         0.0,
-        cutoff - FarthestRemaining(p, vertex, continuation));
+        cutoff - AnchoredSingletonContinuation(p, vertex, continuation));
 }
 
 double AnchoredSingletonFuture::Future(const Problem& p,
@@ -252,7 +263,7 @@ void BuildReusableAnchoredSingletonLayer(
                 {
                     continuation_stamp[vertex] = stamp;
                     continuation_cache[vertex] =
-                        FarthestRemaining(p, vertex, continuation);
+                        AnchoredSingletonContinuation(p, vertex, continuation);
                 }
                 return continuation_cache[vertex];
             };

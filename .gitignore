@@ -1,4 +1,5 @@
 # Local agent/editor state
+/agent.md
 /.agents/
 /.codex/
 /.vs/
@@ -9,6 +10,7 @@ Thumbs.db
 
 # Build trees and native artifacts
 /build/
+/build-*/
 /build_external/
 /result/
 /results/

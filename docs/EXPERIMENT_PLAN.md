@@ -19,6 +19,7 @@
 - 计算资源：每个 solver process 只允许一个计算线程；监控线程只采样 RSS。
 - 构建：同一编译器、Release、相同 IPO/优化规则。
 - 计时：图在一个 query block 中加载一次；逐查询 timer 在 `[Ready]` 之后开始，包含该方法的查询预处理与求解，不包含共同图加载。
+- 预处理公平性：若采用 2-core、叶剥离、度二压缩等改变共同输入图的 kernel，必须对 ABHSS 与 PrunedDP++ 使用同一实现并计入同一口径；不得只替本文方法缩图。endpoint-floor 属于 ABHSS 的算法内部下界，Base/Enhanced 都执行且其构造时间计入各自 query timer，不要求 baseline 实现本文下界。
 - I/O 审计：`graph_load_seconds` 与 `query_load_seconds` 单独写入 header；它们用于发现 artifact 工程瓶颈，不并入算法 speedup。图加载包含 8 MiB 数字扫描、精确邻接容量预留和一次 $O(n+m)$ 连通分量建索引；逐查询可行性检查只按组成员求分量交，不重复扫描整图。
 - timeout：每条查询 10,000 秒；图加载 watchdog 1,800 秒。
 - 顺序：同一 case 的首个方法由稳定哈希轮换，避免固定方法总是占用冷机或热机位置。
