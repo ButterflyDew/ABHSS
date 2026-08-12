@@ -98,12 +98,18 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str] | None =
         writer.writerows(rows)
 
 
+def controlled_target_f(record: dict[str, Any]) -> int | None:
+    if record.get("suite") != "S2_controlled_gf":
+        return None
+    return int(str(record["case_id"]).rsplit("_", 1)[1])
+
+
 def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
     for record in records:
-        grouped[(record["suite"], record["dataset"], record["g"], record["method"])].append(record)
+        grouped[(record["suite"], record["dataset"], record["g"], controlled_target_f(record), record["method"])].append(record)
     rows: list[dict[str, Any]] = []
-    for (suite, dataset, g, method), group in sorted(grouped.items()):
+    for (suite, dataset, g, target_f, method), group in sorted(grouped.items()):
         solved = [record for record in group if record["status"] == "ok"]
         times = [float(record["solver_seconds"]) for record in solved]
         memories = [
@@ -136,6 +142,7 @@ def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "suite": suite,
                 "dataset": dataset,
                 "g": g,
+                "target_f": target_f,
                 "method": method,
                 "instances": len(group),
                 "solved": len(solved),
@@ -255,7 +262,7 @@ def paired_rows(
         ): record
         for record in records
     }
-    groups: dict[tuple[str, str, int, str], list[tuple[dict[str, Any], dict[str, Any]]]] = defaultdict(list)
+    groups: dict[tuple[str, str, int, int | None, str], list[tuple[dict[str, Any], dict[str, Any]]]] = defaultdict(list)
     for record in records:
         contender = record["method"]
         if contender not in contenders:
@@ -270,11 +277,11 @@ def paired_rows(
             )
         )
         if baseline_record is not None:
-            groups[(record["suite"], record["dataset"], record["g"], contender)].append(
+            groups[(record["suite"], record["dataset"], record["g"], controlled_target_f(record), contender)].append(
                 (record, baseline_record)
             )
     rows: list[dict[str, Any]] = []
-    for (suite, dataset, g, contender), pairs in sorted(groups.items()):
+    for (suite, dataset, g, target_f, contender), pairs in sorted(groups.items()):
         both = [
             (ours, base)
             for ours, base in pairs
@@ -294,13 +301,14 @@ def paired_rows(
             and int(base["mask_vertex_states"]) > 0
         ]
         speedup_low, speedup_high = bootstrap_geomean_interval(
-            ratios, f"{suite}|{dataset}|{g}|{contender}|{baseline}"
+            ratios, f"{suite}|{dataset}|{g}|{target_f}|{contender}|{baseline}"
         )
         rows.append(
             {
                 "suite": suite,
                 "dataset": dataset,
                 "g": g,
+                "target_f": target_f,
                 "contender": contender,
                 "baseline": baseline,
                 "paired_instances": len(pairs),

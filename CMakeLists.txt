@@ -89,6 +89,7 @@ set(COMMON_SOURCES
 
 set(ABHSS_SOURCES
     src/abhss/preprocess.cpp
+    src/abhss/path_growth_upper.cpp
     src/abhss/core.cpp
     src/abhss/pipeline.cpp
     src/abhss/forward.cpp

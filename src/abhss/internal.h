@@ -41,6 +41,7 @@ inline int FirstBit(int mask)
 #endif
 }
 
+
 /**
  * @brief D/A/H 共用的唯一稀疏 row 物理格式。
  *
@@ -106,6 +107,8 @@ struct GroupRow
     double operator[](int v) const;
     /** @brief 判断该顶点是否保存了严格小于 cutoff 的精确距离。 */
     bool IsExact(int v) const;
+    /** @brief 单次布局查找：精确位置返回真实距离，cutoff 占位返回正无穷。 */
+    double ExactValueOrInf(int v) const;
     /** @brief 返回可被精确枚举的顶点数，用于选择最小交集驱动方。 */
     size_t ExactSize(int n) const;
 
@@ -289,6 +292,8 @@ struct Problem
     ComponentCover component_cover;
     RootPathUnion root_path_union;
     WitnessTree witness_tree;
+    std::vector<int> certificate_support_edges;
+    std::size_t certificate_support_vertex_count = 0;
     dual_cut::DualCutPotential dual;
 
     std::vector<int> bit_to_group;
@@ -352,13 +357,20 @@ WitnessTree BuildDualWitness(const Graph& graph,
 double EvaluateWitnessTree(const WitnessTree& tree,
                            const Problem& problem,
                            const std::vector<Row>& ordinary);
-/** @brief 在 dual primal 设施点上构造支撑度量并做小规模 subset DP 上界。 */
+/** @brief 估计一次证书支持图 subset DP 的结构工作量。 */
+long long EstimateCertificateSupportDpWork(std::size_t support_vertices,
+                                           int nonanchor_count);
+/** @brief 在 closure primal 与路径 witness 的并图上组合 ordinary 子解。 */
+double EvaluateCertificateSupport(const Problem& problem);
+/** @brief 在 dual primal 设施点上构造 residual-support 度量并做 subset DP 上界。 */
 double BuildPrimalFacilityUpper(const Problem& problem,
                                 const std::vector<double>& residual,
                                 const std::vector<std::uint64_t>& edge_words);
 
 /** @brief 执行配置驱动的公共预处理；返回 true 表示上下界已经闭合。 */
 bool PrepareProblem(Problem& problem);
+/** @brief 已购买增强证书刷新时，尝试登记四元路径与 primal 的真实支持图。 */
+bool RefreshPurchasedPathGrowthCertificate(Problem& problem);
 /** @brief 返回剩余组中的最远组距离下界；命中顶点缓存时为 O(1)。 */
 double FarthestRemaining(const Problem& problem, int vertex, int original_mask);
 /** @brief 计算统一 future 下界；开启 DirectedCut 时再并入对偶势。 */

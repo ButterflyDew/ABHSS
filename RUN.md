@@ -63,7 +63,7 @@ Linux：
 
 Windows Visual Studio 构建将上述路径换为 `build/Release/abhss.exe`。中间 correctness/ablation 配置是 `--enhancements=directed-cut`，不是第三条正式性能曲线。`--adjoint-completion=on` 且 `--directed-cut=off` 是非法配置，会在加载图之前报错。
 
-五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、144 个 $2\le g\le10$ 的确定性随机实例与入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
+五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、5,000 个 $2\le g\le10$ 的确定性随机实例、500 个正权互异单终端压力实例、160 个 $g=7,\ldots,16$ 的 omitted-half transpose 实例、容量边界与入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
 
 ## 2. 恢复与转换精确输入
 
@@ -202,6 +202,16 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 ```
 
 分配只由稳定 case hash 决定。同一 `run-dir` 中每个 `(case,method,query)` 有独立 JSON 记录，已完成 key 会跳过，因此可直接重复原命令续跑。不得在同一物理机器上并发运行多个内存带宽重的正式 shard；不得将不同 CPU/编译器的 shard 直接合并为同一时间表。
+
+服务器资源探究确认两路固定物理核与单路的逐查询时空结果可比后，可用 `run_parallel_campaign.py` 恢复本轮 P1、P2 或受控探针：
+
+```bash
+python3 tools/experiments/run_parallel_campaign.py p1
+python3 tools/experiments/run_parallel_campaign.py p2
+python3 tools/experiments/run_parallel_campaign.py gf
+```
+
+该脚本固定使用 CPU 0/1，并把运行日期和当前 commit 写入新 run-id。P1 只重跑 ABHSS 两种配置并引用已归档的同机 PrunedDP++；P2 先完整运行 Enhanced，再按预声明的首次 timeout frontier 运行 Base/PrunedDP++；`gf` 是每 cell 第 3 条查询的 1,000 秒资源探针。它是当前服务器 campaign 的可恢复编排，不改变 `run_experiments.py` 的任务语义。若换机器、两进程会争用同一物理核/内存带宽，或论文要求绝对单进程计时，应使用上一段的通用单路命令，不得直接把两路 campaign 当作正式时间表。
 
 若某个纸面值需要重跑，必须重跑该预声明 cell 的全部三个计时项并保留旧记录，不得只替换不利的单个 method/query。
 

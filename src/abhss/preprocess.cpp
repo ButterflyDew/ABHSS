@@ -1,4 +1,5 @@
 ﻿#include "internal.h"
+#include "path_growth_upper.h"
 
 #include <numeric>
 #include <sstream>
@@ -51,6 +52,7 @@ WitnessTree BuildWitnessFromEdges(const Graph& graph,
     std::sort(vertices.begin(), vertices.end());
     vertices.erase(std::unique(vertices.begin(), vertices.end()), vertices.end());
 
+    // lambda：把原图顶点映射到当前稀疏 witness 的连续局部编号。
     auto Index = [&](int vertex)
     {
         const auto it = std::lower_bound(vertices.begin(), vertices.end(), vertex);
@@ -182,6 +184,22 @@ bool GroupRow::IsExact(int v) const
            ((bits[word] >> (v & 63)) & std::uint64_t{1});
 }
 
+/** @brief 返回可作为真实 singleton 子树的距离；不让 cutoff 占位进入上界 DP。 */
+double GroupRow::ExactValueOrInf(int v) const
+{
+    if (!bounded)
+        return value[v];
+    if (dense)
+        return value[v] < cutoff ? value[v] : fp::kInf;
+    const size_t word = static_cast<size_t>(v) >> 6;
+    const int offset = v & 63;
+    const std::uint64_t bit = std::uint64_t{1} << offset;
+    if (word >= bits.size() || !(bits[word] & bit))
+        return fp::kInf;
+    const std::uint64_t lower = offset ? bits[word] & (bit - 1) : 0;
+    return value[rank[word] + Popcount64(lower)];
+}
+
 /** @brief 返回可安全参加精确合并的顶点数，供交集驱动器比较工作量。 */
 size_t GroupRow::ExactSize(int n) const
 {
@@ -211,7 +229,7 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
         parent.resize(graph.n + 1);
         std::iota(parent.begin(), parent.end(), 0);
     }
-    // 迭代寻找根并压缩整条访问路径，避免恶意零权边顺序形成深链后递归爆栈。
+    // lambda：迭代寻找根并压缩整条访问路径，避免恶意零权边顺序形成深链后递归爆栈。
     auto Find = [&](int x)
     {
         int root = x;
@@ -546,6 +564,7 @@ double RootStarUpper(const GroupTable& distance, int n, int& root)
     for (const auto& row : distance)
         if (row.ExactSize(n) < driver->ExactSize(n))
             driver = &row;
+    // lambda：由最小精确组表驱动，扫描同一顶点的全部组距离和。
     driver->ForEachExact(n, [&](int vertex, double)
     {
         double value = 0.0;
@@ -603,6 +622,7 @@ void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
     const int full_mask = subset_count - 1;
     std::vector<double> path(
         static_cast<size_t>(subset_count) * group_count_ * group_count_, fp::kInf);
+    // lambda：把 (mask,start,last) 映射到连续 Hamilton-path DP 存储。
     auto Index = [&](int mask, int start, int last)
     {
         return (static_cast<size_t>(mask) * group_count_ + start) * group_count_ + last;
@@ -691,11 +711,17 @@ double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) cons
         return distance[FirstBit(mask)][vertex];
 
     std::array<double, 16> fixed;
-    fixed.fill(fp::kInf);
+    // 固定 (mask,v) 只把每个组距离读入一次，并在同一遍只初始化 mask 内的槽。
+    std::array<double, 16> rooted;
+    for (int bits = mask; bits; bits &= bits - 1)
+    {
+        const int group = FirstBit(bits & -bits);
+        rooted[group] = distance[group][vertex];
+        fixed[group] = fp::kInf;
+    }
     for (const auto& endpoint : endpoints_[mask])
     {
-        const double candidate = distance[endpoint.left][vertex] + endpoint.path +
-                                 distance[endpoint.right][vertex];
+        const double candidate = rooted[endpoint.left] + endpoint.path + rooted[endpoint.right];
         fixed[endpoint.left] = std::min(fixed[endpoint.left], candidate);
         fixed[endpoint.right] = std::min(fixed[endpoint.right], candidate);
     }
@@ -712,7 +738,8 @@ double TourLowerBound::EndpointFloorAt(int vertex, int mask, const GroupTable& d
         return 0.0;
     if (!(mask & (mask - 1)))
         return distance[FirstBit(mask)][vertex];
-    return (distance[endpoint_floor_left_[mask]][vertex] + endpoint_floor_value_[mask]) * 0.5;
+    const int group = endpoint_floor_left_[mask];
+    return (distance[group][vertex] + endpoint_floor_value_[mask]) * 0.5;
 }
 
 /**
@@ -873,8 +900,7 @@ double EvaluateWitnessTree(const WitnessTree& tree,
             for (int mask = 1; mask < p.subset_count; ++mask)
             {
                 if (p.popcount[mask] == 1)
-                    block[mask] = p.group_distance[
-                        p.bit_to_group[FirstBit(mask)]][vertex];
+                    block[mask] = p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactValueOrInf(vertex);
                 else if (ordinary[mask].ready)
                     block[mask] = RowValue(ordinary[mask], vertex);
             }
@@ -913,6 +939,130 @@ double EvaluateWitnessTree(const WitnessTree& tree,
     return dp[root][p.full_mask];
 }
 
+namespace
+{
+/** @brief signed 64-bit 饱和加法，避免理论工作量估计溢出。 */
+long long SaturatingAdd(long long left, long long right)
+{
+    return right >= std::numeric_limits<long long>::max() - left ? std::numeric_limits<long long>::max() : left + right;
+}
+
+/** @brief signed 64-bit 饱和乘法，避免理论工作量估计溢出。 */
+long long SaturatingMultiply(long long left, long long right)
+{
+    if (!left || !right)
+        return 0;
+    return left > std::numeric_limits<long long>::max() / right ? std::numeric_limits<long long>::max() : left * right;
+}
+}
+
+long long EstimateCertificateSupportDpWork(size_t support_vertices, int nonanchor_count)
+{
+    if (!support_vertices || nonanchor_count < 0)
+        return 0;
+    long long binary_subsets = 1;
+    long long ternary_subsets = 1;
+    for (int bit = 0; bit < nonanchor_count; ++bit)
+    {
+        binary_subsets *= 2;
+        ternary_subsets *= 3;
+    }
+    const long long vertices = static_cast<long long>(support_vertices);
+    const long long partitions = (ternary_subsets - 2 * binary_subsets + 1) / 2;
+    long long work = SaturatingMultiply(vertices, partitions);
+    work = SaturatingAdd(work, SaturatingMultiply(binary_subsets - 1, SaturatingMultiply(vertices, vertices)));
+    work = SaturatingAdd(work, SaturatingMultiply(vertices, SaturatingMultiply(vertices, vertices)));
+    return SaturatingAdd(work, SaturatingMultiply(binary_subsets - 1, vertices));
+}
+
+double EvaluateCertificateSupport(const Problem& p)
+{
+    std::vector<int> vertices;
+    vertices.reserve(2 * p.certificate_support_edges.size());
+    for (int edge_id : p.certificate_support_edges)
+    {
+        vertices.push_back(p.graph.edges[edge_id].u);
+        vertices.push_back(p.graph.edges[edge_id].v);
+    }
+    std::sort(vertices.begin(), vertices.end());
+    vertices.erase(std::unique(vertices.begin(), vertices.end()), vertices.end());
+    if (vertices.empty())
+        return fp::kInf;
+
+    // lambda：把原图顶点映射到 certificate support 的连续局部编号。
+    auto Index = [&](int vertex)
+    {
+        const auto it = std::lower_bound(vertices.begin(), vertices.end(), vertex);
+        return it != vertices.end() && *it == vertex ? static_cast<int>(it - vertices.begin()) : -1;
+    };
+
+    const int count = static_cast<int>(vertices.size());
+    std::vector<double> metric(static_cast<size_t>(count) * count, fp::kInf);
+    for (int i = 0; i < count; ++i)
+        metric[static_cast<size_t>(i) * count + i] = 0.0;
+    for (int edge_id : p.certificate_support_edges)
+    {
+        const UndirectedEdge& edge = p.graph.edges[edge_id];
+        const int u = Index(edge.u);
+        const int v = Index(edge.v);
+        metric[static_cast<size_t>(u) * count + v] = std::min(metric[static_cast<size_t>(u) * count + v], edge.w);
+        metric[static_cast<size_t>(v) * count + u] = std::min(metric[static_cast<size_t>(v) * count + u], edge.w);
+    }
+    for (int middle = 0; middle < count; ++middle)
+        for (int from = 0; from < count; ++from)
+        {
+            const double prefix = metric[static_cast<size_t>(from) * count + middle];
+            if (prefix >= fp::kInf)
+                continue;
+            for (int to = 0; to < count; ++to)
+                metric[static_cast<size_t>(from) * count + to] = std::min(metric[static_cast<size_t>(from) * count + to], prefix + metric[static_cast<size_t>(middle) * count + to]);
+        }
+
+    std::vector<double> dp(static_cast<size_t>(p.subset_count) * count, fp::kInf);
+    std::vector<double> merged(count, fp::kInf);
+    std::vector<double> closed(count, fp::kInf);
+    for (int size = 1; size <= p.nonanchor_count; ++size)
+        for (int mask = 1; mask < p.subset_count; ++mask)
+        {
+            if (p.popcount[mask] != size)
+                continue;
+            for (int i = 0; i < count; ++i)
+            {
+                const int vertex = vertices[i];
+                if (size == 1)
+                    merged[i] = p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactValueOrInf(vertex);
+                else
+                    merged[i] = p.ordinary[mask].ready ? RowValue(p.ordinary[mask], vertex) : fp::kInf;
+            }
+            const int pivot = mask & -mask;
+            for (int left = (mask - 1) & mask; left; left = (left - 1) & mask)
+            {
+                const int right = mask ^ left;
+                if (!right || !(left & pivot))
+                    continue;
+                const size_t left_offset = static_cast<size_t>(left) * count;
+                const size_t right_offset = static_cast<size_t>(right) * count;
+                for (int i = 0; i < count; ++i)
+                    merged[i] = std::min(merged[i], dp[left_offset + i] + dp[right_offset + i]);
+            }
+            std::fill(closed.begin(), closed.end(), fp::kInf);
+            for (int root = 0; root < count; ++root)
+                for (int branch = 0; branch < count; ++branch)
+                    closed[root] = std::min(closed[root], merged[branch] + metric[static_cast<size_t>(branch) * count + root]);
+            std::copy(closed.begin(), closed.end(), dp.begin() + static_cast<size_t>(mask) * count);
+        }
+
+    double best = fp::kInf;
+    const size_t full_offset = static_cast<size_t>(p.full_mask) * count;
+    for (int terminal : p.query.groups[p.anchor_group])
+    {
+        const int index = Index(terminal);
+        if (index >= 0)
+            best = std::min(best, dp[full_offset + index]);
+    }
+    return best;
+}
+
 /**
  * @brief 在 directed-cut primal 设施点上构造可行支撑度量并做小型 subset DP。
  *
@@ -923,17 +1073,28 @@ double BuildPrimalFacilityUpper(const Problem& p,
                                 const std::vector<double>& residual,
                                 const std::vector<std::uint64_t>& edge_words)
 {
+    // lambda：读取 directed-cut primal 位图，判断原图边是否属于当前证书树。
     auto IsTreeEdge = [&](int edge_id)
     {
         return (edge_words[static_cast<size_t>(edge_id) >> 6] >> (edge_id & 63)) & 1ULL;
     };
     std::vector<int> facility{p.root};
-    for (const auto& edge : p.graph.edges)
-        if (IsTreeEdge(edge.id))
+    // primal bitmap 通常只有少量置位；直接枚举置位边，避免为一棵小树扫描全部 m 条原边。
+    for (size_t word_index = 0; word_index < edge_words.size(); ++word_index)
+    {
+        std::uint64_t bits = edge_words[word_index];
+        while (bits)
         {
+            const int bit = __builtin_ctzll(bits);
+            const size_t edge_id = (word_index << 6) + static_cast<size_t>(bit);
+            if (edge_id >= p.graph.edges.size())
+                break;
+            const UndirectedEdge& edge = p.graph.edges[edge_id];
             facility.push_back(edge.u);
             facility.push_back(edge.v);
+            bits &= bits - 1;
         }
+    }
     std::sort(facility.begin(), facility.end());
     facility.erase(std::unique(facility.begin(), facility.end()), facility.end());
     const int count = static_cast<int>(facility.size());
@@ -943,6 +1104,7 @@ double BuildPrimalFacilityUpper(const Problem& p,
 
     std::vector<double> scratch(p.graph.n + 1, fp::kInf);
     std::vector<int> touched;
+    // lambda：在 residual 度量中从一个设施点求到全部设施点的最短距离。
     auto DistancesFrom = [&](int source)
     {
         std::vector<double> answer(count, fp::kInf);
@@ -1068,8 +1230,10 @@ double FarthestRemaining(const Problem& p, int vertex, int original_mask)
         return p.group_distance[cached][vertex];
     double value = 0.0;
     for (int bits = original_mask; bits; bits &= bits - 1)
-        value = std::max(value,
-                         p.group_distance[FirstBit(bits & -bits)][vertex]);
+    {
+        const int group = FirstBit(bits & -bits);
+        value = std::max(value, p.group_distance[group][vertex]);
+    }
     return value;
 }
 
@@ -1235,13 +1399,60 @@ bool PrepareProblem(Problem& p)
         p.dual.ReleaseResidual();
     }
 
+    // 当前 witness 已经与公共下界闭合时，后续任何上界生成都不可能改变答案。
+    // 该精确 gate 对两种 realization 使用同一条件，直接消除已解查询的三元固定成本。
+    if (p.best <= p.component_cover.lower)
+        return true;
+
+    // 两种配置在各自 witness 构造后共同执行同一真实路径生长上界。
+    const PathGrowthUpper path_growth = BuildTripleSeededPathGrowthUpper(p.graph, p.query, p.group_distance, p.best);
+    if (path_growth.upper < p.best)
+        p.best = path_growth.upper;
+    if (p.best <= p.component_cover.lower)
+        return true;
+
     p.ordinary.assign(p.subset_count, {});
     p.ordinary_minimum.assign(p.subset_count, fp::kInf);
 
     // 到此只完成当前配置的 witness 构造，不无条件执行树 DP。Base 的
     // root-path tree 与 DirectedCut 的 dual-primal tree 随后都交给跨 A1/D 的
     // 同一个 rent-or-buy 调度器，并从 rent=0 开始按同一 buy 公式购买。
-    return p.best <= p.component_cover.lower;
+    return false;
+}
+
+bool RefreshPurchasedPathGrowthCertificate(Problem& p)
+{
+    const PathGrowthUpper path_growth = BuildQuadSeededPathGrowthUpper(p.graph, p.query, p.group_distance, p.best);
+    if (!(path_growth.upper < p.best))
+        return false;
+    p.certificate_support_edges = path_growth.edge_ids;
+    const std::vector<std::uint64_t>& primal_words = p.dual.PrimalEdgeWords();
+    for (size_t word_index = 0; word_index < primal_words.size(); ++word_index)
+    {
+        std::uint64_t bits = primal_words[word_index];
+        while (bits)
+        {
+            const int bit = __builtin_ctzll(bits);
+            const size_t edge_id = (word_index << 6) + static_cast<size_t>(bit);
+            if (edge_id < p.graph.edges.size())
+                p.certificate_support_edges.push_back(static_cast<int>(edge_id));
+            bits &= bits - 1;
+        }
+    }
+    std::sort(p.certificate_support_edges.begin(), p.certificate_support_edges.end());
+    p.certificate_support_edges.erase(std::unique(p.certificate_support_edges.begin(), p.certificate_support_edges.end()), p.certificate_support_edges.end());
+    std::vector<int> support_vertices;
+    support_vertices.reserve(2 * p.certificate_support_edges.size());
+    for (int edge_id : p.certificate_support_edges)
+    {
+        support_vertices.push_back(p.graph.edges[edge_id].u);
+        support_vertices.push_back(p.graph.edges[edge_id].v);
+    }
+    std::sort(support_vertices.begin(), support_vertices.end());
+    support_vertices.erase(std::unique(support_vertices.begin(), support_vertices.end()), support_vertices.end());
+    p.certificate_support_vertex_count = support_vertices.size();
+    p.best = path_growth.upper;
+    return true;
 }
 
 }  // namespace gst::methods::abhss::internal

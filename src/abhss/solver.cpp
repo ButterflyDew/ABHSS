@@ -63,10 +63,10 @@ AnchoredSingletonFuture* ScheduleAnchoredSingletonFuture(
 }
 
 /**
- * @brief 使用完整前向 A 格完成基础或 directed-cut-only 配置。
+ * @brief 在没有非空 H 后缀时使用完整前向 A 格完成查询。
  *
- * 所有无 adjoint 配置都把提前调度且已经精确闭包的同一 A1 row 移交给公共
- * 前向内核。最后一层只用于结算答案，不保留 payload。
+ * 所有在当前逻辑域没有非空 H 消费者的配置都把提前调度且已经精确闭包的
+ * 同一 A1 row 移交给公共前向内核。最后一层只用于结算答案，不保留 payload。
  */
 void CompleteWithForwardGrid(Problem& problem,
                              const AnchoredCompletionSchedule& schedule,
@@ -116,15 +116,15 @@ void CompleteWithAdjoint(Problem& problem,
         "low_anchor_end",
         std::move(initial_rows));
 
-    // 非空前向前缀已经覆盖完整逻辑域时不存在 H 后缀；直接返回可避免一次
-    // 没有消费者的 ordinary 转置。该判断来自层区间，而非经验参数分派。
-    if (low_last >= high_last)
-        return;
-
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "adjoint_start", problem);
     SolveHighAdjoint(
-        problem, anchored, low_last, high_last, probe_method);
+        problem,
+        anchored,
+        low_last,
+        high_last,
+        schedule.requires_three_block_terminal,
+        probe_method);
     EmitAbhssProbe(
         probe_method, "adjoint_end", problem, timer.Seconds());
 }
@@ -187,14 +187,22 @@ SolveResult SolveOneQuery(const Graph& graph,
             singleton_future,
             witness_scheduler,
             probe_method);
+    // A1 本身仍逐项执行共同代码；这里只在 A1 完成后把已经发生的公共搜索
+    // 工作一次性交给增强证书调度器，使困难查询不必用弱 dual 重做多张 D row。
+    ResidualClosureScheduler closure_scheduler(problem);
+    closure_scheduler.Account(witness_scheduler.TotalWork());
     BuildOrdinaryWithProbe(
         problem,
         ordinary_singleton_future,
         witness_scheduler,
+        closure_scheduler,
+        completion_schedule.ordinary_last_layer,
         probe_method);
     singleton_future.ReleaseLookupCache();
 
-    if (completion_schedule.uses_adjoint)
+    // Adjoint realization 的逻辑后缀为空时，完整前向完成就是同一职责的空域退化；
+    // 直接复用公共入口，避免保留一张没有 H 消费者的末层 A row。
+    if (completion_schedule.UsesAdjointH(completion_schedule.highest_layer))
         CompleteWithAdjoint(
             problem,
             completion_schedule,

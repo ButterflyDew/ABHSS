@@ -12,7 +12,7 @@
 \left\{\sum_{e\in E(T)}w(e):V(T)\cap K_i\neq\varnothing,\ \forall i\right\}.
 ```
 
-当前二进制求精确最优权值，不序列化最终最优树的边集合；内部构造的真实树 witness 用于维持可行上界。若论文或 artifact 声称“输出树本身”，还需增加父决策保存或在最优值确定后的第二遍等式回溯。本文以下“精确”均指：对输入解析得到的 `double` 边权，返回与组合最优值一致的权值；实验用 $10^{-6}$ 做跨实现核验，但算法的上下界闭合和剪枝不使用该容差。
+当前二进制求精确最优权值，不序列化最终最优树的边集合；内部构造的真实树 witness 用于维持可行上界。若论文或 artifact 声称“输出树本身”，还需增加父决策保存或在最优值确定后的第二遍等式回溯。本文的“精确”首先是组合算法声称：在实数算术模型下，所有上界都可展开为真实可行子图，所有下界都由可行松弛给出，状态格不作近似截断。实现使用 IEEE 754 `double`，不以 epsilon 提前闭合；实验用 $10^{-6}$ 做跨实现结果核验。它不是任意精度或区间算术实现，因此论文不得把该声称写成对每一种浮点舍入轨迹的形式化认证。
 
 实现支持零权边、重边、自环、组重叠和非连通图，限制 $g\le16$。空查询的答案为 0；单组查询无需边，答案为 0；若不存在一个同时与所有组相交的连通分量，则返回 infeasible。所有正式实验均是一个计算线程；1 ms RSS 采样线程只读取进程内存，不参与搜索。
 
@@ -24,12 +24,12 @@
 2. 固定一个永久锚组，只对其余 $k=g-1$ 个组编码 bit mask。
 3. 先生成不含锚组、大小至多约一半的普通状态 $D$，并只发布规范 branch。
 4. 用前向锚定状态 $A$ 表示包含永久锚组的公共状态；Base 以前向高层完成搜索。
-5. 开启 `DirectedCut` 后，安全增加 ordinary/adjoint 使用的对偶证书与额外可行上界，并以完整距离势、dual-primal witness 替换 Base 中相同职责的 realization；公共 A1 不被替换，也不读取 directed-cut 开关。
+5. 开启 `DirectedCut` 后，安全增加 ordinary/adjoint 使用的对偶证书与额外可行上界，并以完整距离势、dual-primal witness 替换 Base 中相同职责的 realization；搜索工作支付固定购买价时，再完成 residual 势、恢复真实 primal/support 上界并以更紧的上下界重滤已物化 ordinary。公共 A1 不被替换，也不读取 directed-cut 开关。
 6. 再开启 `AdjointCompletion`，保留低层 $A$，用补集转置和递减的高层 $H$ 替代完整前向高层的等价求值。
 
 这里的核心不是把两个实现包装成一个名字。`D` 的状态定义、稀疏 row、同根交集、图闭包、上界结算和统一 future 接口只有一份。增强开关只允许两种关系：增加 Base 没有的安全证书，或者以结构/功能对应的 realization 替换同一逻辑职责。禁止出现 Base 独自多执行、而 Enhanced 既不执行也没有同职责替代物的状态层。
 
-全文围绕三个不变量展开。第一，`best` 始终由一棵可展开到原图边集的可行树给出，所以它只能从上方逼近最优值。第二，进入队列 key 的每个 future 都是不超过剩余代价的证书，所以只会删除无法严格改善 `best` 的状态。第三，任何没有被删除的 rooted DP 推导，要么在公共前向格中被枚举，要么在 adjoint 格中有一条一一对应的反向推导。工程优化只有在能保持这三个不变量时才进入正式实现。
+全文围绕三个不变量展开。第一，`best` 始终由一棵可展开到原图边集的可行树给出，所以它只能从上方逼近最优值。第二，进入队列 key 的每个 future 都是不超过剩余代价的证书，所以只会删除无法严格改善 `best` 的状态。第三，任何没有被删除的 rooted DP 推导，要么在公共前向格中被枚举，要么在 adjoint 格中有一条保持组覆盖与代价的反向实现。工程优化只有在能保持这三个不变量时才进入正式实现。
 
 ### 2.1 一条查询的完整控制流
 
@@ -45,25 +45,33 @@ SolveOneQuery(G, K, options)
        继续计算组级下界、锚组和当前配置的 witness
        若开启 DirectedCut，再增加 dual 证书与 facility 上界
        只构造当前配置的 witness；不无条件运行 witness-tree DP
+       两边共同运行有序组三元组一步前瞻路径生长，以真实边并集收紧上界
   3  profile  <- DescribeConfiguration(options)
   4  q        <- max(0, floor(g/2)-1)
      ell      <- q                         (完整前向配置)
                  或 (q=0 ? 0 : max(1,floor(q/2)))  (AdjointCompletion)
+     r        <- floor(g/2)                (没有 H 后缀)
+                 或 max(q,ceil((g-1-(ell+1))/2))   (存在 H 后缀)
+     three    <- 最大外侧组数达到两箱容量最小反例时为 true
   5  scheduler <- WitnessUpperScheduler(witness), rent <- 0
   6  若层 1 属于 [1,q]，所有合法配置均:
        生成标准 A1 row；建立只读 top-two future 视图
        A1 的 queue-pop/edge-relax 向共同 scheduler 支付 rent
        若条件式树 DP 收紧 best，则以新 cutoff 整轮重启 A1
   7  BuildOrdinaryRows:
-       按 |S| 递增生成公共 D row，使用当前配置的 future
+       按 |S| 递增物化到计划层 r，使用当前配置的 future
        继续向同一个 scheduler 支付 rent，并更新完整完成上界
+       DirectedCut 的独立 rent 达到结构 buy 且已有足够 D payload 时：
+         完成 residual 势，恢复 primal/facility 与四元路径 support
+         以更紧的下界和真实上界单调重滤已完成 D；若 support 更新则切换 evaluator
   8  释放 A1 的只读查找缓存；标准 A1 row 本身仍保留
   9  若未开启 AdjointCompletion:
        把已有 A1 row（若有）移交给公共前向内核
        用 A 生成逻辑层 1..q 并完成答案
      否则:
        把已有 A1 row 移交给同一前向内核，继续生成低层 A(2..ell)
-       转置 ordinary 终端，并用递减 H 实现高层 ell+1..q
+       转置 ordinary 终端；单/双块不足的层计划才用第三块补全未物化半格
+       用递减 H 实现高层 ell+1..q；全部边界直接读取已物化到 q 的 ordinary
  10  返回 best、feasible 和实际首次发现的 (mask,v) 数
 ```
 
@@ -117,7 +125,7 @@ Enhanced {DirectedCut, AdjointCompletion}
 
 但这不等于 Enhanced 必须逐条重放 Base 的全部指令。代码中的 `ConfigurationProfile` 把差异分成两类：
 
-1. **安全新增。** Enhanced 额外构造 directed-cut 对偶可行证书和 facility 可行上界。前者只以 `max` 加强可采纳下界，后者只以 `min` 收紧真实上界，因此不会排除最优解。代码中的 `AddedOperation` 只登记这类 Base 没有对应 realization 的工作。
+1. **安全新增。** Enhanced 额外构造 directed-cut 对偶可行证书、facility 可行上界和一次延迟 residual 证书刷新。刷新形成一个单调证书闭环：增加可采纳下界，只以真实边支持图收紧上界，再删除在新上下界下已不能严格改善的状态。代码中的 `AddedOperation` 只登记这类 Base 没有对应 realization 的工作。
 2. **同职责替换。** 若 Enhanced 不执行 Base 的某段工作，必须存在结构或功能对应的 realization，且论文能够给出共同输入、共同输出语义及各自优势区间。替换不能凭数据集或运行时表现选择。
 
 当前完整映射如下：
@@ -126,7 +134,7 @@ Enhanced {DirectedCut, AdjointCompletion}
 |---|---|---|---|
 | $g>3$ 的距离—根初始化 | bootstrapped-bounded：在 realization 内取得真实 cutoff，再构造 bounded `GroupRow` 并选择共同根 | complete-potential：构造完整距离势 `GroupRow` 并选择共同根 | 都一次返回 `DistanceRootInitialization{group_distance, root, upper}`；调用者及全部下游只读取同一三元合同，SPT bootstrap 不是独立逻辑阶段； $g\le3$ 在进入该替换职责前由共同 bounded 基例闭包 |
 | witness realization | root-path tree | primal upper + dual-primal tree | 都构造原图真实 witness；预处理均不无条件运行树 DP，随后把各自树大小代入同一 `buy` 公式，并从 `rent=0` 调用同一调度器和树 DP；共同 root-star/root-path-union 不属于差异，facility 上界另归安全新增 |
-| 高层锚定完成 | 前向高层 $A$ | 低层 $A$ 加反向高层 $H$ | 两者枚举同一平衡完成边界，只改变高层依赖方向 |
+| 高层锚定完成 | 完整 ordinary 半格依赖加前向高层 $A$ | ordinary 完整保留到最高逻辑层 $q$，只把半格 terminal 以单/双及容量必要时的三块 separator 实现，再以低层 $A$ 加反向高层 $H$ 完成 | 两者枚举同一平衡完成边界；Enhanced 不删除最高逻辑 ordinary，只改变半格 terminal 分解和高层依赖方向 |
 
 A1 不在替换表中，因为它现在是三个合法配置的逐项共同操作。只要正层域非空，Base、DirectedCutOnly 与 Enhanced 都在 ordinary 前运行同一个 `BuildReusableAnchoredSingletonLayer`，使用相同 seed、farthest + endpoint-floor cone、正 fallback、标准 `Row`、top-two 视图和所有权交接。该函数不读取 `UsesDirectedCut()`、`UsesAdjointCompletion()` 或 `ConfigurationProfile`。开启 `DirectedCut` 只在 A1 之外新增证书：ordinary 的统一 future 栈额外取 $L_{\mathrm{cut}}$，adjoint 继续使用其 reduced/prefix 证书；它不改变 A1 搜索域或 A1 值。
 
@@ -155,7 +163,35 @@ $q$ 来自第 10 节的平衡分解定理，是完整锚定格必须覆盖的最
 - 空区间 $\mathcal L_A=\varnothing$ 时，完成式只读取隐式 $A(\varnothing)$，没有任何正层需要物化；
 - 非空区间的第一个成员自然是层 1。所有配置提前生成该标准 A1 row；Enhanced 的前向前缀按定义至少包含它，不再出现 `g` 与某个调优常数比较、图名、row 密度或运行时间驱动的分派。
 
-这里的 $q$ 与 $\ell$ 都是递推域边界，类似数组下标范围；它们不选择“哪种算法更快”。配置由查询批次开始前的增强位决定，状态层范围由同一平衡证明决定，二者共同形成唯一执行计划。换言之，代码可以询问 `ContainsLogicalLayer(1)`，却不能出现“观测到某个 $g$ 后决定要不要使用 A1”这种算法选择。
+令 $k=g-1$， $h=\lfloor g/2\rfloor$。没有 $H$ 后缀时，ordinary 与完整前向配置一样物化到 $h$。存在 $H$ 后缀时，层计划保留最高逻辑 ordinary 层并只省略半格：
+
+```math
+r=\max\left\{q,\left\lceil\frac{k-(\ell+1)}{2}\right\rceil\right\}.
+```
+
+第一项不是保守工程冗余。最高 H 层仍有空前缀边界 $A(\varnothing)+D(q)+H(q)$；完整物化到 $r\ge q$ 使它与所有非空低层 A 边界、H successor 一样直接读取公共 ordinary row。这样 Enhanced 没有一张由另一套目标驱动代码实现的逻辑 $D$，也不会出现 Base 物化而 Enhanced 只部分模拟的职责。第二项保证最大转置外侧组数
+
+```math
+c_{\max}=k-(\ell+1)
+```
+
+满足 $c_{\max}\le2r$。对任一外侧真实树取按组计权的分隔点；删除该点后，每个组件至多含 $\lceil |Q|/2\rceil\le r$ 个组，因此每个组件都是可用的 rooted ordinary 块。
+
+还需决定这些组件能否总合并为两个容量 $r$ 的组包。两箱整数装箱的最小不可装入总量为：
+
+```math
+\tau(r)=\left\lfloor\frac{3r}{2}\right\rfloor+2.
+```
+
+当 $r=2t$ 时，最小反例为大小 $t+1,t+1,t$ 的三个组件，总量 $3t+2$；当 $r=2t+1$ 时，最小反例为三个大小 $t+1$ 的组件，总量 $3t+3$。反过来，总量小于该界时，按降序把下一组件放入当前较轻箱不会同时溢出两箱，故两个组包足够。层计划因此仅在
+
+```math
+c_{\max}\ge\tau(r)
+```
+
+时设置 `requires_three_block_terminal`。为真时转置补充第三个容量 $r$ 的 rooted 块；为假时单块和双块已经覆盖全部合法外侧分拆。该条件只读取整数递推边界，不读取图名、某个经验组数、row 密度、incumbent、时间或内存。实现也把第三块准备完全放在该结构位内：关闭时不分配 `pair_best`，不扫描最大 entry 大小，也不在 pair 热循环调用空操作。
+
+这里的 $q$、 $\ell$ 与 $r$ 都是递推域边界，类似数组下标范围；它们不选择“哪种算法更快”。配置由查询批次开始前的增强位决定，状态层范围由同一平衡证明决定，二者共同形成唯一执行计划。换言之，代码可以询问 `ContainsLogicalLayer(1)`，却不能出现“观测到某个 $g$ 后决定要不要使用 A1”这种算法选择。
 
 ### 3.3 配置职责账本
 
@@ -170,7 +206,8 @@ Base
   high_layer       = ForwardAnchoredA
 
 DirectedCutOnly
-  added_operations = {DirectedCutCertificate, FacilityUpperBound}
+  added_operations = {DirectedCutCertificate, FacilityUpperBound,
+                      ResidualCertificateRefresh}
   distance_root    = CompletePotential
   ordinary_future  = AnchoredSingletonCone
   upper_witness    = DualPrimalTree
@@ -181,7 +218,7 @@ Enhanced
   high_layer       = AdjointH
 ```
 
-因此，“关闭 Enhanced 的开关得到 Base”有两层含义。配置位上，关闭 `AdjointCompletion` 再关闭 `DirectedCut` 恰好得到空集合；执行语义上，每次关闭会移除安全新增证书或把相应替换职责恢复为表中的前一个 realization，而不会留下一个只有旧路径才执行的孤立阶段。测试会同时断言位集合包含关系、共同 A1 realization、其余 replacement 映射、非法 adjoint-only 拒绝、 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次，以及三种合法配置的精确目标值。
+因此，“关闭 Enhanced 的开关得到 Base”有两层含义。配置位上，关闭 `AdjointCompletion` 再关闭 `DirectedCut` 恰好得到空集合；执行语义上，每次关闭会移除安全新增证书或把相应替换职责恢复为表中的前一个 realization，而不会留下一个只有旧路径才执行的孤立阶段。测试会同时断言位集合包含关系、共同 A1 realization、其余 replacement 映射、非法 adjoint-only 拒绝、 $0\le g\le16$ 每个必需层恰由 A 或 H 覆盖一次、ordinary 物化截止与三块容量条件符合消费者公式，以及三种合法配置的精确目标值。
 
 ## 4. 图加载、可行性与计时边界
 
@@ -201,7 +238,7 @@ Enhanced
 
 `D/A/H` 共用一种 `Row`：递增的顶点数组、对齐的值数组、ordinary 专用 branch bitmap、`branch_count` 和显式 `ready`。`ready` 区分“已经生成但为空”和“尚未生成”。不存在 Base/Enhanced 各一套 row，也不存在运行中在 dense/hash/bitmap DP 状态之间切换。
 
-单组到全图的距离  $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`IsExact` 和 `ForEachExact` 暴露同一语义。
+单组到全图的距离  $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`IsExact`、`ExactValueOrInf` 和 `ForEachExact` 暴露同一语义。
 
 ### 5.1 `Row` 的逻辑值与物理 payload
 
@@ -223,7 +260,7 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 \qquad d_i(v)\ge U_0\text{ 且精确值未保存}.
 ```
 
-因此 `IsExact(v)` 不是浮点精度标记，而是“这个位置保存的是否为真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树；所有 singleton 合并、完整结算与 witness 路径都必须先检查 `IsExact`。
+因此 `IsExact(v)` 不是浮点精度标记，而是“这个位置保存的是否为真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树；所有 singleton 合并、完整结算与 witness 路径都必须先检查 `IsExact`。需要随机读取真实 singleton 的上界 DP 调用 `ExactValueOrInf(v)`：它与 `operator[]` 使用同一次 dense/bitmap 定位，但把非精确位置直接返回为正无穷，避免先读取 cutoff 再忘记检查 membership。
 
 有界 dense 布局以 `value[v] < cutoff` 判定精确性。稀疏布局用 `bits[v >> 6]` 判 membership，再通过该 64-bit word 之前的 `rank` 与 word 内低位 `popcount` 定位压紧的值数组。完整距离布局中每个位置都是真实值，故 `IsExact(v)` 恒真。这三个物理分支只实现一个读取契约，不产生三种算法状态。
 
@@ -281,7 +318,7 @@ L_{\mathrm{cc}}=(c_0-1)w_+\le\mathrm{OPT}.
 
 Bootstrapped-bounded 的候选根搜索复用一组 `distance`、`parent_edge` 和 edge bitmap：每轮顺序重置距离与位图，父边只在本轮已发现顶点上读取，因此无需清零；bounded 多源距离在最终选择稀疏 `GroupRow` 时也复用同一 dense scratch，只重置该组触及的顶点。复用不改变堆序、父边、cutoff、精确 membership 或输出 row，只消除同一查询内重复的大块申请；它属于相应 realization 内部的物理优化，不形成 Base 独占的外层逻辑职责。
 
-bounded `GroupRow` 的未保存位置返回 cutoff $U_0$，但明确标记为非精确。任何严格优于 incumbent 的完成解中，单个必需连接代价不可能达到或超过 $U_0$；因此 cutoff 可作拒绝下界，却不能作为 DP singleton。所有 DP 消费者先检查 `IsExact`。有界表再按实际字节在两种等价布局中确定性选择：
+bounded `GroupRow` 的未保存位置返回 cutoff $U_0$，但明确标记为非精确。任何严格优于 incumbent 的完成解中，单个必需连接代价不可能达到或超过 $U_0$；因此 cutoff 可作拒绝下界，却不能作为 DP singleton。枚举型 DP 消费者先检查 `IsExact`，随机读取型消费者使用 `ExactValueOrInf`。有界表再按实际字节在两种等价布局中确定性选择：
 
 - dense bounded：长度 $n+1$ 的值数组，锥体外写 cutoff；
 - ranked bitmap：递增精确顶点与值、membership 位图、每个 64-bit word 的 rank 前缀。
@@ -295,6 +332,12 @@ U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
 ```
 
 该和可能重复计算共享边，但仍是可行上界。两种 realization 都在初始化包内部从精确顶点数最少的组表驱动同一个扫描，并把最小值及其根写入 $(U_0,r)$。若 $g>3$，包返回后公共外层再沿满足最短路等式的真实边恢复根到各组的路径，按 `edge_id` 去重，得到通常更紧的 $U_{\mathrm{union}}$。路径等式使用 $10^{-9}$ 只为在浮点输入上找到真实边序列；即使选择了近似等式边，最终仍按原图边权对实际边并集计价，所以它只能影响上界强弱，不能产生虚假下界。
+
+### 6.3.1 共同的有序组三元组一步前瞻路径生长上界
+
+对每个互异的有序组三元组 $(i,j,k)$，先在 $K_j$ 中选取到 $K_i$ 距离最小的规范终端，并在 $d_i$ 的 tight-edge 子图中恢复种子路径；随后显式把第三组 $K_k$ 以距当前树最近的真实最短路接入。完成这一次有限前瞻后，每轮选择当前树到未覆盖组的全局最短距离并继续生长。枚举全部 $k$ 严格包含旧的 pair-seeded 贪心：其中一个 $k$ 恰是旧规则第一次选择的组；其余 $k$ 提供不同的早期共享结构，而不是由数据驱动选择分支。物理实现把候选枚举按有序对 $(i,j)$ 因子化：种子 tight path 只恢复一次，保存其真实 `edge_id`，然后在每个 $k$ 开始时重放同一批种子边。因此候选集合、并列规则、计价和终止条件与逐三元组重建完全一致，只少做重复的路径恢复。路径触及的全部组同时标记为覆盖；原图边按 `edge_id` 去重并按输入权值计费。
+
+恢复过程只读取 `IsExact` 的距离位置；bounded 表缺失的路径只会使当前起点失效，不会把 cutoff 当成边权。DFS 使用访问 epoch，因此零权 tight-edge 环不会造成恢复环。每条成功路径与已有树相交于起点，故中间结构始终连通；覆盖全部组时即得到真实可行子图。边权非负且边只会加入，所以已选边费用单调不减。若当前真实树为 $T$、已付费用为 $w(T)$，则任何继续覆盖组 $K_i$ 的连通扩展至少再付 $d(T,K_i)=\min_{v\in V(T)}d_i(v)$：把 $T$ 收缩为零代价起点，取扩展路径最后一次离开 $T$ 的位置即可。因此代码在 tight-path DFS 前先检查 $w(T)+d(T,K_i)$ 是否仍严格小于 incumbent；失败时省略的恢复不可能产生更优候选。种子、显式第三组、购买后的第四组和后续最近组使用同一必要条件。该短路不含阈值，也不改变任何可能严格改善 incumbent 的候选、并列规则或最终上界。一旦已付费用本身不再严格小于调用前的 `best` 或本模块已找到的更优值，该起点同样可以无参数地安全终止。三个合法配置在各自 witness 构造后调用同一函数；Enhanced 较早取得的 dual/facility incumbent 只会让同一条件更早成立。
 
 ### 6.4 至多三组的共同精确闭包
 
@@ -351,7 +394,7 @@ L_{\mathrm{future}}(v,R)=\max\{L_{\mathrm{far}},L_{\mathrm{tour}}\}.
 
 ### 6.8 预处理顺序为何固定
 
-当前顺序不是可交换的实现细节：零权分量下界先提供安全闭合条件；若尚未闭合且 $g\le3$，所有配置调用同一个 Bootstrapped-bounded 距离—根初始化包，并由第 6.4 节恒等式直接返回。仅对 $g>3$ 查询，外层才按冻结 profile 选择距离 realization：Bootstrapped-bounded 先尝试得到 cutoff 再构造距离，Complete-potential 则完成全部距离；两者都一次返回距离 oracle、候选根和初始真实上界。公共外层随后构造真实路径并集、锚组与 tour，最后构造所选 witness。Base 将共同 root-path union 整理为 root-path tree；DirectedCut 配置由 primal 边整理 dual-primal tree，并额外得到 primal/facility 可行上界。两边的预处理都在树构造完成后返回，不在这里无条件调用 `EvaluateWitnessTree`。
+当前顺序不是可交换的实现细节：零权分量下界先提供安全闭合条件；若尚未闭合且 $g\le3$，所有配置调用同一个 Bootstrapped-bounded 距离—根初始化包，并由第 6.4 节恒等式直接返回。仅对 $g>3$ 查询，外层才按冻结 profile 选择距离 realization：Bootstrapped-bounded 先尝试得到 cutoff 再构造距离，Complete-potential 则完成全部距离；两者都一次返回距离 oracle、候选根和初始真实上界。公共外层随后构造真实路径并集、锚组与 tour，最后构造所选 witness，再共同执行第 6.3.1 节的有序组三元组一步前瞻路径生长上界。Base 将共同 root-path union 整理为 root-path tree；DirectedCut 配置由 primal 边整理 dual-primal tree，并额外得到 primal/facility 可行上界。两边的预处理都在树构造完成后返回，不在这里无条件调用 `EvaluateWitnessTree`。
 
 `SolveOneQuery` 在预处理返回后才构造一个 `WitnessUpperScheduler`。因此所有配置的 `rent` 都从 0 开始，而不是让 Base 预付一次树 DP、Enhanced 从零开始。root-path tree 与 dual-primal tree 是同一 witness 输入职责的 realization 替换；共同调度器、共同 `buy` 公式和共同树 DP 则是逐项相同的后续操作。root-star 由全部配置执行；对未被第 6.4 节闭包的查询，root-path-union 也仍由全部配置执行。facility 上界仍是独立安全新增，不能把这些事实改写成 Enhanced 删除了共同上界。
 
@@ -426,21 +469,26 @@ for size = 2 .. h:
 
 `EvaluateWitnessTree` 是唯一的树 DP 实现。它给真实 witness 增加一个虚拟超根，在每个真实树顶点 $x$ 上把已经可用的 rooted 块组合为局部值，再依次合并子树。singleton 块读取精确组距离；多组块只读取已经 `ready` 的 ordinary row；缺失块保持无穷。合并一个孩子 $c$ 时，对当前 mask $S$ 枚举交给孩子的 $Q\subseteq S$，只有 $Q$ 非空才支付真实树边 $xc$ 的权重。故任何有限的超根 full-mask 值都能展开为 witness 边与若干真实 rooted 子树的连通并，只能作为可行上界收紧 $U$。
 
-### 8.2 同一个 `buy` 公式
+### 8.2 初始 witness 的共同 `buy` 与购买后的 support `buy`
 
-令 $k=g-1$，当前配置的 witness 含 $t$ 个真实顶点。一个真实顶点处，固定最低 bit 去除左右对称后，全部非空局部拆分数为 $(3^k-1)/2$；一条父子关系上枚举全部 mask/submask 的总数为 $3^k$。每个真实顶点恰对应一次局部处理和一条通向父亲的关系，其中 witness 根通向虚拟超根。因此代码使用的共同购买成本恰为：
+令 $k=g-1$，当前配置的初始 witness 含 $t$ 个真实顶点。一个真实顶点处，固定最低 bit 去除左右对称后，全部非空局部拆分数为 $(3^k-1)/2$；一条父子关系上枚举全部 mask/submask 的总数为 $3^k$。每个真实顶点恰对应一次局部处理和一条通向父亲的关系，其中 witness 根通向虚拟超根。因此初始阶段的共同购买成本为：
 
 ```math
-B_{\mathrm{wit}}(T,k)
-=
-t\left(
-\frac{3^k-1}{2}+3^k
-\right),
-\qquad
-t=\lvert V(T)\rvert.
+B_{\mathrm{wit}}(T,k)=t\left(\frac{3^k-1}{2}+3^k\right),
+\qquad t=\lvert V(T)\rvert.
 ```
 
-Base 与 Enhanced 的公式、整数运算和调用位置完全相同；配置只通过各自合法 witness 的 $t$ 进入公式。公式没有图名、墙钟、经验组数阈值、历史查询速度或配置专属常数。一次实际求值的时间为 $O(t3^k)$，工作空间为 $O(t2^k)$；`buy` 是与实现循环次数对应的确定性工作估计，不声称是精确 CPU 周期模型。
+Base 与 Enhanced 的公式、整数运算和调用位置完全相同；配置只通过各自合法 witness 的 $t$ 进入公式。一次实际求值调用同一个 `EvaluateWitnessTree`，最坏时间为 $O(t3^k)$，工作空间为 $O(t2^k)$。公式没有图名、墙钟、经验组数阈值、历史查询速度或配置专属常数；它是与实现循环次数对应的确定性工作估计，不声称是精确 CPU 周期模型。
+
+只有开启 DirectedCut 的配置在后续购买 residual closure 且取得更紧四元真实路径证书后，才把该路径边与 primal 边合并成 certificate support。设并图含 $s$ 个不同顶点。support evaluator 先做 $s$ 点 Floyd 闭包，再在每个 mask 上执行规范同根拆分与 support metric 闭包；其确定性购买成本为：
+
+```math
+B_{\mathrm{sup}}(s,k)=
+s\frac{3^k-2^{k+1}+1}{2}
++(2^k-1)s^2+s^3+(2^k-1)s.
+```
+
+每一项分别对应非平凡规范拆分、各 mask 的 metric 闭包、Floyd 和初值写入。调度器只在证书真正替换后清零 rent、锁定当前 ordinary 修订并切换到这个公式；下一张 D row 提供新输入后才能再次购买。形式化地，support Floyd 的每个有限 metric 都对应 support 内一条真实原图路径；DP 初值要么是精确 singleton 路径，要么是已经可展开的 rooted D 子树；同根合并取连通并，metric 闭包再接一条真实 support 路径。归纳可得每个有限 DP 项都是连通真实子图，最终只在 support 中的锚组终端读取 full mask。因此 `EvaluateCertificateSupport` 仍然只是安全增加的可行上界。路径证书本身已直接写入 `best`；代码不再把同一批路径边额外重建成无人消费的 `witness_tree`，后续 evaluator 只读取路径边与 primal 边的并图。它不是 Base 初始 witness 的另一套隐式规则，也不改变 A1 或 ordinary 的状态语义。
 
 ### 8.3 从共同零点连续累计 A1 与 D 的 rent
 
@@ -450,7 +498,7 @@ Base 与 Enhanced 的公式、整数运算和调用位置完全相同；配置�
 R\leftarrow R+W.
 ```
 
-当 $R\ge B_{\mathrm{wit}}$ 且树 DP 的输入修订相对上次购买已经变化时，调度器调用同一个 `EvaluateWitnessTree`，用返回的真实可行值收紧 `best`，随后令 $R=0$。第一次购买允许只使用隐式 singleton；此后每完成一张 ordinary row 都推进输入修订。若尚未有新 ordinary 信息，即使 rent 再次达到阈值也只保留累计值，等下一张 D row `ready` 后再购买，避免对完全相同的 DP 输入重复求值。
+初始证书下，当 $R\ge B_{\mathrm{wit}}$ 且树 DP 的输入修订相对上次购买已经变化时，调度器调用同一个 `EvaluateWitnessTree`，用返回的真实可行值收紧 `best`，随后令 $R=0$。第一次购买允许只使用隐式 singleton；此后每完成一张 ordinary row 都推进输入修订。若 residual closure 后切换为 support 证书，阈值改为 $B_{\mathrm{sup}}$，消费函数改为 `EvaluateCertificateSupport`，但“必须有新 ordinary 修订”与 rent 清零规则不变。若尚未有新 ordinary 信息，即使 rent 再次达到阈值也只保留累计值，等下一张 D row `ready` 后再购买，避免对完全相同的 DP 输入重复求值。
 
 A1 结束时未消费的 rent 不清零，而是交给 D 继续累计；D 也不创建第二个调度器。这样 Base 与 Enhanced 的差异只剩 witness 大小及条件式树 DP 本身可能得到的上界强弱，不存在“Base 先无条件购买、Enhanced 不购买”的不对称路径。
 
@@ -616,6 +664,27 @@ changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短�
 
 此外，取 primal 边涉及的顶点为 facilities。在同一数值零 residual 弧与 primal 树边构成的支撑图上计算 facility 间真实最短路，并做小规模 subset DP，得到第二个可行上界。所有数值最终都由真实原图路径组成；residual 只限制候选支撑，不直接充当答案。完成这两项后立即释放 $2m$ residual，只保留 $gn$ 组势和 primal edge bitmap。
 
+### 11.3 residual closure 的 rent-or-buy 与证书刷新
+
+初始 directed-cut 只保存截断势、changed-arc bitmap、primal edge bitmap 和恢复闭包所需的计数，随即释放 $2m$ residual。`ResidualClosureScheduler` 不按时间或图名决定是否重建，而是同时要求两个确定性条件：
+
+1. A1 与 ordinary 已支付的 queue-pop/邻接检查 rent 达到 residual 重放、全势补全和 primal 恢复的静态结构成本；
+2. 已完成 ordinary row 的累计 payload 至少为 $n$，避免在状态需求仍很稀疏时为 dense 全势过早付费。
+
+静态购买价取 $2m+g(2m+n)$ 与 changed-arc/bitmap 重放、每组补全、原边扫描及顶点扫描之和的较大者。初始 dual 热循环不再维护一份已经无人消费的重复工作计数。两个条件都满足后只购买一次：按原顺序重放初始势扣减，以逆序补全剩余 residual 势，恢复新的 primal 与 facility 上界，然后再次释放 residual。
+
+完整势随后转置为 vertex-major 连续布局。对“除已覆盖组外的全势和”，代码缓存每个顶点的全组和，并用标准浮点求和误差界构造保守区间：区间下端已不能改善时安全拒绝，上端仍可改善时安全接受；只有区间跨过 incumbent 时才回退逐组精确求和。该布局和区间只改变读取成本，不改变 lower bound 数值的安全方向。
+
+若购买后的四元路径生长得到严格更紧的真实上界，代码把路径边与 primal 边合并为第 8.2 节的 certificate support，并让同一个上界 scheduler 按 support 结构成本等待下一次有新输入的购买。无论路径 support 是否替换，完整势、primal/facility 上界或路径上界都可能加强当前证书；代码因此统一重滤已物化 D。
+
+这一步的删行条件为：
+
+```math
+D(S,v)+L_{mathrm{new}}(v,[g]\setminus S)\ge U_{mathrm{new}}.
+```
+
+$L_{mathrm{new}}$ 是可采纳下界， $U_{mathrm{new}}$ 是真实可行上界；所以被删状态的任一完整扩展代价至少为 $U_{mathrm{new}}$，而同成本可行解已经存在。未被删除的顶点和值保持原相对次序；branch 位只随对应项压紧，不重新分类。一个 branch 的真假描述它在原 ordinary 闭包中是否严格优于同根 split，这一事实不随上下界改变；被删除的非 branch 等价展开本身也满足同一个拒绝式，故不会丢失可改善拆分类。由此形成统一的 $U$—$L$—$U$ 闭环：真实路径给出初始 $U$，容量可行势提高 $L$，延迟购买把 residual/primal 结构转成新的真实 $U$，最后只按更紧的 $(L,U)$ 单调缩小既有锥体。路径生长、support metric 和 subset DP 的每个有限结果都由原图真实边或精确 D 值组成；这一整段是 DirectedCut 的安全新增证书，不是按查询切换 Base 与 Enhanced。
+
 只开 `DirectedCut` 时，后续仍运行完整前向 $A$。这一中间配置只用于 correctness/ablation，以隔离第二项增强，不是第四套算法。
 
 ## 12. `AdjointCompletion` 增强
@@ -637,7 +706,7 @@ h_{\mathrm{low}}=
 \max\left\{1,\left\lfloor h_{\max}/2\right\rfloor\right\}.
 ```
 
-公共前向内核只物化 $|S|\le h_{\mathrm{low}}$ 的 $A$，并保留边界层。外层的 1 保证只要正层域非空，共同 A1 就一定留在前向前缀；当边界已覆盖完整域时直接跳过没有消费者的转置。该式是对最高逻辑层的固定 meet-in-the-middle 切分，不含“某个组数以上才启用”的经验分类，也不看 row 密度、图名或耗时。
+存在非空 H 后缀时，公共前向内核只物化 $|S|\le h_{\mathrm{low}}$ 的 $A$ 并保留边界层。外层的 1 保证只要正层域非空，共同 A1 就一定留在前向前缀；当该边界已经覆盖完整逻辑域时，调度器直接复用完整前向入口，末层只消费而不保留，不构造转置工作区。ordinary 完整物化边界和三块结构位由第 3.2 节同一层计划从 terminal、successor、边界消费者与两箱容量证明共同推出。所有边界都是递推依赖，不含“某个组数以上才启用”的经验分类，也不看 row 密度、图名、incumbent 或耗时。
 
 ### 12.2 按顶点补集转置
 
@@ -645,17 +714,29 @@ h_{\mathrm{low}}=
 
 多组 ordinary row 的顶点已递增，每张 row 维护一个单调 cursor，只扫描落入当前块的 payload；singleton 直接从完整组距离读取当前 64 个位置。块内用 `vertex & 63` 定位桶，处理完即清空复用。64 与 membership/branch bitmap 的一个 `uint64_t` word 自然对齐，并限制临时工作集；它不是 64 线程、SIMD/GPU warp 或图压缩参数。替换为其他固定块宽不会改变候选集合，只影响常数和缓存行为。
 
-一个或两个互不相交 ordinary 块的并集为 $Q$ 时，产生目标：
+一至三个互不相交 ordinary 块的并集为 $Q$ 时，产生目标：
 
 ```math
+Q=\bigcup_{j=1}^{b}B_j,
+\qquad
+B_i\cap B_j=\varnothing\quad(i\ne j),
+\qquad
 S=[k]\setminus Q,
 \qquad
-H(S,v)\leftarrow \sum_j D(B_j,v).
+H(S,v)\leftarrow \sum_{j=1}^{b}D(B_j,v),
+\qquad
+1\le b\le3.
 ```
 
-这里 $H(S,v)$ 已支付 $S$ 外的组，等待锚定前缀覆盖 $S$。只保留 $h_{\mathrm{low}}<|S|\le h_{\max}$ 的目标。一个或两个块足够，是因为平衡完成边界的外侧在规范分解中至多由两个大小不超过 $h$ 的 ordinary 块组成；更多同根块可按第 7.3 节递归规范化进已有 branch。
+这里 $H(S,v)$ 已支付 $S$ 外的组，等待锚定前缀覆盖 $S$。只保留 $h_{\mathrm{low}}<|S|\le h_{\max}$ 的目标。Enhanced 已把 ordinary 完整物化到最高逻辑层 $r=q=h-1$；未物化的只有半格 $h$。不能把一张经过图闭包的 $D(h)$ 武断拆成两个同根低层值，因为闭包路径只能计费一次，所以完备性从真实外侧树本身建立。
+
+对外侧集合 $Q$ 的任一真实树，先为每个组固定树中一个实际命中的终端，再在这些终端的单位组权重下取分隔点 $z$。删除 $z$ 后，每个组件至多含 $\lceil|Q|/2\rceil\le r$ 个被选终端。若若干组的被选终端恰为 $z$，就把每组视作一个费用为 0、大小为 1 的 rooted 项；它们无需属于任何删除后的图组件。其余每个组件连同到 $z$ 的树边给出一棵以 $z$ 为根的子树。于是全部 rooted 项的组集合互不相交、总大小为 $|Q|\le2r$，每项大小至多 $r$。若 $|Q|<\tau(r)$，第 3.2 节的两箱引理保证这些项可合并成至多两个容量 $r$ 的组包；若层定义域允许 $|Q|\ge\tau(r)$，计划统一开启第三块。三个容量 $r$ 的组包总能容纳上述 rooted 项：先把大于 $r/2$ 的项各放一箱，它们至多三个；其余项按任意顺序放入当前最轻箱。若某个大小 $x\le r/2$ 的项不能放入三箱，则三个现有箱负载都严格大于 $r-x$，连同该项的总量严格大于 $3r-2x\ge2r$，矛盾。每包的真实 rooted 并集证明 $D(B_j,z)$ 有限且代价不大于该并集；各包互不相交且并为 $Q$。反方向上，每个有限和都由真实 rooted 子树组成，仍是合法 terminal。
+
+因此第三块不是“高 g 更快”的经验开关，也不是 `r<h` 就无条件支付的固定阶段。`requires_three_block_terminal` 精确表达当前层定义域是否包含两箱不可装入分拆；关闭时生产代码退化为原单/双块转置，连三块专用工作区和预扫描都不存在。
 
 每个顶点先计算 subset 势 $\Pi(B,v)=\sum_{i\in B}\pi_i(v)$；ordinary 值减去对应势得到 reduced value。由于完整解至少支付全组势，只有 reduced 值之和不超过预算 `best - full_potential` 的组合可能改善 incumbent。代码比较两种等价枚举的确定性工作量：按 reduced value 排序后枚举可行 pair，或对已有 mask 枚举互补 submask。选择只改变同一候选集合的遍历常数。
+
+当 `requires_three_block_terminal` 为真时，三块枚举沿用同一个 reduced budget，但不直接枚举三元笛卡尔积。代码先按并集 $P=B_1\cup B_2$ 聚合两块的最小同根和；对固定 $P$，势 $\Pi(P,v)$ 是常数，任何更大的两块和都不可能与同一第三块形成更优 terminal，因此只保留 `pair_best[P]` 完全等价。随后才把每个 pair-union 与互斥的第三块结合，并由目标层范围反推第三块组数。pair 阶段和 third 阶段都在“现有项扫描”与“互补定大小 submask”之间比较确定的候选项数，不读取运行时间。稠密时两阶段分别是三路组指派，组维度为 $O(3^k)$，不再支付直接三元枚举的 $O(4^k)$；结构位为假时整段不执行。
 
 终端写入前还计算包含锚组和目标 $S$ 的 prefix：farthest、tour 和 directed-cut 三者取最大。只有 `terminal + prefix < U` 才保存。输出按目标 mask 分组、顶点递增，可直接装载到图闭包。
 
@@ -678,13 +759,26 @@ A(L,v)+D(B,v)+H(S,v).
 
 三部分分别覆盖锚组及 $L$、边界块 $B$、以及 $[k]\setminus S$，恰好覆盖全部查询组。
 
-### 12.4 与完整前向格的对应
+### 12.4 为什么保留最高逻辑 ordinary 层
 
-取完整前向 $A$ 的任一规范推导，沿依赖从高层向低层找到第一次跨过 $h_{\mathrm{low}}$ 的边。设跨界前锚定 mask 为 $L$，跨界后为 $S$。新加入的外侧 ordinary 块以及最终剩余外侧块，在转置中产生 $H(S)$ terminal；完整前向中此后每一次“给 A 加一个 ordinary branch”，在递减 $H$ 中反向成为“从更大 successor 去掉同一 ordinary branch”；最后 $A(L)+D(S\setminus L)+H(S)$ 恰好在边界结算相遇。
+设 $q=h-1$ 是最高逻辑锚定层。完整前向与 adjoint 的边界都可能直接读取同一 mask 的 ordinary 值：
 
-反向也成立：任取一个转置 terminal，把其一个或两个 ordinary 块作为完整前向推导的外侧；再把每一步 $H(S\cup B)+D(B)$ 按相反顺序加回锚定侧；最后接上低层 $A(L)$。每一步都使用同一 ordinary branch 和同一根，因此得到一条合法完整前向推导，且边权和不变。由此得到高层前向推导与“terminal + 递减 H + 边界结算”的双射。Adjoint 改变的是依赖求值方向和物化层数，不改变状态语义覆盖的完整解集合。
+```math
+d_a(v)+D(S,v)+H(S,v),
+\qquad |S|=q.
+```
 
-### 12.5 一张 $H$ row 的构造顺序
+这里低层前缀为空，不能通过把 $S$ 再缩小一组来转交给非空 $A(L)$；而 $D(S)$ 的值包含规范 split seed 后的图最短路闭包，也不能只把若干较小 $D$ 在同一顶点相加来替代。最终层计划因此强制 $r\ge q$，让 `BuildOrdinaryRows` 用与 Base 完全相同的 split、branch、future 和 Dijkstra 代码完整生成这一层。Enhanced 只是把更高的半格 $D(h)$ terminal 职责交给第 12.2 节的分隔点转置，不另造一套“部分 $D(q)$”实现。
+
+这个边界同时简化了包含关系与正确性审计：Base 和 Enhanced 对所有 $\lvert S\rvert\le q$ 的 ordinary 状态调用同一个函数、使用同一种 `Row` 并按同一口径计数；两者真正的 replacement 只发生在高层锚定 $A$ 与反向 $H$ 之间。实验中曾尝试把 ordinary 再降到 $q-1$，即使用三块 terminal 和目标驱动空前缀结算，Orkut 已知反例仍从精确值 32 退化为 33；该失败实现已删除，只在归档探针文档中保留证据。
+
+### 12.5 与完整前向格的对应
+
+取完整前向 $A$ 的任一规范推导，沿依赖从高层向低层找到第一次跨过 $h_{\mathrm{low}}$ 的边。设跨界前锚定 mask 为 $L$，跨界后为 $S$。新加入的外侧 ordinary 块以及最终剩余外侧块，在转置中产生 $H(S)$ terminal；完整前向中此后每一次“给 A 加一个 ordinary branch”，在递减 $H$ 中反向成为“从更大 successor 去掉同一 ordinary branch”；最后 $A(L)+D(S\setminus L)+H(S)$ 恰好在边界结算相遇。未物化半格涉及的跨界外侧先在第 12.2 节的组加权分隔点切成组件，再按结构位打包成至多两个或三个容量 $r$ 的同根块；这一步替代的是 terminal 的物理 realization，不改变外侧组集合或真实树。
+
+反向也成立：任取一个转置 terminal，把其一至三个 ordinary 块作为完整前向推导的外侧；再把每一步 $H(S\cup B)+D(B)$ 按相反顺序加回锚定侧；最后接上低层 $A(L)$。每一步都使用同一 ordinary branch 和同一根，因此得到一条合法完整前向推导，且边权和不变。正向的 separator/装箱可能让同一棵树具有多个合法表示，所以这里需要的是双向代价保持的覆盖映射，而不是表示唯一的字面双射：每个完整前向推导至少有一个 H 表示，每个有限 H 表示都能展开回一个合法完整前向推导。Adjoint 改变的是依赖求值方向和物化层数，不改变状态语义覆盖的完整解集合。
+
+### 12.6 一张 $H$ row 的构造顺序
 
 `H(S)` 与 `A(S)` 的数值含义不同，不能逐项比较；可比较的是它们在完整推导中的边界职责。一张 $H$ row 按以下顺序产生：
 
@@ -702,17 +796,17 @@ for size = q down to ell+1:
       用 A(L)+D(S xor L)+H(S) 更新真实完整上界
 ```
 
-递减顺序保证读取 `H(successor)` 时 successor 已经 ready。`S xor L` 等于集合差仅因为先检查了 $L\subseteq S$；这与第 5.3 节的补集约束一致。图闭包传播的是已经真实支付的外侧边权，prefix 只用于拒绝，因此有限 $H$ 值始终可展开为若干 ordinary 子树和原图路径。边界结算同时读取低层 A、一个中间 ordinary 块和 H，三者的组集合互不重叠且并为全集。
+递减顺序保证读取 `H(successor)` 时 successor 已经 ready。`S xor L` 等于集合差仅因为先检查了 $L\subseteq S$；这与第 5.3 节的补集约束一致。图闭包传播的是已经真实支付的外侧边权，prefix 只用于拒绝，因此有限 $H$ 值始终可展开为若干 ordinary 子树和原图路径。边界结算读取低层 A、一个已完整物化的中间 ordinary 块和 H；三者的组集合互不重叠且并为全集。
 
 ## 13. 完整正确性论证
 
 下面给出当前实现必须同时满足的证明链。
 
-**引理 1（上界真实性）。** `best` 只由规范 SPT 边并集、共同根真实路径并集、directed-cut primal、facility 支撑路径、witness-tree DP、root-star 或完整状态结算更新。每一项都能展开为原图上的连通覆盖，因此 `best` 始终满足 $best\ge\mathrm{OPT}$。
+**引理 1（上界真实性）。** `best` 只由规范 SPT 边并集、共同根真实路径并集、有序组三元组/购买后四元路径生长的真实边并集、directed-cut primal、facility 支撑路径、witness-tree DP、certificate-support DP、root-star 或完整状态结算更新。每一项都能展开为原图真实边与精确 rooted 子树的连通覆盖，因此 `best` 始终满足 $best\ge\mathrm{OPT}$。
 
 **引理 2（基础 future 可采纳）。** $L_{\mathrm{cc}}$ 来自零权缩点后必须连接的分量数； $L_{\mathrm{far}}$ 是任一剩余组不可回避的单组距离； $L_{\mathrm{tour}}$ 来自可行树倍增、组度量 shortcut 和除以 2。三者分别不超过其声明的剩余代价，因此任意最大组合仍可采纳。
 
-**引理 3（距离—根初始化合同与有界距离安全）。** 两种 realization 返回的 $U_0$ 都来自真实 SPT 边并集或共同根连接，故是可行上界；返回的 $r$ 只改变后续状态组织。Bootstrapped-bounded 中未保存的 $d_i(v)$ 至少为构造时 cutoff。它只能作为拒绝证书；任何需要精确距离的 split、完成式或 witness 都检查 `IsExact`。Complete-potential 的每个位置都精确。因此共同调用者可只依赖 `GroupRow` 的值/`IsExact` 合同，而 cutoff 不会被当作一棵虚构的低成本子树。
+**引理 3（距离—根初始化合同与有界距离安全）。** 两种 realization 返回的 $U_0$ 都来自真实 SPT 边并集或共同根连接，故是可行上界；返回的 $r$ 只改变后续状态组织。Bootstrapped-bounded 中未保存的 $d_i(v)$ 至少为构造时 cutoff。它只能作为拒绝证书；任何需要精确距离的 split、完成式或 witness 都通过 `IsExact`、`ExactValueOrInf` 或 `ForEachExact` 拒绝非精确位置。Complete-potential 的每个位置都精确。因此共同调用者只依赖这一 `GroupRow` 合同，cutoff 不会被当作一棵虚构的低成本子树。
 
 **推论（至多三组的共同闭包）。** 当 $g\le3$ 时，任意可行树的三个命中终端在树内有一个分叉点 $v$，其分支总长不小于 $\sum_i d_i(v)$；反向取任意 $v$ 到各组的最短路并集，真实去重代价不超过该距离和。因此 $\mathrm{OPT}=\min_v\sum_i d_i(v)$。Bootstrapped-bounded 若最优值低于 cutoff，则最优根的所有组距离均是精确位置，若等于 cutoff，则已有真实上界已闭合。故全部配置可共同运行这一初始化包并直接返回精确值，不需要 complete potential 或任何配置专属证书。
 
@@ -722,15 +816,17 @@ for size = q down to ell+1:
 
 **引理 6（稀疏图闭包精确）。** 对固定 mask，所有同根 seed 都是真实子树之和。Dijkstra 只在 `value + admissible_future < best` 的区域传播；区域外不可能导出严格优于已有上界的完整解。区域内每次松弛使用真实边权，过期队列项只被忽略，故写入 row 的值等于完整 rooted DP 在该安全锥体内的精确值。
 
+**推论（证书刷新后的重滤安全）。** residual closure 只把引理 5 的容量可行势补全，并把 primal、facility、四元路径及 support DP 的真实可行值写入 `best`。对已物化状态，若新的精确 rooted 值与可采纳 future 之和不小于新的真实上界，则它不存在严格改善 incumbent 的完整扩展。删除该项并同步压紧原 branch 位不会改变剩余项的数值、次序或 branch 定义，也不会删去一个可改善规范拆分类的最后代表。
+
 **引理 7（普通格规范化完备）。** 完整 rooted subset DP 的任意同根拆分可通过最低 pivot 唯一选定 accumulator/branch 方向。未发布的非 branch 状态存在一个等成本同根真子集拆分；递归展开最终到达 singleton 或经过图边闭包的 branch。因此只在被接入侧要求 branch 不会删掉一个分解等价类的最后代表。
 
 **引理 8（前向完成完备）。** 平衡分解保证任意完整规范树可表示为一个大小至多 $q=h-1$ 的锚定块和至多两个大小至多 $h$ 的 ordinary 块。前向 $A$ 枚举锚定块的每次合法增长，`CompleteAnchoredRow` 枚举余下至多两块，因此 Base 与 DirectedCutOnly 不遗漏完整规范推导。
 
-**引理 9（Adjoint 等价）。** 第 12.4 节给出完整高层 $A$ 推导与“低层 $A$ + 转置 terminal + 递减 $H$ + 边界结算”的双向映射；映射保持普通 branch、共同根与代价和。转置 budget、prefix 和 H 闭包只使用引理 2、5 的可采纳下界。因此 Enhanced 与完整前向格枚举相同的可改善完整推导。
+**引理 9（Adjoint 等价）。** 层计划令 $r\ge q$，所以 H successor、非空 A 边界和空前缀 $A(\varnothing)+D(q)+H(q)$ 均读取完整 ordinary row；Enhanced 只需替代半格 terminal。第 12.2 节的树分隔点保证每个外侧组件大小不超过 $r$，两箱引理与 `requires_three_block_terminal` 又保证每个合法外侧可由两块或必要时三块已物化 rooted 状态在同一分隔点精确表示。第 12.5 节给出完整高层 $A$ 推导与“低层 $A$ + 转置 terminal + 递减 $H$ + 边界结算”的双向映射。转置 budget、prefix 与 $H$ 闭包只使用引理 2、5 的可采纳下界。因此 Enhanced 与完整前向格枚举相同的可改善完整推导。
 
-**引理 10（配置覆盖）。** `ConfigurationProfile` 的每个差异要么只增加引理 1 或引理 5 类型的安全证书，要么替换同一职责：bootstrapped-bounded/complete-potential 都返回引理 3 的距离—根初始化合同，root-path/dual-primal 保持真实 witness 契约，前向高层 A/adjoint H 由引理 9 对应。规范 SPT 仅是 bounded realization 的私有 cutoff bootstrap，不是外层逻辑阶段；完整 realization 以全距离扩展实现同一输出职责。两种 witness 都只在预处理中构造，随后从零 rent 进入第 8 节的同一购买公式与同一树 DP；不存在 Base-only 的无条件求值。A1 也不是替换项：正层域非空时三个配置都生成并移交同一逻辑层，而且构造内部没有 directed-cut/adjoint 分支；引理 5 的证书只在 A1 之外增加。第 3.2 节的计划保证 A1 始终属于前向前缀，后续每个必需高层恰由一个 realization 覆盖，没有 Base-only 的未替代状态族。
+**引理 10（配置覆盖）。** `ConfigurationProfile` 的每个差异要么只增加引理 1、引理 5 或上述重滤推论类型的安全证书，要么替换同一职责：bootstrapped-bounded/complete-potential 都返回引理 3 的距离—根初始化合同，root-path/dual-primal 保持真实 witness 契约，前向高层 A/adjoint H 由引理 9 对应。规范 SPT 仅是 bounded realization 的私有 cutoff bootstrap，不是外层逻辑阶段；完整 realization 以全距离扩展实现同一输出职责。两种初始 witness 都只在预处理中构造，随后从零 rent 进入第 8 节的同一购买公式与同一树 DP；不存在 Base-only 的无条件求值。DirectedCut 在 closure 购买后可能安全增加 certificate support 上界，但它使用单独公开的结构 buy，不能反向改写初始共同规则。A1 也不是替换项：正层域非空时三个配置都生成并移交同一逻辑层，而且构造内部没有 directed-cut/adjoint 分支；引理 5 的证书只在 A1 之外增加。第 3.2 节保证 Enhanced 与 Base 调用同一 ordinary 递推到最高逻辑层 $q$，只把半格 $D(h)$ 的 terminal 职责交给第 12.2 节的 separator realization；第三块只在两箱容量证明需要时存在。因而不存在 Base-only 而 Enhanced 没有对应逻辑消费者的状态职责。
 
-**定理（ABHSS 精确性）。** 对任意合法配置、无向非负边权输入及 $g\le16$ 的查询：若共同分量不存在，算法正确返回 infeasible；否则算法返回 $\mathrm{OPT}(G,\mathcal K)$。当 $g\le3$ 时结论直接由上述共同闭包推论成立。其余查询中，引理 1 保证任意时刻 `best` 不低于最优值；引理 2–6 保证距离截断、future 与严格上界剪枝不删除任何代价低于当前 `best` 的完整推导；引理 7 与引理 8（Base/DirectedCutOnly）或引理 9（Enhanced）保证至少一条最优规范推导仍被枚举。搜索耗尽时不存在低于 `best` 的未枚举可行解，故 `best <= OPT`；与引理 1 的 `best >= OPT` 合并得到 `best = OPT`。所有上下界闭合使用原始 `double` 顺序 `best <= lower`，不以 epsilon 把正 gap 当作 0。
+**定理（ABHSS 精确性）。** 对任意合法配置、无向非负边权输入及 $g\le16$ 的查询：若共同分量不存在，算法正确返回 infeasible；否则在实数算术模型下返回 $\mathrm{OPT}(G,\mathcal K)$。当 $g\le3$ 时结论直接由上述共同闭包推论成立。其余查询中，引理 1 保证任意时刻 `best` 不低于最优值；引理 2–6 与证书重滤推论保证距离截断、future、重滤与严格上界剪枝不删除任何代价低于当前 `best` 的完整推导；引理 7 与引理 8（Base/DirectedCutOnly）或引理 9（Enhanced）保证至少一条最优规范推导仍被枚举。搜索耗尽时不存在低于 `best` 的未枚举可行解，故 `best <= OPT`；与引理 1 的 `best >= OPT` 合并得到 `best = OPT`。实现的上下界闭合使用原始 `double` 顺序 `best <= lower`，不以 epsilon 把正 gap 当作 0；其浮点声称边界见第 1 节与第 13.2 节。
 
 ### 13.1 证明责任如何落到代码接口
 
@@ -738,12 +834,13 @@ for size = q down to ell+1:
 
 | 证明责任 | 代码边界 | 必须成立的可检查条件 |
 |---|---|---|
-| 上界真实性 | `PrepareProblem`、`EvaluateWitnessTree`、各完成式 | 每次写 `best` 的有限值都能展开为原图真实边或 rooted DP 值 |
-| bounded 距离不冒充状态 | `GroupRow::IsExact`、`ForEachExact` | 所有作为 seed 的 singleton 必须精确；cutoff 只能进入下界比较 |
+| 上界真实性 | `PrepareProblem`、`EvaluateWitnessTree`、`EvaluateCertificateSupport`、各完成式 | 每次写 `best` 的有限值都能展开为原图真实边或 rooted DP 值 |
+| bounded 距离不冒充状态 | `GroupRow::IsExact`、`ExactValueOrInf`、`ForEachExact` | 所有作为 seed 的 singleton 必须精确；cutoff 只能进入下界比较 |
 | future 可采纳 | `FutureBound`、A1 `Value`、dual `At` | 不同来源的证书只用 `max` 合并；只有 residual 收费等已经证明互不超容量的内部项才可求和 |
 | row 依赖完备 | `ready`、按 size 递增/递减循环 | 消费者只读已经完成的依赖；空 row 与未生成 row 不混淆 |
 | 规范拆分完备 | branch bit 与 pivot 规则 | 每个等价拆分类至少有一个可被高层消费的代表 |
-| A/H 覆盖相同边界 | `AnchoredCompletionSchedule` | $1..q$ 的每个逻辑职责由前向 A 或 adjoint H 恰好覆盖一次 |
+| 证书升级后重滤 | `RefilterOrdinaryAfterCertificateUpgrade` | 只删除 `value + admissible future >= feasible best` 的项；保留项的 branch 位按原下标同步压紧 |
+| A/H 与 ordinary 消费边界完备 | `AnchoredCompletionSchedule` | $1..q$ 的每个锚定职责由前向 A 或 H 恰好覆盖；ordinary 至少物化到 $q$ 并覆盖全部直接消费者；半格 terminal 由两箱条件决定是否需要第三块 |
 | 严格剪枝 | 所有 `candidate + lower < best` | 等于上界的状态可以删除，因为已有同成本真实解；正 gap 不能闭合 |
 
 `ConfigurationProfile` 不参与数学数值计算，但它把最后一项变成机器可测合同：安全新增位只能单调增加，三个替换字段必须落在已证明 realization 中，ordinary future 在三个配置中固定为共同 A1。若以后加入另一种 future 或高层实现，必须先扩展该枚举、上述表格和独立 DP 回归，不能只在某个函数中增加数据相关分支。
@@ -755,7 +852,7 @@ for size = q down to ell+1:
 - **重边与自环。** 邻接表保留各自 `edge_id`；真实路径并集按边 ID 去重。非负自环不能改善最短路，因而不会影响最优值。
 - **非连通图。** 只有当某个连通分量与每个组相交时查询才可行；一旦选定共同分量，任何跨分量状态都不可能进入一棵可行树。
 - **空 row。** `ready=true` 且 payload 为空表示在当前严格上界锥体中没有可改善状态；这不同于数学值处处无穷，也不同于依赖未计算。证明只需要“不遗漏低于 best 的推导”。
-- **浮点输入。** 最短路和 DP 使用输入 `double` 的确定性比较；容差只用于跨程序报告以及恢复一条数值等式路径，恢复后仍按真实边权计价。核心闭合不用 epsilon。
+- **浮点输入。** 数学证明在实数算术模型下成立。实现用 IEEE 754 `double` 做确定性比较；容差只用于跨程序报告以及恢复一条数值等式路径，恢复后仍按真实边权计价，核心闭合不用 epsilon。当前 artifact 没有用任意精度或区间算术逐次认证舍入方向，因此“精确”不得解释成与实数模型无条件逐 bit 等价。
 
 工程证据不是数学证明的替代，但用于防止实现偏离上述引理：用四个逻辑组保留的历史零权 witness 父指针反例，以及 50,000 顶点逆序零权并查集链；包含零权、重叠组和多终端的确定性随机图，三种合法配置逐例对照独立全子集 DP；显式 $g=2,3$ 非零最优实例断言三个配置都在零主状态处闭包；逐弧从全部组势独立复算 residual，断言 potential cone 没有漏减非零梯度；高 $g$ SteinLib 已知最优值；非法配置、不可行图、平凡查询、输入格式和小于 $10^{-9}$ 正 gap 的闭合回归。
 
@@ -763,18 +860,18 @@ for size = q down to ell+1:
 
 ### 14.1 最坏界
 
-令 $k=g-1$， $h=\lfloor g/2\rfloor$， $F=\sum_i|K_i|$，并令 $r$ 为 directed-cut primal 涉及的不同 facility 顶点数；Base 中取 $r=0$。忽略只改善常数的稀疏性，并把当前二叉堆、真实路径恢复和 facility 上界都计入，一个输出敏感的保守总时间上界可写为：
+令 $k=g-1$， $h=\lfloor g/2\rfloor$， $F=\sum_i|K_i|$，并令 $\rho$ 为 directed-cut primal 涉及的不同 facility 顶点数、 $s$ 为购买后 certificate support 涉及的不同顶点数；Base 中取 $\rho=s=0$。这里的 $\rho$ 与第 3.2 节 ordinary 层边界 $r$ 无关。三块 terminal 先按 pair-union 聚合最小两块和，再与第三块结合；两个阶段在稠密 mask 格中都是三路组指派，已包含在 $3^g n$ 项内。把当前二叉堆、真实路径恢复、facility 与 support 上界都计入，一个输出敏感的保守总时间上界可写为：
 
 ```math
 O\!\left(
-(g+r+2^g)(m+n)\log(n+m)
-+g^2(m+n)+2^g(g^3+r^2)+3^g(n+r)+F\log(F+1)
+(g+\rho+2^g)(m+n)\log(n+m)
++g^4(m+n)+2^g(g^3+\rho^2+s^2)+3^g(n+\rho+s)+s^3+F\log(F+1)
 \right),
 ```
 
-其中 $g^2(m+n)$ 保守覆盖至多 $O(g)$ 个候选根、每根至多 $g$ 条真实最短路的恢复； $r$ 相关三项来自 facility 支撑图。若只讨论 facility 之后的主状态搜索，常用简写才是 $O(3^g n+2^g(m+n)\log(n+m))$。这里按当前 `std::priority_queue` 的重复入堆二叉堆实现计每次 push/pop 的 $O(\log(n+m))$，不借用 decrease-key/Fibonacci heap 的 $O(m+n\log n)$ 界；在简单图上该对数项可等价写成 $O(\log n)$，但本实现允许重边。tour 的固定端点表使用 $O(2^g g^2)$ 空间、 $O(2^g g^3)$ 时间；零权 cover 的组维度 DP 为 $O(3^g)$。正权图只额外支付 $O(F\log(F+1))$ 的查询分量聚合；含零权边时才支付保守的 $O((n+m)\log(n+1))$ 路径压缩并查集成本。因为当前 $g\le16$，纯组维度表可控，实际瓶颈通常是图维度 row、闭包和 Enhanced 的 facility 数 $r$；论文不能把后者从最坏界中省略。
+其中 $g^4(m+n)$ 保守覆盖 $g(g-1)(g-2)$ 个有序组三元组起点、每个起点至多 $g-1$ 次 tight-edge 路径恢复；公共根路径并集包含在该项内。实际实现受当前真实上界的单调截断，通常不会达到此界。 $\rho$ 相关项来自 facility 支撑图； $s^3+2^g s^2+3^g s$ 分别覆盖 support Floyd、各 mask 的 metric 闭包和规范拆分。若只讨论这些证书之后的主状态搜索，常用简写才是 $O(3^g n+2^g(m+n)\log(n+m))$。这里按当前 `std::priority_queue` 的重复入堆二叉堆实现计每次 push/pop 的 $O(\log(n+m))$，不借用 decrease-key/Fibonacci heap 的 $O(m+n\log n)$ 界；在简单图上该对数项可等价写成 $O(\log n)$，但本实现允许重边。tour 的固定端点表使用 $O(2^g g^2)$ 空间、 $O(2^g g^3)$ 时间；零权 cover 的组维度 DP 为 $O(3^g)$。正权图只额外支付 $O(F\log(F+1))$ 的查询分量聚合；含零权边时才支付保守的 $O((n+m)\log(n+1))$ 路径压缩并查集成本。因为当前 $g\le16$，纯组维度表可控，实际瓶颈通常是图维度 row、闭包以及 Enhanced 的 facility/support 规模；论文不能把它们从最坏界中省略。
 
-输出敏感的最坏空间为 $O(2^g n+gn+2^g g^2+m+r^2+F)$；其中 facility DP 的 $O(2^g r)$ 已被 $r\le n$ 下的 $O(2^g n)$ 覆盖。Base 的组距离仍可能退化到 $O(gn)$，但通常只保存 cutoff 内精确值；Enhanced 为 directed-cut 明确支付 dense $O(gn)$，并在 facility 阶段临时支付 $O(r^2)$ 度量矩阵。
+输出敏感的最坏空间为 $O(2^g n+gn+2^g g^2+m+\rho^2+s^2+F)$；facility/support DP 的 $O(2^g\rho+2^g s)$ 已被 $\rho,s\le n$ 下的 $O(2^g n)$ 覆盖。Base 的组距离仍可能退化到 $O(gn)$，但通常只保存 cutoff 内精确值；Enhanced 为 directed-cut 明确支付 dense $O(gn)$，并在 facility 与 support 阶段分别临时支付 $O(\rho^2)$、 $O(s^2)$ 度量矩阵。
 
 逐阶段的保守边界如下：
 
@@ -783,31 +880,33 @@ O\!\left(
 | 连通性与零权 cover | 正权图 $O(F\log(F+1)+3^g)$；含零权边时保守再加 $O((n+m)\log(n+1))$，另加非连通可行性检查 | 正权图 $O(F+2^g)$；含零权边时 $O(n+F+2^g)$ | 普通连通分量索引和最小边权在加载期共享；当前并查集使用迭代路径压缩但不按秩合并，分量 mask 始终只为查询触及项保存 |
 | 距离—根初始化 | $O(g(m+n)\log(n+m))$ | Bootstrapped-bounded 至多 $O(gn)$；Complete-potential 为 $O(gn)$ | 前者把候选根 SPT bootstrap 与截断多源搜索封装为一个 realization；后者把多源搜索扩展到全图；两边返回相同三元合同 |
 | $g\le3$ 精确闭包 | 一次共同 Bootstrapped-bounded 距离—根初始化 | 不增加渐近空间 | 所有配置逐项相同；不构造 complete potential、witness、dual、tour 或指数状态表 |
+| 共同有序组三元组一步前瞻路径生长 | $O(g^4(m+n))$ | $O(m+n+F)$ 临时空间 | 全部配置调用同一函数；每个有序前两组只恢复一次种子路径并向全部第三组重放；真实边去重，既有上界只作单调安全终止 |
 | 组 tour | $O(2^g g^3)$ | $O(2^g g^2)$ | 只含组维度，不含图顶点维度 |
 | 共同 A1 | $O(k(m+n)\log(n+m))$ | row 至多 $O(kn)$，查找缓存 $O(n)$ | 层 1 属于 $\mathcal L_A$ 时所有配置执行同一 farthest + endpoint-floor cone；不读取 dual 或增强位 |
-| ordinary $D$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n)$ | 实际只到 size $h$ 且为稀疏 row |
+| ordinary $D$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n)$ | 无 H 后缀时物化到半格 $h$ 并直接运行完整前向；H 后缀非空时 Enhanced 物化到 $r\ge q$，全部 H successor、非空 A 边界和空前缀边界直接读取同一 ordinary row，只省略半格 terminal |
 | 完整前向 $A$ | 同阶保守上界 | $O(2^g n)$ | 实际只到 size $q=h-1$，末层可只消费 |
 | directed-cut | $O(gm+g(m+n)\log(n+m))$ | $O(gn+m)$ | 最坏界不变；第 $i$ 轮容量更新实际枚举 $\min\{m,\sum_{v\in C_i}\deg(v)\}$ 个原边/邻接项， $C_i$ 为截断势 cone |
-| facility 上界 | $O(r(m+n)\log(n+m)+2^g r^2+3^g r)$ | $O(n+r^2+2^g r)$ | 仅 DirectedCut/Enhanced； $r$ 是 primal 涉及的不同顶点数 |
-| adjoint 转置与 $H$ | 保守不超过高层前向指数阶 | $O(2^g n+gn)$ | 只物化 $\ell<\lvert S\rvert\le q$ 的稀疏 $H$ |
+| facility 上界 | $O(\rho(m+n)\log(n+m)+2^g\rho^2+3^g\rho)$ | $O(n+\rho^2+2^g\rho)$ | 仅 DirectedCut/Enhanced； $\rho$ 是 primal 涉及的不同顶点数 |
+| certificate-support 上界 | $O(s^3+2^g s^2+3^g s)$ | $O(s^2+2^g s)$ | 仅在 closure 购买后路径证书严格改善时登记； $s$ 是路径边与 primal 边并图的顶点数 |
+| adjoint 转置与 $H$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n+gn)$ | 单/双块转置始终覆盖半格 terminal；只有两箱容量反例存在时才构造三块，先聚合 pair-union 再结合第三块，稠密组维度仍为 $O(3^g)$；实际只扫描 reduced budget 内的 ordinary payload |
 
 表中的共同 A1 条件不是参数调优分支：它只是询问层 1 是否属于前向递推定义域 $\mathcal L_A$；属于时三个配置都执行同一逻辑 A1，不属于时没有这张 row。A1 top-two 使用两个初始化为 255 的 byte bit 数组，因而固定触及约 $2(n+1)$ 字节；两个 32-bit locator 再压入一个 64-bit 数组，只有真正查询该顶点 future 时才写入相应 locator 页面。最坏虚拟容量约每顶点 10 字节，典型物理增量更准确地写成约 $2n$ 字节加已触及 locator 页面。缓存均在 ordinary 后释放；locator 能无损定位精确 double，也能统一标记由共同 continuation 定义的正 fallback。复杂度按 $O(n)$ 计。若 A1 内条件式购买收紧上界，至多丢弃当前输入修订上的一个部分 pass；同修订购买保护使这一重启只增加常数因子。
 
 ### 14.2 以实际 payload 表示的实现成本
 
-令 $Z_D,Z_A,Z_H$ 为阶段结束时实际保存的状态标量数， $R_D,R_A,R_H$ 为图闭包实际检查的邻接项数， $M_D,M_A,M_H$ 为同根交集/拆分候选数，则主搜索更贴近实际的成本为：
+令 $Z_D,Z_A,Z_H$ 为阶段结束时实际保存的状态标量数， $R_D,R_A,R_H$ 为图闭包实际检查的邻接项数， $M_D,M_A,M_H$ 为同根交集/拆分候选数；三块转置的 pair-union 与 third 检查计入 $M_H$。则主搜索更贴近实际的成本为：
 
 ```math
 O\left(M_D+M_A+M_H+(R_D+R_A+R_H)\log(n+m)\right),
 ```
 
-若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。空间分别为 Base 的 $O(Z_D+Z_A+n)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn)$。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，高层 $H$ 仅保存高层区间中实际生成的稀疏 row，不物化完整 dense 状态网格。
+若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。空间分别为 Base 的 $O(Z_D+Z_A+n)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn)$。转置 terminal、三块启用时的 `pair_best` 工作区和 residual 都是阶段临时量；residual 在 ordinary 前释放，高层 $H$ 仅保存高层区间中实际生成的稀疏 row。结构条件关闭时不分配三块专用工作区。
 
-实现为每条查询额外报告 `mask_vertex_states`。其口径是累计的“首次发现状态项数”，不是结束时 payload、队列弹出数或峰值空间：状态族属于实际键，对每张 $D$、 $A$、 $H$ 逻辑 row，顶点第一次从无穷变为有限候选时计一次，同一 row 内后续改进不重复；D/A/H 中数值相同的 `(mask,v)` 分别计数。所有配置提前生成的共同 A1 在生成时计入，所有权转交给公共 $A$ 内核后不再计。最后只消费而不保留的 $A$ 层仍计入，因为这些状态已经实际生成。组距离、tour、directed-cut 势读取、转置前终端候选、完整解结算及队列过期项均排除。记该累计数为 $C_{\mathrm{ABHSS}}$，则它可用于解释搜索工作量，但通常 $C_{\mathrm{ABHSS}}\ge Z_D+Z_A(+Z_H)$，不能替代峰值内存指标。
+实现为每条查询额外报告 `mask_vertex_states`。其口径是累计的“首次发现状态项数”，不是结束时 payload、队列弹出数或峰值空间：状态族属于实际键，对每张完整物化的 $D$、 $A$、 $H$ 逻辑 row，顶点第一次从无穷变为有限候选时计一次；同一 row 内后续改进不重复，D/A/H 中数值相同的 `(mask,v)` 分别计数。所有配置提前生成的共同 A1 在生成时计入，所有权转交给公共 $A$ 内核后不再计。最后只消费而不保留的 $A$ 层仍计入，因为这些状态已经实际生成。组距离、tour、directed-cut 势读取、转置前终端候选、完整解结算及队列过期项均排除。记该累计数为 $C_{\mathrm{ABHSS}}$，则它可用于解释搜索工作量，但通常 $C_{\mathrm{ABHSS}}\ge Z_D+Z_A(+Z_H)$，不能替代峰值内存指标。
 
 PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数：Hash 后端直接读取实际容器大小，Dense 后端只统计 `present` 项而不是 $2^g(n+1)$ 预分配容量；状态 reopen 不重复，组距离和 route DP 同样排除，full-mask 完成候选只更新 incumbent 而不进入表。两边的统计都描述各自算法实际主状态域，不能把它解释成完全相同的单步成本；应与时间、边扫描/合并工作和 RSS 联合分析。
 
-见证树一次 buy 若含 $t$ 个节点，确定性阈值为 $t((3^k-1)/2+3^k)$，实际求值的最坏时间为 $O(t3^k)$、工作空间为 $O(t2^k)$；共同修订保护避免对同一树-DP 输入重复购买。directed-cut changed-arc 构造最坏 $O(gm+g(m+n)\log(n+m))$，空间 $O(gn+m)$；potential cone 不改变这一最坏界，但把第 $i$ 轮全边容量更新替换为不超过 $m$ 项的同支撑枚举。若 primal 含 $r$ 个 facility，facility 上界的保守界包括 $O(r(m+n)\log(n+m))$ 的 $r$ 次二叉堆支撑图最短路和 $O(2^g r^2+3^g r)$ 的小图 DP；它是 Enhanced 的预处理固定成本，也是小图上可能不占优的原因之一。
+初始见证树一次 buy 若含 $t$ 个节点，确定性阈值为 $t((3^k-1)/2+3^k)$，实际求值的最坏时间为 $O(t3^k)$、工作空间为 $O(t2^k)$；support 刷新后的阈值与成本则为第 8.2 节的 $B_{\mathrm{sup}}(s,k)$。共同修订保护避免对同一输入重复购买。directed-cut changed-arc 构造最坏 $O(gm+g(m+n)\log(n+m))$，空间 $O(gn+m)$；potential cone 不改变这一最坏界，但把第 $i$ 轮全边容量更新替换为不超过 $m$ 项的同支撑枚举。若 primal 含 $\rho$ 个 facility，facility 上界的保守界包括 $O(\rho(m+n)\log(n+m))$ 的 $\rho$ 次二叉堆支撑图最短路和 $O(2^g\rho^2+3^g\rho)$ 的小图 DP；support 另支付 $O(s^3+2^g s^2+3^g s)$。它们是 Enhanced 可能支付的证书成本，也是小图上需要实测固定开销的原因之一。
 
 ## 15. 实现细节为何存在
 
@@ -825,7 +924,9 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 | A1 top-two bit/locator 缓存 | 跨 ordinary row O(1) 复用最大两个 singleton future，保持原 double 值 | 只缓存 bit 会反复二分稀疏 A1；缓存两个 double 则会放大大图 RSS |
 | A1 内核不读取增强位或 dual | 保证 Base/Enhanced 的 seed、cone、fallback 与交接逐项相同；dual 留在 ordinary/adjoint 证书栈 | 在 A1 内接 dual 会产生不同缺项原因和 fallback；强制 Base 也建 dual 又会消解可关闭增强 |
 | 单一零起点 witness scheduler | 两边只代入各自树大小；A1 与 D 连续支付 rent，达到共同 buy 才调用同一树 DP | Base 无条件预买会形成 Base-only 操作；A1 中直接改变 cutoff 而不重启会混合两套 cone 证明 |
+| 三块 separator terminal | 当 ordinary 边界低于半格时，用树分隔点和容量打包补全单/双块无法表示的外侧结构 | 只保留单/双块会漏解；把三块写成经验高 g 开关会破坏方法定义 |
 | 64 顶点转置块 | 把 mask-major 稀疏 row 分块转成 vertex-major terminal，与位图 word 对齐 | 全图按顶点物化 ordinary 列会产生 $O(n)$ 个容器并放大内存 |
+| 保留最高逻辑 ordinary 层 | Base 与 Enhanced 对所有 $\lvert S\rvert\le q$ 调用同一 ordinary 递推，空前缀和全部 H/A 边界读取同一标准 row | 把该层改成目标驱动的局部替代会破坏共同职责，并曾在 Orkut 反例上把精确值 32 错成 33；只有更高的半格 terminal 交给转置 |
 | 严格父指针改进 | 零权等距时维持无环 witness | 可能形成 2-cycle，导致见证遍历错误或不终止 |
 | 原始 `best <= lower` | 只有真正闭合才提前返回 | epsilon 闭合可能返回相差极小但非最优的值 |
 | 加载期 component cache | 把共同图性质从逐查询计时移出 | 大图每条查询重复 $O(n+m)$，实验含义失真 |

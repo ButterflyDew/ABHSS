@@ -32,6 +32,8 @@ bool PrepareWithProbe(Problem& problem, const char* probe_method);
 void BuildOrdinaryWithProbe(Problem& problem,
                             AnchoredSingletonFuture* singleton_future,
                             WitnessUpperScheduler& witness_scheduler,
+                            ResidualClosureScheduler& closure_scheduler,
+                            int last_layer,
                             const char* probe_method);
 
 }  // namespace gst::methods::abhss::internal

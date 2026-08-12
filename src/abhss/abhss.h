@@ -86,6 +86,7 @@ enum class AddedOperation : std::uint32_t
 {
     DirectedCutCertificate = std::uint32_t{1} << 0,
     FacilityUpperBound = std::uint32_t{1} << 1,
+    ResidualCertificateRefresh = std::uint32_t{1} << 2,
 };
 
 /** @brief 同一“距离 oracle + 候选根 + 初始真实上界”职责的两种实现。 */
@@ -167,7 +168,8 @@ constexpr ConfigurationProfile DescribeConfiguration(SolveOptions options)
     {
         profile.added_operations =
             static_cast<std::uint32_t>(AddedOperation::DirectedCutCertificate) |
-            static_cast<std::uint32_t>(AddedOperation::FacilityUpperBound);
+            static_cast<std::uint32_t>(AddedOperation::FacilityUpperBound) |
+            static_cast<std::uint32_t>(AddedOperation::ResidualCertificateRefresh);
         profile.distance_root = DistanceRootRealization::CompletePotential;
         profile.upper_witness = UpperWitnessRealization::DualPrimalTree;
     }
@@ -187,6 +189,10 @@ struct AnchoredCompletionSchedule
 {
     int highest_layer = 0;
     int forward_last_layer = 0;
+    /** @brief ordinary D 完整物化的最高层；省略的半格后缀由 H terminal 的固定分解补全。 */
+    int ordinary_last_layer = 0;
+    /** @brief 两个容量为 ordinary_last_layer 的块不能覆盖全部分隔组件时为 true。 */
+    bool requires_three_block_terminal = false;
     bool uses_adjoint = false;
 
     /** @brief 判断给定正层是否属于精确完成递推的逻辑定义域。 */
@@ -212,9 +218,10 @@ struct AnchoredCompletionSchedule
  * @brief 从组数决定的递推域边界生成唯一层计划。
  *
  * 这里的整数除法来自平衡分解：`floor(g/2)-1` 是完整锚定格的最高层，
- * adjoint 再对该区间做固定的 meet-in-the-middle 切分；只要区间非空，
- * 公共 A1 必属于前向前缀，使 ordinary 前生成的同一 row 能被所有配置移交。
- * 函数不读取图、查询内容、row 密度、耗时或内存，也不比较 `g` 与经验常数。
+ * adjoint 再对该区间做固定的 meet-in-the-middle 切分；只要区间非空，公共 A1 必属于前向前缀。
+ * ordinary 边界直接覆盖 H successor、非空 A 边界和空前缀边界，并把转置外侧限制为至多三个容量 r 的
+ * separator 块；第三块只由两箱容量反例启用。函数不读取图、
+ * 查询内容、row 密度、incumbent、耗时或内存，也不比较 g 与经验常数。
  */
 constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     int group_count,
@@ -223,6 +230,7 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     AnchoredCompletionSchedule schedule;
     const int half = group_count / 2;
     schedule.highest_layer = half > 0 ? half - 1 : 0;
+    schedule.ordinary_last_layer = half;
     schedule.uses_adjoint =
         profile.high_layer == HighLayerRealization::AdjointH;
     schedule.forward_last_layer = schedule.uses_adjoint
@@ -232,6 +240,14 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
                                                    schedule.highest_layer / 2)
                                              : 0)
                                       : schedule.highest_layer;
+    if (schedule.uses_adjoint && schedule.forward_last_layer < schedule.highest_layer)
+    {
+        const int first_high_layer = schedule.forward_last_layer + 1;
+        const int terminal_side = group_count - 1 - first_high_layer;
+        schedule.ordinary_last_layer = std::max(schedule.highest_layer, (terminal_side + 1) / 2);
+        const int minimum_three_bin_cover = 3 * schedule.ordinary_last_layer / 2 + 2;
+        schedule.requires_three_block_terminal = schedule.ordinary_last_layer < half && terminal_side >= minimum_three_bin_cover;
+    }
     return schedule;
 }
 

@@ -32,6 +32,7 @@ void ForEachAnchoredSum(const Problem& p,
         const GroupRow& anchor = p.group_distance[p.anchor_group];
         if (!exact_membership_required)
         {
+            // lambda：完整距离模式下直接把隐式 A(0) 加到 ordinary branch。
             ForEachOrdinaryBranch(p, ordinary_side, [&](int vertex, double value)
             {
                 use(vertex, value + anchor[vertex]);
@@ -39,6 +40,7 @@ void ForEachAnchoredSum(const Problem& p,
         }
         else
         {
+            // lambda：bounded 模式下仅在锚组距离精确时提交隐式 A(0) 合并。
             ForEachOrdinaryBranch(p, ordinary_side, [&](int vertex, double value)
             {
                 if (anchor.IsExact(vertex))
@@ -53,6 +55,7 @@ void ForEachAnchoredSum(const Problem& p,
             p.group_distance[p.bit_to_group[FirstBit(ordinary_side)]];
         if (!exact_membership_required)
         {
+            // lambda：完整距离模式下把 singleton ordinary 距离加到锚定值。
             ForEachValue(anchored[anchor_side], [&](int vertex, double value)
             {
                 use(vertex, value + singleton[vertex]);
@@ -60,6 +63,7 @@ void ForEachAnchoredSum(const Problem& p,
         }
         else
         {
+            // lambda：bounded 模式下仅在 singleton 距离精确时提交锚定合并。
             ForEachValue(anchored[anchor_side], [&](int vertex, double value)
             {
                 if (singleton.IsExact(vertex))
@@ -69,6 +73,7 @@ void ForEachAnchoredSum(const Problem& p,
         return;
     }
 
+    // lambda：把锚定值与多组 ordinary 规范 branch 的同根和交给调用者。
     ForEachRowBranchIntersection(
         anchored[anchor_side], p.ordinary[ordinary_side],
         [&](int vertex, double a, double d) { use(vertex, a + d); });
@@ -119,6 +124,7 @@ void CompleteAnchoredRow(Problem& p,
                     }
                 }
 
+                // lambda：在候选根处结算锚定侧与两个 ordinary 分块的同根和。
                 auto Visit = [&](int vertex, bool require_root_membership)
                 {
                     if (require_root_membership &&
@@ -142,10 +148,13 @@ void CompleteAnchoredRow(Problem& p,
                     p.best = std::min(p.best, anchored_distance[vertex] + a + b);
                 };
                 if (driver)
+                {
+                    // lambda：由最小 ordinary 候选集驱动并要求根属于 roots。
                     ForEachOrdinaryValue(p, driver, [&](int vertex, double)
                     {
                         Visit(vertex, true);
                     });
+                }
                 else
                     for (int vertex : roots)
                         Visit(vertex, false);
@@ -180,6 +189,7 @@ std::vector<Row> BuildForwardAnchoredRows(
     if (plan.complete_implicit_anchor)
     {
         std::vector<int> roots;
+        // lambda：把隐式 A(0) 的全部精确锚组距离装入一次性完成工作区。
         p.group_distance[p.anchor_group].ForEachExact(
             p.graph.n, [&](int vertex, double value)
         {
@@ -204,6 +214,7 @@ std::vector<Row> BuildForwardAnchoredRows(
             const int remaining_original =
                 p.nonanchor_original_mask ^ p.original_mask[mask];
             ++stamp;
+            // lambda：先用低成本 farthest 筛选，再缓存当前 A row 的完整 future。
             auto CanImprove = [&](int vertex, double value)
             {
                 if (bound_stamp[vertex] != stamp)
@@ -218,6 +229,7 @@ std::vector<Row> BuildForwardAnchoredRows(
                 }
                 return value + bound_cache[vertex] < p.best;
             };
+            // lambda：无候选代价时按需取得并缓存当前顶点的完整 future。
             auto Bound = [&](int vertex)
             {
                 if (bound_stamp[vertex] != stamp)
@@ -235,6 +247,7 @@ std::vector<Row> BuildForwardAnchoredRows(
             if (reuses_singleton_row)
             {
                 Row precomputed = std::move(anchored[mask]);
+                // lambda：按新 incumbent 重滤提前生成的 A1，并同步尝试 root-star 上界。
                 ForEachValue(precomputed, [&](int vertex, double value)
                 {
                     if (!CanImprove(vertex, value))
@@ -253,6 +266,7 @@ std::vector<Row> BuildForwardAnchoredRows(
             }
             else
             {
+                // lambda：登记通过可采纳 future 严格筛选的 A 距离标签。
                 auto Set = [&](int vertex, double value)
                 {
                     if (value >= distance[vertex] || !CanImprove(vertex, value))
@@ -318,6 +332,7 @@ std::vector<Row> BuildForwardAnchoredRows(
             if (!reuses_singleton_row)
                 p.AccountMaskVertexStates(touched.size());
 
+            // lambda：发布 row 前删除已被最新 incumbent 与 future 严格淘汰的顶点。
             settled.erase(
                 std::remove_if(settled.begin(), settled.end(), [&](int vertex)
                 {

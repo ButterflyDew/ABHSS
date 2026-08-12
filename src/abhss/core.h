@@ -102,7 +102,11 @@ public:
 
     long long BuyWork() const { return buy_; }
     long long RentWork() const { return rent_; }
+    long long TotalWork() const;
     int EvaluationCount() const { return evaluation_count_; }
+
+    /** @brief 上界 evaluator 切换到 certificate support 后重置 buy 与 rent。 */
+    void RefreshCertificate();
 
     /** @brief 距离下一次当前输入修订可购买还需支付的 rent；不可买时返回上限。 */
     long long RemainingRentUntilBuy() const;
@@ -112,6 +116,7 @@ private:
 
     Problem& problem_;
     long long rent_ = 0;
+    long long purchased_rent_ = 0;
     long long buy_ = 0;
     int ordinary_revision_ = 0;
     int evaluated_revision_ = -1;
@@ -119,10 +124,42 @@ private:
     bool enabled_ = false;
 };
 
+/**
+ * @brief DirectedCut 的 residual 全势闭包 rent-or-buy 调度器。
+ *
+ * 初始增强预处理只构造截断势并释放 residual；本调度器继承已经发生的公共
+ * A1 工作，随后累计 ordinary queue-pop/edge-relax 的真实工作。rent 达到 residual 重建、势补全和 primal
+ * 恢复的静态结构成本，且累计 row payload 至少覆盖一个图规模后，一次性重建 residual、增加未支付容量上的
+ * 安全势，并在新零弧支撑上复用现有 primal/facility 真实上界。
+ * A1 内部没有 closure 特有分支；Base 的对象保持禁用，也不维护只供该增强操作使用的累计量。
+ */
+class ResidualClosureScheduler
+{
+public:
+    explicit ResidualClosureScheduler(Problem& problem);
+    bool Account(long long row_work, long long new_payload = 0);
+
+    long long BuyWork() const { return buy_; }
+    long long RentWork() const { return rent_; }
+    bool Purchased() const { return purchased_; }
+
+private:
+    bool Buy();
+
+    Problem& problem_;
+    long long rent_ = 0;
+    long long buy_ = 0;
+    long long payload_ = 0;
+    bool enabled_ = false;
+    bool purchased_ = false;
+};
+
 /** @brief 按 |S| 递增生成 D(S,v)，仅发布不可继续同根拆分的规范 branch。 */
 void BuildOrdinaryRows(Problem& problem,
                        AnchoredSingletonFuture* singleton_future,
-                       WitnessUpperScheduler& witness_scheduler);
+                       WitnessUpperScheduler& witness_scheduler,
+                       ResidualClosureScheduler& closure_scheduler,
+                       int last_layer);
 
 /** @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。 */
 inline long long BinarySearchCost(size_t size)
@@ -147,9 +184,7 @@ void ForEachRowBranchIntersection(const Row& values,
     // 三种遍历方法只是同一有序 row 上的小常数选择，不是三种存储布局。
     const long long linear = static_cast<long long>(
         values.vertex.size() + branches.vertex.size());
-    const long long scan_branches =
-        static_cast<long long>(branches.branch_count) *
-        BinarySearchCost(values.vertex.size());
+    const long long scan_branches = static_cast<long long>(branches.branch_count) * BinarySearchCost(values.vertex.size());
     const long long scan_values =
         static_cast<long long>(values.vertex.size()) *
         BinarySearchCost(branches.vertex.size());
@@ -214,6 +249,7 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
 {
     if (!left || !right)
     {
+        // lambda：空侧按零值解释，并把非空 ordinary 值映射为统一二元回调。
         ForEachOrdinaryValue(p, left | right, [&](int vertex, double value)
         {
             use(vertex, left ? value : 0.0, right ? value : 0.0);
@@ -231,6 +267,7 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
                                   : p.ordinary[right].vertex.size();
     if (left_size <= right_size)
     {
+        // lambda：由较小 left 集驱动，并在同顶点读取 right 值和精确 membership。
         ForEachOrdinaryValue(p, left, [&](int vertex, double a)
         {
             const double b = OrdinaryValue(p, right, vertex);
@@ -242,6 +279,7 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
     }
     else
     {
+        // lambda：由较小 right 集驱动，并在同顶点读取 left 值和精确 membership。
         ForEachOrdinaryValue(p, right, [&](int vertex, double b)
         {
             const double a = OrdinaryValue(p, left, vertex);
@@ -265,6 +303,7 @@ void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use
     if (p.popcount[branch] == 1)
     {
         const int group = p.bit_to_group[FirstBit(branch)];
+        // lambda：用 accumulator 驱动并读取 singleton branch 的精确组距离。
         ForEachOrdinaryValue(p, accumulator, [&](int vertex, double value)
         {
             if (p.group_distance[group].IsExact(vertex))
@@ -275,6 +314,7 @@ void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use
     if (p.popcount[accumulator] == 1)
     {
         const int group = p.bit_to_group[FirstBit(accumulator)];
+        // lambda：由多组规范 branch 驱动并读取 singleton accumulator 的精确组距离。
         ForEachBranch(p.ordinary[branch], [&](int vertex, double value)
         {
             if (p.group_distance[group].IsExact(vertex))

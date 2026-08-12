@@ -1,8 +1,10 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <queue>
 #include <random>
 #include <stdexcept>
@@ -32,7 +34,7 @@ void AddEdge(gst::Graph& graph, int u, int v, double weight)
  * @brief 用独立的全子集 Dreyfus-Wagner DP 计算小图真值。
  *
  * 该实现不调用 ABHSS 的 row、锚定或下界代码，因此可作为所有增强配置的
- * 独立精确 oracle；仅用于 n<=9 的工程回归，不进入论文性能实验。
+ * 独立精确 oracle；仅用于顶点数随 g 线性增长的小图工程回归，不进入论文性能实验。
  */
 double ExactSubsetDp(const gst::Graph& graph, const gst::Query& query)
 {
@@ -351,14 +353,14 @@ void CheckDistanceRootInitializationContract()
         {
             if (short_row.IsExact(vertex))
             {
-                if (std::fabs(short_row[vertex] - full_row[vertex]) > 1e-12)
+                if (std::fabs(short_row[vertex] - full_row[vertex]) > 1e-12 || std::fabs(short_row.ExactValueOrInf(vertex) - full_row[vertex]) > 1e-12)
                     throw std::runtime_error(
                         "ABHSS bounded and complete exact distances disagree.");
             }
-            else if (short_row[vertex] > full_row[vertex])
+            else if (short_row[vertex] > full_row[vertex] || short_row.ExactValueOrInf(vertex) < gst::fp::kInf)
             {
                 throw std::runtime_error(
-                    "ABHSS bounded cutoff is not a safe lower placeholder.");
+                    "ABHSS bounded cutoff is not a safe lower placeholder or entered an exact consumer.");
             }
         }
     }
@@ -458,34 +460,200 @@ void CheckDirectedCutResidualAccounting()
 
     gst::methods::dual_cut::DualCutPotential dual;
     dual.BuildKeepingResidualChangedArcsWithPrimalEdges(graph, query, distance, initialization.root);
-    const auto& residual = dual.Residual();
-    if (residual.size() != static_cast<size_t>(2 * graph.m))
-        throw std::runtime_error("ABHSS directed-cut residual has the wrong size.");
-
     // 按实现约定把一条无向边的指定方向映射到 residual 数组中的弧编号。
     auto Arc = [](const gst::UndirectedEdge& edge, int from, int to)
     {
         return 2 * edge.id + (from < to ? 0 : 1);
     };
-    for (const gst::UndirectedEdge& edge : graph.edges)
+    auto CheckResidual = [&](const char* phase)
     {
-        double forward = edge.w;
-        double backward = edge.w;
-        for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
+        const auto& residual = dual.Residual();
+        if (residual.size() != static_cast<size_t>(2 * graph.m))
+            throw std::runtime_error(std::string(phase) + " residual has the wrong size.");
+        for (const gst::UndirectedEdge& edge : graph.edges)
         {
-            forward = std::max(0.0, forward - std::max(0.0, dual.GroupAt(edge.u, group) - dual.GroupAt(edge.v, group)));
-            backward = std::max(0.0, backward - std::max(0.0, dual.GroupAt(edge.v, group) - dual.GroupAt(edge.u, group)));
+            double forward = edge.w;
+            double backward = edge.w;
+            for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
+            {
+                forward = std::max(0.0, forward - std::max(0.0, dual.GroupAt(edge.u, group) - dual.GroupAt(edge.v, group)));
+                backward = std::max(0.0, backward - std::max(0.0, dual.GroupAt(edge.v, group) - dual.GroupAt(edge.u, group)));
+            }
+            if (std::fabs(residual[Arc(edge, edge.u, edge.v)] - forward) > 1e-10 ||
+                std::fabs(residual[Arc(edge, edge.v, edge.u)] - backward) > 1e-10)
+                throw std::runtime_error(std::string(phase) + " skipped a nonzero arc gradient.");
         }
-        if (std::fabs(residual[Arc(edge, edge.u, edge.v)] - forward) > 1e-10 ||
-            std::fabs(residual[Arc(edge, edge.v, edge.u)] - backward) > 1e-10)
-            throw std::runtime_error("ABHSS potential-cone traversal skipped a nonzero arc gradient.");
+    };
+    CheckResidual("ABHSS potential-cone traversal");
+
+    std::vector<std::vector<double>> before(query.groups.size(), std::vector<double>(graph.n + 1));
+    for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            before[group][vertex] = dual.GroupAt(vertex, group);
+
+    const long long expected_buy = 2LL * graph.m + static_cast<long long>(query.groups.size()) * (2LL * graph.m + graph.n);
+    if (dual.ResidualClosureBuyWork(graph) < expected_buy)
+        throw std::runtime_error("ABHSS residual-closure buy work fell below its static floor.");
+
+    dual.ReleaseResidual();
+    dual.CompleteResidualClosureKeepingResidualAndPrimalEdges(graph, query, distance, initialization.root);
+    for (int group = 0; group < static_cast<int>(query.groups.size()); ++group)
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            if (dual.GroupAt(vertex, group) + 1e-12 < before[group][vertex])
+                throw std::runtime_error("ABHSS residual closure weakened an existing group potential.");
+    CheckResidual("ABHSS residual closure");
+    const double optimum = ExactSubsetDp(graph, query);
+    if (!std::isfinite(dual.PrimalUpper()) || dual.PrimalUpper() + 1e-9 < optimum)
+        throw std::runtime_error("ABHSS residual closure returned an invalid primal upper bound.");
+    if (dual.ResidualClosureBuyWork(graph) != 0)
+        throw std::runtime_error("ABHSS residual closure remained purchasable after completion.");
+}
+/** @brief 尝试把降序组件大小装入指定数量的同容量箱子。 */
+bool CanPackComponents(const std::vector<int>& component, int index, int capacity, int bin_count, std::array<int, 3>& load)
+{
+    if (index == static_cast<int>(component.size()))
+        return true;
+    for (int bin = 0; bin < bin_count; ++bin)
+    {
+        bool symmetric = false;
+        for (int previous = 0; previous < bin; ++previous)
+            symmetric = symmetric || load[previous] == load[bin];
+        if (symmetric || load[bin] + component[index] > capacity)
+            continue;
+        load[bin] += component[index];
+        if (CanPackComponents(component, index + 1, capacity, bin_count, load))
+            return true;
+        load[bin] -= component[index];
+    }
+    return false;
+}
+
+/** @brief 穷举一个总组数的全部整数分拆并记录两箱/三箱反例。 */
+void EnumerateCapacityPartitions(int remaining, int maximum_part, int capacity, std::vector<int>& component, bool& two_bin_failure, bool& three_bin_failure)
+{
+    if (!remaining)
+    {
+        std::array<int, 3> load{};
+        two_bin_failure = two_bin_failure || !CanPackComponents(component, 0, capacity, 2, load);
+        load.fill(0);
+        three_bin_failure = three_bin_failure || !CanPackComponents(component, 0, capacity, 3, load);
+        return;
+    }
+    for (int part = std::min({remaining, maximum_part, capacity}); part >= 1; --part)
+    {
+        component.push_back(part);
+        EnumerateCapacityPartitions(remaining - part, part, capacity, component, two_bin_failure, three_bin_failure);
+        component.pop_back();
     }
 }
+
+/**
+ * @brief 穷举核验触发第三块的两箱容量边界。
+ *
+ * 层计划保证外侧总组数不超过 2r，separator 组件也不超过 r。所有总量
+ * 小于 floor(3r/2)+2 的整数分拆都能装入两个容量 r 的块；达到该边界时
+ * 才首次可能需要第三块，而整个定义域始终可装入三块。
+ */
+void CheckThreeBlockCapacityBoundary()
+{
+    for (int capacity = 1; capacity <= 8; ++capacity)
+    {
+        const int threshold = 3 * capacity / 2 + 2;
+        bool threshold_witnessed = false;
+        for (int total = 1; total <= 2 * capacity; ++total)
+        {
+            std::vector<int> component;
+            bool two_bin_failure = false, three_bin_failure = false;
+            EnumerateCapacityPartitions(total, capacity, capacity, component, two_bin_failure, three_bin_failure);
+            if (total < threshold && two_bin_failure)
+                throw std::runtime_error("ABHSS enabled a third terminal block below the first two-bin obstruction.");
+            if (total == threshold)
+                threshold_witnessed = two_bin_failure;
+            if (three_bin_failure)
+                throw std::runtime_error("ABHSS three-block terminal cannot cover a valid separator partition.");
+        }
+        if (threshold <= 2 * capacity && !threshold_witnessed)
+            throw std::runtime_error("ABHSS two-bin obstruction threshold has no integer-partition witness.");
+    }
+}
+
+/** @brief 独立核验三块 terminal 的 pair-union 最小值因子化不改变预算内候选。 */
+void CheckThreeBlockPairUnionFactorization()
+{
+    std::mt19937 random(0x3B10C5u);
+    constexpr double kInf = std::numeric_limits<double>::infinity();
+    for (int bits = 3; bits <= 10; ++bits)
+    {
+        const int subset_count = 1 << bits;
+        std::vector<int> masks(subset_count - 1);
+        std::iota(masks.begin(), masks.end(), 1);
+        for (int instance = 0; instance < 64; ++instance)
+        {
+            std::shuffle(masks.begin(), masks.end(), random);
+            const int entry_count = std::min(24, subset_count - 1);
+            std::vector<int> entry(masks.begin(), masks.begin() + entry_count);
+            std::vector<double> value(subset_count, kInf);
+            for (int mask : entry)
+                value[mask] = 0.125 * static_cast<double>(1 + random() % 80);
+            const double budget = 2.0 + 0.125 * static_cast<double>(random() % 120);
+            const double minimum_value = *std::min_element(value.begin() + 1, value.end());
+            std::vector<double> direct(subset_count, kInf), factorized(subset_count, kInf), pair_best(subset_count, kInf);
+
+            // 直接枚举互斥三元组，作为与生产实现独立的小组维度 oracle。
+            for (int first = 0; first < entry_count; ++first)
+                for (int second = first + 1; second < entry_count; ++second)
+                {
+                    if (entry[first] & entry[second])
+                        continue;
+                    for (int third = second + 1; third < entry_count; ++third)
+                    {
+                        if ((entry[first] | entry[second]) & entry[third])
+                            continue;
+                        const double candidate = value[entry[first]] + value[entry[second]] + value[entry[third]];
+                        if (candidate <= budget)
+                            direct[entry[first] | entry[second] | entry[third]] = std::min(direct[entry[first] | entry[second] | entry[third]], candidate);
+                    }
+                }
+
+            // 对固定 pair-union 只保留最小两块和，再与任一互斥第三块结合。
+            const double pair_limit = budget - minimum_value;
+            for (int first = 0; first < entry_count; ++first)
+                for (int second = first + 1; second < entry_count; ++second)
+                {
+                    if (entry[first] & entry[second])
+                        continue;
+                    const double candidate = value[entry[first]] + value[entry[second]];
+                    if (candidate <= pair_limit)
+                        pair_best[entry[first] | entry[second]] = std::min(pair_best[entry[first] | entry[second]], candidate);
+                }
+            for (int pair_union = 1; pair_union < subset_count; ++pair_union)
+            {
+                if (!std::isfinite(pair_best[pair_union]))
+                    continue;
+                for (int third : entry)
+                {
+                    if (pair_union & third)
+                        continue;
+                    const double candidate = pair_best[pair_union] + value[third];
+                    if (candidate <= budget)
+                        factorized[pair_union | third] = std::min(factorized[pair_union | third], candidate);
+                }
+            }
+            for (int mask = 1; mask < subset_count; ++mask)
+                if (std::isfinite(direct[mask]) != std::isfinite(factorized[mask]) || (std::isfinite(direct[mask]) && std::fabs(direct[mask] - factorized[mask]) > 1e-12))
+                    throw std::runtime_error("ABHSS pair-union factorization changed a three-block terminal minimum.");
+        }
+    }
+}
+
 }  // namespace
 
-/** @brief 运行入口契约及 g=2..10 的 144 个确定性随机精确性实例。 */
+/** @brief 运行入口契约、层计划不变量及 g=2..10 的确定性随机精确性实例。 */
 int main()
 {
+    CheckThreeBlockCapacityBoundary();
+    CheckThreeBlockPairUnionFactorization();
+
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
     // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
     using gst::methods::abhss::internal::EstimateWitnessTreeDpWork;
@@ -509,9 +677,13 @@ int main()
     gst::methods::abhss::internal::WitnessUpperScheduler scheduler(
         scheduler_problem);
     if (scheduler.BuyWork() != 200 || scheduler.RentWork() != 0 ||
-        scheduler.EvaluationCount() != 0)
+        scheduler.TotalWork() != 0 || scheduler.EvaluationCount() != 0)
         throw std::runtime_error(
             "ABHSS witness scheduler does not start from zero rent.");
+    scheduler.Account(7, false);
+    if (scheduler.TotalWork() != 0)
+        throw std::runtime_error(
+            "ABHSS Base paid residual-closure-only accounting work.");
 
     using gst::methods::abhss::AddedOperation;
     using gst::methods::abhss::Enhancement;
@@ -565,8 +737,12 @@ int main()
         directed_profile.high_layer !=
             HighLayerRealization::ForwardAnchoredA ||
         enhanced_profile.high_layer != HighLayerRealization::AdjointH ||
+        !directed_profile.Adds(AddedOperation::DirectedCutCertificate) ||
+        !directed_profile.Adds(AddedOperation::FacilityUpperBound) ||
+        !directed_profile.Adds(AddedOperation::ResidualCertificateRefresh) ||
         !enhanced_profile.Adds(AddedOperation::DirectedCutCertificate) ||
-        !enhanced_profile.Adds(AddedOperation::FacilityUpperBound))
+        !enhanced_profile.Adds(AddedOperation::FacilityUpperBound) ||
+        !enhanced_profile.Adds(AddedOperation::ResidualCertificateRefresh))
         throw std::runtime_error(
             "ABHSS add-or-replace configuration contract is inconsistent.");
 
@@ -585,17 +761,31 @@ int main()
         const auto enhanced_schedule =
             gst::methods::abhss::MakeAnchoredCompletionSchedule(
                 group_count, enhanced_profile);
+        int expected_enhanced_ordinary = half;
+        bool expected_three_block_terminal = false;
+        if (enhanced_schedule.forward_last_layer < expected_highest)
+        {
+            const int first_high_layer = enhanced_schedule.forward_last_layer + 1;
+            const int terminal_side = group_count - 1 - first_high_layer;
+            expected_enhanced_ordinary = std::max(expected_highest, (terminal_side + 1) / 2);
+            expected_three_block_terminal = expected_enhanced_ordinary < half && terminal_side >= 3 * expected_enhanced_ordinary / 2 + 2;
+        }
         if (base_schedule.highest_layer != expected_highest ||
             base_schedule.forward_last_layer != expected_highest ||
+            base_schedule.ordinary_last_layer != half ||
             base_schedule.uses_adjoint ||
             directed_schedule.highest_layer != expected_highest ||
             directed_schedule.forward_last_layer != expected_highest ||
+            directed_schedule.ordinary_last_layer != half ||
             directed_schedule.uses_adjoint ||
             enhanced_schedule.highest_layer != expected_highest ||
             enhanced_schedule.forward_last_layer !=
                 (expected_highest > 0
                      ? std::max(1, expected_highest / 2)
                      : 0) ||
+            enhanced_schedule.ordinary_last_layer != expected_enhanced_ordinary ||
+            enhanced_schedule.requires_three_block_terminal != expected_three_block_terminal ||
+            half - enhanced_schedule.ordinary_last_layer > 1 ||
             !enhanced_schedule.uses_adjoint ||
             (expected_highest > 0 &&
              (!base_schedule.UsesForwardA(1) ||
@@ -627,7 +817,7 @@ int main()
     CheckDirectedCutResidualAccounting();
 
     std::mt19937 random(0xAB455u);
-    constexpr int kInstances = 144;
+    constexpr int kInstances = 5000;
     std::uint64_t base_state_total = 0;
     std::uint64_t directed_state_total = 0;
     std::uint64_t enhanced_state_total = 0;
@@ -654,9 +844,63 @@ int main()
     if (!base_state_total || !directed_state_total || !enhanced_state_total)
         throw std::runtime_error(
             "an ABHSS configuration never registered a mask-vertex state");
+    for (int instance = 0; instance < 500; ++instance)
+    {
+        const int g = 6 + instance % 5;
+        gst::Graph graph = RandomConnectedGraph(random, g + 2);
+        graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+        for (gst::UndirectedEdge& edge : graph.edges)
+        {
+            if (edge.w == 0.0)
+                edge.w = 0.25;
+            graph.minimum_edge_weight = std::min(graph.minimum_edge_weight, edge.w);
+        }
+        for (std::vector<gst::AdjEdge>& adjacency : graph.adj)
+            for (gst::AdjEdge& edge : adjacency)
+                edge.w = graph.edges[edge.edge_id].w;
+        gst::Query query;
+        query.groups.resize(g);
+        for (int group = 0; group < g; ++group)
+            query.groups[group] = {group + 1};
+        const double expected = ExactSubsetDp(graph, query);
+        const auto answer = gst::methods::abhss::SolveOneQuery(graph, query, enhanced);
+        Check("ABHSS-Enhanced unique terminals", answer, expected, instance);
+    }
+    constexpr std::array<int, 10> kTransposeGroupCounts = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    constexpr int kTransposeInstancesPerGroup = 16;
+    std::array<int, kTransposeGroupCounts.size()> transpose_exercised{};
+    for (int group_index = 0; group_index < static_cast<int>(kTransposeGroupCounts.size()); ++group_index)
+    for (int repetition = 0; repetition < kTransposeInstancesPerGroup; ++repetition)
+    {
+        const int g = kTransposeGroupCounts[group_index];
+        gst::Graph graph = RandomConnectedGraph(random, g + 2);
+        graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+        for (gst::UndirectedEdge& edge : graph.edges)
+        {
+            if (edge.w == 0.0)
+                edge.w = 0.25;
+            graph.minimum_edge_weight = std::min(graph.minimum_edge_weight, edge.w);
+        }
+        for (std::vector<gst::AdjEdge>& adjacency : graph.adj)
+            for (gst::AdjEdge& edge : adjacency)
+                edge.w = graph.edges[edge.edge_id].w;
+        gst::Query query;
+        query.groups.resize(g);
+        for (int group = 0; group < g; ++group)
+            query.groups[group] = {group + 1};
+        const double expected = ExactSubsetDp(graph, query);
+        const auto answer = gst::methods::abhss::SolveOneQuery(graph, query, enhanced);
+        Check("ABHSS-Enhanced omitted-half transpose", answer, expected, group_index * kTransposeInstancesPerGroup + repetition);
+        transpose_exercised[group_index] += answer.mask_vertex_states != 0;
+    }
+    for (int group_index = 0; group_index < static_cast<int>(kTransposeGroupCounts.size()); ++group_index)
+        if (!transpose_exercised[group_index])
+            throw std::runtime_error("ABHSS omitted-half transpose stress panel skipped a group-count state search.");
     std::cout << "ABHSS configurations matched exact subset DP on "
               << kInstances
-              << " deterministic random instances with g=2..10; state totals="
+              << " deterministic random instances with g=2..10, 500 positive unique-terminal stress instances with g=6..10, and "
+              << kTransposeGroupCounts.size() * kTransposeInstancesPerGroup
+              << " omitted-half transpose instances with g=7..16; state totals="
               << base_state_total << '/' << directed_state_total << '/'
               << enhanced_state_total << '\n';
     return 0;

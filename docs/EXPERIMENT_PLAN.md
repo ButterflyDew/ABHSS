@@ -169,6 +169,12 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 使用 2×3 或分面图：每个数据集分别给 `g=6,10,14`，横轴 `f` 使用 2 倍对数刻度。每点报告完成数/5、PAR-2、成对加速比和实际 `f` 范围。不能只展示 `g=14` 或 `f=3200` 的有利区域。
 
+### 5.4 当前远端前置探针与正式 S2 的边界
+
+在正式 150 条 S2 之前，允许运行一个固定且不可扩选的资源探针：每个 `(dataset,g,f)` cell 只取预生成文件中的第 3 条查询，共 30 条/方法；每查询 TL 为 1,000 秒。先完整运行 Enhanced，再以预先声明的规则冻结 Base 与 PrunedDP++ 的共同探针 TL：若 Enhanced 有 timeout，则取 1,000 秒；否则取 `min(1000, ceil(2 * Enhanced 最大完成时间))`。该规则只用于避免探针先消耗数天，不是算法参数，也不得按结果逐 cell 调整。
+
+探针必须单列 `target_f`、实际 `mean_f`、完成/timeout 方向、时间、峰值内存和实际 `(mask,v)` 状态数。它只用于判断正式 S2 的可运行性、识别长尾并检查预期趋势，不能替代每格 5 条、每查询 10,000 秒的正式 S2，不能与 P1/P2 正式主表混算。
+
 ## 6. 工作量与运行次序
 
 | Suite | 角色 | cells/query blocks | 查询 | 运行任务 |
@@ -200,7 +206,7 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 1. 求解器与可行性审计共用的快速数字读取器保留原边、`edge_id`、双向邻接顺序、自环双邻接项、零/小数/科学计数边权和连通分量缓存，并拒绝尾部 token/非法权重。
 2. 查询读取器保留合法多查询与空查询，并拒绝负查询/组计数、空组、截断 payload 和声明记录之后的多余 token。
 3. Base、DirectedCutOnly 和 Enhanced 都通过以四个逻辑组保留的历史零权 witness 父指针环反例；50,000 顶点逆序零权并查集链还必须在不依赖递归栈深度的情况下闭合为 0。
-4. 三个合法配置在 144 个确定性随机连通小图、 $2\le g\le10$ 上逐例匹配独立全子集 DP；显式 $g=2,3$ 非零最优实例要求全部配置在零主状态处共同闭包，directed-cut 固定图还要逐弧复算全部组势梯度与最终 residual；同一测试另覆盖空/单组、重叠零代价、非连通无解、 $g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
+4. 三个合法配置在 5,000 个确定性随机连通小图、 $2\le g\le10$ 上逐例匹配独立全子集 DP；另以 500 个 $6\le g\le10$ 的正权、互异单终端实例压测 Enhanced 高层，并在 $g=7,8,\ldots,16$ 上各运行 16 个正权互异单终端实例，共 160 个 omitted-half transpose 高组压力实例。显式 $g=2,3$ 非零最优实例要求全部配置在零主状态处共同闭包，directed-cut 固定图还要逐弧复算全部组势梯度与最终 residual；同一测试另覆盖 $0\le g\le16$ 的 A/H 职责、ordinary 完整保留到最高逻辑层、半格省略边界和两箱容量决定的三块结构位，并独立穷举当前容量域的两箱首次反例与三箱完备性，以及空/单组、重叠零代价、非连通无解、 $g>16$、未知增强位、非法 adjoint-only 配置和小于 $10^{-9}$ 的严格正 gap。
 5. ABHSS Base/Enhanced 的状态数重复运行稳定；PrunedDP++ Hash 与 Dense 后端报告相同实际状态数；平凡查询报告 0。
 
 然后运行 `S1_steinlib_exactness_gate`。当前冻结证据包含 11 个 $11\le g\le16$ 的 WRP 已知最优实例：ABHSS Base/Enhanced、PrunedDP++-Safe、DPBF 和 SCIP-Jack 已全部匹配；Basic+ 只在其 $g\le14$ 能力范围内参加。当前证据摘要在 [`experiments/correctness_audit.json`](../experiments/correctness_audit.json)。未恢复第三方二进制时可先跑仓库内 gate，但不能因此声称完成了六方 SteinLib 核验。
@@ -338,7 +344,7 @@ SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命
 - [ ] 三种正式计时项使用同一编译环境、timer 边界和 10,000 秒 timeout。
 - [ ] 两个 ABHSS 配置调用同一 `abhss` 可执行文件，开关在查询前冻结，没有 oracle。
 - [ ] Linux `make release` 和 Ubuntu CI 通过；正式服务器的硬件/系统/编译器/IPO 状态已写入运行记录。
-- [ ] 本地五个 CTest、144 随机精确实例、状态计数契约和 SteinLib 已知最优 gate 通过。
+- [ ] 本地全部 CTest、5,000 个随机精确实例、500 个正权互异单终端实例、160 个 $g=7..16$ omitted-half transpose 压力实例、两箱容量边界与三块因子化回归、状态计数契约和 SteinLib 已知最优 gate 通过。
 - [ ] 正式 ABHSS/PrunedDP++ 的每任务 JSON 都含非负 `mask_vertex_states`；汇总没有为 timeout 猜测状态数。
 - [ ] 论文将 `pruneddp_safe` 准确标注为 corrected reconstruction；已决定是否添加 GPU4GST CPU artifact 的适用子集校准列。
 - [ ] 正文不声称当前二进制已输出最优树；若问题定义要求树边集，artifact freeze 前已实现并测试回溯。

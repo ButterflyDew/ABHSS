@@ -56,7 +56,7 @@ void CheckRepeated(const char* label,
  * 测试验证 ABHSS Base/Enhanced 重复运行稳定（强上界在该路径上可使计数
  * 合法为 0）；PrunedDP++ Hash/Dense 后端发现相同状态集合，从而证明统计
  * 的是 present 项而非 Dense 预分配容量；平凡查询必须返回 0。ABHSS 非零
- * 计数路径由 144 个随机精确性实例的累计断言覆盖。
+ * 计数路径由配置精确性测试的 5,000 个随机实例及高组压力实例累计断言覆盖。
  */
 int main()
 {

@@ -53,11 +53,13 @@ bool PrepareWithProbe(Problem& problem, const char* probe_method)
 void BuildOrdinaryWithProbe(Problem& problem,
                             AnchoredSingletonFuture* singleton_future,
                             WitnessUpperScheduler& witness_scheduler,
+                            ResidualClosureScheduler& closure_scheduler,
+                            int last_layer,
                             const char* probe_method)
 {
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "ordinary_start", problem);
-    BuildOrdinaryRows(problem, singleton_future, witness_scheduler);
+    BuildOrdinaryRows(problem, singleton_future, witness_scheduler, closure_scheduler, last_layer);
     EmitAbhssProbe(
         probe_method,
         "ordinary_end",

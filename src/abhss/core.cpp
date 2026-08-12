@@ -1,7 +1,6 @@
 ﻿#include "core.h"
 
 #include <numeric>
-
 #include "diagnostics.h"
 
 namespace gst::methods::abhss::internal
@@ -10,6 +9,7 @@ namespace
 {
 /** 高位表示该 top-two 值来自 cone 外公式，而非 row.value 下标。 */
 constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
+
 
 /**
  * @brief 返回 A1 cone 与正 fallback 共同使用的剩余代价下界。
@@ -20,6 +20,49 @@ constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
 double AnchoredSingletonContinuation(const Problem& p, int vertex, int continuation)
 {
     return std::max(FarthestRemaining(p, vertex, continuation), p.tour.EndpointFloorAt(vertex, continuation, p.group_distance));
+}
+
+/** @brief 任一安全证书严格加强后删除已缓存 row 中不再可能改善 incumbent 的状态。 */
+long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
+{
+    long long removed = 0;
+    for (int mask = 1; mask < p.subset_count; ++mask)
+    {
+        Row& row = p.ordinary[mask];
+        if (!row.ready || row.vertex.empty())
+            continue;
+        const int remaining = p.original_full_mask ^ p.original_mask[mask];
+        std::vector<std::uint64_t> branch_bits((row.vertex.size() + 63) / 64);
+        size_t write = 0;
+        double minimum = fp::kInf;
+        int branch_count = 0;
+        for (size_t read = 0; read < row.vertex.size(); ++read)
+        {
+            const int vertex = row.vertex[read];
+            const double value = row.value[read];
+            if (!(value + FutureBound(p, vertex, remaining) < p.best))
+            {
+                ++removed;
+                continue;
+            }
+            row.vertex[write] = vertex;
+            row.value[write] = value;
+            if ((row.branch_bits[read >> 6] >> (read & 63)) & 1ULL)
+            {
+                branch_bits[write >> 6] |= std::uint64_t{1} << (write & 63);
+                ++branch_count;
+            }
+            minimum = std::min(minimum, value);
+            ++write;
+        }
+        row.vertex.resize(write);
+        row.value.resize(write);
+        branch_bits.resize((write + 63) / 64);
+        row.branch_bits.swap(branch_bits);
+        row.branch_count = branch_count;
+        p.ordinary_minimum[mask] = minimum;
+    }
+    return removed;
 }
 }
 
@@ -45,9 +88,9 @@ long long EstimateWitnessTreeDpWork(size_t witness_vertices,
 WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
     : problem_(problem)
 {
-    buy_ = EstimateWitnessTreeDpWork(
-        problem_.witness_tree.vertex.size(),
-        problem_.nonanchor_count);
+    buy_ = problem_.certificate_support_edges.empty()
+               ? EstimateWitnessTreeDpWork(problem_.witness_tree.vertex.size(), problem_.nonanchor_count)
+               : EstimateCertificateSupportDpWork(problem_.certificate_support_vertex_count, problem_.nonanchor_count);
     enabled_ = buy_ > 0;
     // 诊断构建把共同零起点与 buy 写入事件；正式构建会在编译期消除。
     EmitAbhssProbe(
@@ -77,7 +120,16 @@ bool WitnessUpperScheduler::Account(long long row_work,
 
     const long long paid_rent = rent_;
     const double old_best = problem_.best;
+    ProbeTimer timer;
     Evaluate();
+    if (problem_.best < old_best && ordinary_revision_ > 0)
+    {
+        const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
+        EmitAbhssProbe(ProbeFamilyMethod(problem_), "witness_refilter", problem_, -1.0, &problem_.ordinary, evaluation_count_ + 1, removed);
+    }
+    purchased_rent_ = paid_rent >= std::numeric_limits<long long>::max() - purchased_rent_
+                           ? std::numeric_limits<long long>::max()
+                           : purchased_rent_ + paid_rent;
     rent_ = 0;
     evaluated_revision_ = ordinary_revision_;
     ++evaluation_count_;
@@ -85,11 +137,20 @@ bool WitnessUpperScheduler::Account(long long row_work,
         ProbeFamilyMethod(problem_),
         "witness_buy",
         problem_,
-        -1.0,
+        timer.Seconds(),
         &problem_.ordinary,
         evaluation_count_,
         paid_rent);
     return problem_.best < old_best;
+}
+
+long long WitnessUpperScheduler::TotalWork() const
+{
+    if (!problem_.UsesDirectedCut())
+        return 0;
+    return rent_ >= std::numeric_limits<long long>::max() - purchased_rent_
+               ? std::numeric_limits<long long>::max()
+               : purchased_rent_ + rent_;
 }
 
 long long WitnessUpperScheduler::RemainingRentUntilBuy() const
@@ -101,10 +162,82 @@ long long WitnessUpperScheduler::RemainingRentUntilBuy() const
 
 void WitnessUpperScheduler::Evaluate()
 {
+    if (!problem_.certificate_support_edges.empty())
+    {
+        problem_.best = std::min(problem_.best, EvaluateCertificateSupport(problem_));
+        return;
+    }
     problem_.best = std::min(
         problem_.best,
         EvaluateWitnessTree(
             problem_.witness_tree, problem_, problem_.ordinary));
+}
+
+void WitnessUpperScheduler::RefreshCertificate()
+{
+    buy_ = problem_.certificate_support_edges.empty()
+               ? EstimateWitnessTreeDpWork(problem_.witness_tree.vertex.size(), problem_.nonanchor_count)
+               : EstimateCertificateSupportDpWork(problem_.certificate_support_vertex_count, problem_.nonanchor_count);
+    rent_ = 0;
+    evaluated_revision_ = ordinary_revision_;
+    enabled_ = buy_ > 0;
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "certificate_refresh", problem_, -1.0, &problem_.ordinary, evaluation_count_, buy_);
+}
+
+ResidualClosureScheduler::ResidualClosureScheduler(Problem& problem)
+    : problem_(problem)
+{
+    if (problem_.UsesDirectedCut())
+        buy_ = problem_.dual.ResidualClosureBuyWork(problem_.graph);
+    enabled_ = buy_ > 0;
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_rent_start", problem_, -1.0, nullptr, -1, buy_);
+}
+
+bool ResidualClosureScheduler::Account(long long row_work, long long new_payload)
+{
+    if (!enabled_ || purchased_)
+        return false;
+    if (new_payload >= std::numeric_limits<long long>::max() - payload_)
+        payload_ = std::numeric_limits<long long>::max();
+    else
+        payload_ += new_payload;
+    if (row_work >= std::numeric_limits<long long>::max() - rent_)
+        rent_ = std::numeric_limits<long long>::max();
+    else
+        rent_ += row_work;
+    if (rent_ < buy_)
+        return false;
+    if (payload_ < problem_.graph.n)
+        return false;
+    return Buy();
+}
+
+bool ResidualClosureScheduler::Buy()
+{
+    const long long paid_rent = rent_;
+    ProbeTimer timer;
+    std::vector<std::vector<double>> dense(problem_.g);
+    for (int group = 0; group < problem_.g; ++group)
+        dense[group].swap(problem_.group_distance[group].value);
+    problem_.dual.CompleteResidualClosureKeepingResidualAndPrimalEdges(problem_.graph, problem_.query, dense, problem_.root);
+    for (int group = 0; group < problem_.g; ++group)
+        dense[group].swap(problem_.group_distance[group].value);
+
+    const double primal_upper = problem_.dual.PrimalUpper();
+    problem_.best = std::min(problem_.best, primal_upper);
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_primal", problem_, timer.Seconds(), &problem_.ordinary, -1, paid_rent);
+    ProbeTimer facility_timer;
+    const double facility_upper = BuildPrimalFacilityUpper(problem_, problem_.dual.Residual(), problem_.dual.PrimalEdgeWords());
+    problem_.best = std::min(problem_.best, facility_upper);
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_facility", problem_, facility_timer.Seconds(), &problem_.ordinary, -1, paid_rent);
+    problem_.dual.ReleaseResidual();
+    const bool support_replaced = RefreshPurchasedPathGrowthCertificate(problem_);
+    const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_refilter", problem_, -1.0, &problem_.ordinary, -1, removed);
+    purchased_ = true;
+    enabled_ = false;
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_buy", problem_, timer.Seconds(), &problem_.ordinary, -1, paid_rent);
+    return support_replaced;
 }
 
 double AnchoredSingletonFuture::Value(const Problem& p,
@@ -257,6 +390,7 @@ void BuildReusableAnchoredSingletonLayer(
             ++stamp;
             const int continuation =
                 p.nonanchor_original_mask ^ p.original_mask[mask];
+            // lambda：按 row epoch 缓存公共 A1 对剩余组的 continuation 下界。
             auto Continuation = [&](int vertex)
             {
                 if (continuation_stamp[vertex] != stamp)
@@ -274,6 +408,7 @@ void BuildReusableAnchoredSingletonLayer(
                                 std::greater<QueueNode>> queue;
             long long rent_until_buy =
                 witness_scheduler.RemainingRentUntilBuy();
+            // lambda：以目标组精确距离与锚组距离初始化当前公共 A1 row。
             p.group_distance[group].ForEachExact(
                 p.graph.n, [&](int vertex, double value)
             {
@@ -410,6 +545,7 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
             driver_size = size;
         }
     }
+    // lambda：在同一顶点累加锚组和至多三个 ordinary 块并提交完整候选。
     auto Visit = [&](int vertex)
     {
         double total = p.group_distance[p.anchor_group][vertex];
@@ -437,16 +573,22 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
         use(vertex, total);
     };
     if (driver)
+    {
+        // lambda：由最小 ordinary 候选集驱动三块同根完整候选检查。
         ForEachOrdinaryValue(p, driver, [&](int vertex, double) { Visit(vertex); });
+    }
     else
         for (int vertex = 1; vertex <= p.graph.n; ++vertex)
             Visit(vertex);
 }
+
 }  // namespace
 
 void BuildOrdinaryRows(Problem& p,
                        AnchoredSingletonFuture* singleton_future,
-                       WitnessUpperScheduler& witness_scheduler)
+                       WitnessUpperScheduler& witness_scheduler,
+                       ResidualClosureScheduler& closure_scheduler,
+                       int last_layer)
 {
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
@@ -456,10 +598,9 @@ void BuildOrdinaryRows(Problem& p,
     std::vector<int> touched;
     std::vector<int> settled;
     std::vector<int> seeds;
-
     const int three_block_limit = (p.nonanchor_count + 2) / 3;
 
-    for (int size = 1; size <= p.half; ++size)
+    for (int size = 1; size <= last_layer; ++size)
     {
         long long layer_work = 0;
         for (int mask = 1; mask < p.subset_count; ++mask)
@@ -472,6 +613,7 @@ void BuildOrdinaryRows(Problem& p,
             const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
             const int remaining_nonanchor = p.full_mask ^ mask;
             ++stamp;
+            // lambda：按需缓存 ordinary row 的公共 future 与可选 A1 future 最大值。
             auto Bound = [&](int vertex)
             {
                 if (bound_stamp[vertex] != stamp)
@@ -487,6 +629,7 @@ void BuildOrdinaryRows(Problem& p,
                 return bound_cache[vertex];
             };
 
+            // lambda：按由廉到贵的顺序求可采纳下界，失败即停止后续下界计算。
             auto CanImprove = [&](int vertex, double value)
             {
                 if (bound_stamp[vertex] == stamp)
@@ -495,8 +638,7 @@ void BuildOrdinaryRows(Problem& p,
                 double lower = 0.0;
                 if (p.UsesDirectedCut())
                 {
-                    lower = p.dual.At(vertex, remaining_original);
-                    if (!(value + lower < p.best))
+                    if (!p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower))
                         return false;
                 }
                 lower = std::max(
@@ -519,6 +661,7 @@ void BuildOrdinaryRows(Problem& p,
                 bound_cache[vertex] = lower;
                 return value + lower < p.best;
             };
+            // lambda：仅以更小距离更新仍可能严格改善 incumbent 的 ordinary 标签。
             auto Set = [&](int vertex, double value)
             {
                 if (value >= distance[vertex] || !CanImprove(vertex, value))
@@ -532,6 +675,7 @@ void BuildOrdinaryRows(Problem& p,
             {
                 const int first = mask & -mask;
                 const int second = mask ^ first;
+                // lambda：把两个 singleton 的同根和登记为 size-2 ordinary seed。
                 ForEachCommonValue(p, first, second, [&](int vertex, double a, double b)
                 {
                     Set(vertex, a + b);
@@ -546,6 +690,7 @@ void BuildOrdinaryRows(Problem& p,
                     if (!OrdinaryAvailable(p, accumulator) ||
                         !OrdinaryAvailable(p, branch))
                         continue;
+                    // lambda：把 accumulator 与规范 branch 的同根和登记为 ordinary seed。
                     ForEachPivotBranch(p,
                                        accumulator,
                                        branch,
@@ -559,9 +704,7 @@ void BuildOrdinaryRows(Problem& p,
             seeds = touched;
             for (int vertex : seeds)
                 split[vertex] = distance[vertex];
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
+            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue;
             for (int vertex : touched)
                 queue.push({distance[vertex] + Bound(vertex),
                             distance[vertex], vertex});
@@ -614,6 +757,9 @@ void BuildOrdinaryRows(Problem& p,
 
             layer_work += row_work;
             witness_scheduler.Account(row_work, true);
+            if (closure_scheduler.Account(row_work, static_cast<long long>(row.vertex.size())))
+                witness_scheduler.RefreshCertificate();
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_row", p, -1.0, nullptr, size, row_work);
 
             if (size == p.half)
             {
@@ -621,6 +767,8 @@ void BuildOrdinaryRows(Problem& p,
                 if (OrdinaryAvailable(p, complement) &&
                     (p.popcount[complement] < size ||
                      (p.popcount[complement] == size && complement < mask)))
+                {
+                    // lambda：在平衡半格把互补 ordinary 状态与锚组距离结算为完整上界。
                     ForEachCommonValue(p, mask, complement, [&](int vertex, double a, double b)
                     {
                         if (p.group_distance[p.anchor_group].IsExact(vertex))
@@ -628,6 +776,7 @@ void BuildOrdinaryRows(Problem& p,
                                 p.best,
                                 a + b + p.group_distance[p.anchor_group][vertex]);
                     });
+                }
             }
 
             if (size == three_block_limit)
@@ -640,10 +789,13 @@ void BuildOrdinaryRows(Problem& p,
                         p.popcount[third] <= size &&
                         (!second || OrdinaryAvailable(p, second)) &&
                         (!third || OrdinaryAvailable(p, third)))
+                    {
+                        // lambda：提交三个 ordinary 分块与锚组同根形成的完整候选。
                         ForEachTriple(p, mask, second, third, [&](int, double value)
                         {
                             p.best = std::min(p.best, value);
                         });
+                    }
                     if (!second)
                         break;
                 }
