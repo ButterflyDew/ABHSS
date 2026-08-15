@@ -129,8 +129,8 @@ private:
  *
  * 初始增强预处理只构造截断势并释放 residual；本调度器继承已经发生的公共
  * A1 工作，随后累计 ordinary queue-pop/edge-relax 的真实工作。rent 达到 residual 重建、势补全和 primal
- * 恢复的静态结构成本，且累计 row payload 至少覆盖一个图规模后，一次性重建 residual、增加未支付容量上的
- * 安全势，并在新零弧支撑上复用现有 primal/facility 真实上界。
+ * 恢复的静态结构成本，且累计普通 row payload 已覆盖至少一遍顶点域后，一次性重建 residual、增加
+ * 未支付容量上的安全势，并在新零弧支撑上复用现有 primal/facility 真实上界。
  * A1 内部没有 closure 特有分支；Base 的对象保持禁用，也不维护只供该增强操作使用的累计量。
  */
 class ResidualClosureScheduler
@@ -323,8 +323,7 @@ void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use
         return;
     }
 
-    ForEachRowBranchIntersection(
-        p.ordinary[accumulator], p.ordinary[branch], std::forward<Use>(use));
+    ForEachRowBranchIntersection(p.ordinary[accumulator], p.ordinary[branch], std::forward<Use>(use));
 }
 
 }  // namespace gst::methods::abhss::internal

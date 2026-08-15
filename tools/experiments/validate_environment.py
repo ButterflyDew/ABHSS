@@ -201,13 +201,15 @@ def main() -> int:
         failures.append("P2 must be the frozen six-dataset g=5..16 grid")
     if any(
         int(row["source_queries"]) != 300
-        or int(row["selected_queries"]) != 5
+        or int(row["selected_queries"]) != 10
+        or int(row.get("original_panel_queries", -1)) != 5
+        or int(row.get("additional_queries", -1)) != 5
         or row.get("size_class") != P2_SIZE_CLASSES.get(row["dataset"])
         or int(row.get("candidate_generator_base_seed", -1)) != 2025
         or int(row.get("panel_selection_seed", -1)) != 20260723
         for row in p2
     ):
-        failures.append("P2 source count, size class, seed or five-query rule changed")
+        failures.append("P2 source count, size class, seed or ten-query two-tranche rule changed")
     for row in p2:
         for path_field, hash_field, label in (
             ("source_query_path", "source_query_sha256", "P2 source query"),
@@ -279,9 +281,9 @@ def main() -> int:
         failures.append("P2 must expand to 72 cells")
     if case_counts.get("S2_controlled_gf") != 30:
         failures.append("S2 must expand to 30 cells")
-    if primary_query_tasks != 26_484:
+    if primary_query_tasks != 27_564:
         failures.append(
-            f"primary/secondary performance task total is {primary_query_tasks}, expected 26,484"
+            f"primary/secondary performance task total is {primary_query_tasks}, expected 27,564"
         )
 
     if args.require_binaries or args.require_performance_binaries:
@@ -316,7 +318,7 @@ def main() -> int:
             failures.append(
                 "the 55 audited infeasible MonoGST+ natural queries were changed or dropped"
             )
-        if int(totals.get("unique_query_records", -1)) != 8_840:
+        if int(totals.get("unique_query_records", -1)) != 9_200:
             failures.append("query-feasibility audit query total changed")
 
     for warning in warnings:
@@ -327,7 +329,7 @@ def main() -> int:
         return 1
     print(
         f"Validated {len(cases)} cases and {primary_query_tasks} performance tasks "
-        f"(P1=8,318, P2=360, S2=150 queries across three methods)"
+        f"(P1=8,318, P2=720, S2=150 queries across three methods)"
     )
     return 0
 

@@ -1,5 +1,6 @@
 ﻿#include "core.h"
 
+#include <cmath>
 #include <numeric>
 #include "diagnostics.h"
 
@@ -593,16 +594,40 @@ void BuildOrdinaryRows(Problem& p,
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
     std::vector<double> bound_cache(p.graph.n + 1);
-    std::vector<int> bound_stamp(p.graph.n + 1);
+    // Base 继续使用单一 stamp；开启 DirectedCut 的配置将 row epoch、证书阶段、
+    // exact 诊断位和两个拒绝前沿位打包在一个 32-bit 字中，避免热路径随机访问并行状态数组。
+    std::vector<int> bound_stamp(p.UsesDirectedCut() ? 0 : p.graph.n + 1);
+    std::vector<std::uint32_t> bound_state(p.UsesDirectedCut() ? p.graph.n + 1 : 0);
+    constexpr std::uint32_t kBoundStageMask = 7;
+    constexpr std::uint32_t kBoundExactDual = 8;
+    constexpr std::uint32_t kBoundRejectedSeen = 16;
+    constexpr std::uint32_t kBoundRejectedFrontier = 32;
+    constexpr std::uint32_t kBoundMetadataMask = 63;
     int stamp = 0;
     std::vector<int> touched;
     std::vector<int> settled;
-    std::vector<int> seeds;
+    std::vector<int> rejected;
     const int three_block_limit = (p.nonanchor_count + 2) / 3;
 
     for (int size = 1; size <= last_layer; ++size)
     {
         long long layer_work = 0;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+        long long layer_certificate_calls = 0;
+        long long layer_certificate_cache_rejections = 0;
+        long long layer_dual_evaluations = 0;
+        long long layer_dual_rejections = 0;
+        long long layer_dual_exact = 0;
+        long long layer_farthest_evaluations = 0;
+        long long layer_farthest_rejections = 0;
+        long long layer_a1_evaluations = 0;
+        long long layer_a1_rejections = 0;
+        long long layer_tour_evaluations = 0;
+        long long layer_tour_full_evaluations = 0;
+        long long layer_tour_envelope_skips = 0;
+        long long layer_tour_rejections = 0;
+        long long layer_certificate_passes = 0;
+#endif
         for (int mask = 1; mask < p.subset_count; ++mask)
         {
             if (p.popcount[mask] != size || size == 1)
@@ -610,56 +635,201 @@ void BuildOrdinaryRows(Problem& p,
             long long row_work = 0;
             touched.clear();
             settled.clear();
+            rejected.clear();
             const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
             const int remaining_nonanchor = p.full_mask ^ mask;
+            const bool staged_certificate_cache = p.UsesDirectedCut();
+            bool rejection_frontier_admitted = false;
             ++stamp;
-            // lambda：按需缓存 ordinary row 的公共 future 与可选 A1 future 最大值。
-            auto Bound = [&](int vertex)
-            {
-                if (bound_stamp[vertex] != stamp)
-                {
-                    bound_stamp[vertex] = stamp;
-                    bound_cache[vertex] = FutureBound(p, vertex, remaining_original);
-                    if (singleton_future)
-                        bound_cache[vertex] = std::max(
-                            bound_cache[vertex],
-                            singleton_future->Future(
-                                p, remaining_nonanchor, vertex));
-                }
-                return bound_cache[vertex];
-            };
-
-            // lambda：按由廉到贵的顺序求可采纳下界，失败即停止后续下界计算。
+            const std::uint32_t row_epoch = static_cast<std::uint32_t>(stamp) << 6;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+            long long certificate_cache_rejections = 0;
+            long long exact_dual_cache_rejections = 0;
+#endif
+            // lambda：Base 一次缓存完整公共 future；DirectedCut 配置逐级缓存
+            // 已算出的可采纳下界。每个候选仍用自己的 value 检查缓存证书，
+            // 只有不足以拒绝时才继续计算下一阶段。
             auto CanImprove = [&](int vertex, double value)
             {
-                if (bound_stamp[vertex] == stamp)
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                ++layer_certificate_calls;
+#endif
+                if (!staged_certificate_cache)
+                {
+                    if (bound_stamp[vertex] != stamp)
+                    {
+                        const double farthest = FarthestRemaining(p, vertex, remaining_original);
+                        double lower = farthest;
+                        if (!(value + lower < p.best))
+                            return false;
+                        if (singleton_future)
+                        {
+                            lower = std::max(lower, singleton_future->Future(p, remaining_nonanchor, vertex));
+                            if (!(value + lower < p.best))
+                                return false;
+                        }
+                        bound_stamp[vertex] = stamp;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
+                            ++layer_tour_full_evaluations;
+                        else
+                            ++layer_tour_envelope_skips;
+#endif
+                        if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
+                            lower = std::max(lower, p.tour.At(vertex, remaining_original, p.group_distance));
+                        bound_cache[vertex] = lower;
+                    }
                     return value + bound_cache[vertex] < p.best;
+                }
 
-                double lower = 0.0;
-                if (p.UsesDirectedCut())
+                std::uint32_t state = bound_state[vertex];
+                if ((state & ~kBoundMetadataMask) != row_epoch)
                 {
-                    if (!p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower))
-                        return false;
+                    state = row_epoch;
+                    bound_state[vertex] = state;
+                    bound_cache[vertex] = 0.0;
                 }
-                lower = std::max(
-                    lower, FarthestRemaining(p, vertex, remaining_original));
-                if (!(value + lower < p.best))
+                else if (!(value + bound_cache[vertex] < p.best))
+                {
+                    // row 先用重复缓存拒绝确认前沿值得物化。stage 0 的
+                    // directed-cut interval 尚未完成 exact/upper 判定，因此把
+                    // U-L(v) 修正为按原 double 谓词确实拒绝的首个可表示值；
+                    // 已完成 dual 的阶段仍只保存本次实际拒绝值。
+                    if (state & kBoundRejectedFrontier)
+                        distance[vertex] = value;
+                    else if (distance[vertex] >= fp::kInf)
+                    {
+                        if (rejection_frontier_admitted || (state & kBoundRejectedSeen))
+                        {
+                            rejected.push_back(vertex);
+                            if ((state & kBoundStageMask) == 0)
+                            {
+                                double rejection_cutoff = std::max(0.0, p.best - bound_cache[vertex]);
+                                while (rejection_cutoff + bound_cache[vertex] < p.best)
+                                    rejection_cutoff = std::nextafter(rejection_cutoff, fp::kInf);
+                                distance[vertex] = rejection_cutoff;
+                            }
+                            else
+                                distance[vertex] = value;
+                            bound_state[vertex] = state | kBoundRejectedFrontier;
+                            rejection_frontier_admitted = true;
+                        }
+                        else
+                            bound_state[vertex] = state | kBoundRejectedSeen;
+                    }
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                    ++certificate_cache_rejections;
+                    ++layer_certificate_cache_rejections;
+                    if (state & kBoundExactDual)
+                        ++exact_dual_cache_rejections;
+#endif
                     return false;
-                if (singleton_future)
-                {
-                    lower = std::max(
-                        lower,
-                        singleton_future->Future(
-                            p, remaining_nonanchor, vertex));
-                    if (!(value + lower < p.best))
-                        return false;
                 }
-                lower = std::max(
-                    lower,
-                    p.tour.At(vertex, remaining_original, p.group_distance));
-                bound_stamp[vertex] = stamp;
-                bound_cache[vertex] = lower;
-                return value + lower < p.best;
+
+                double lower = bound_cache[vertex];
+                double farthest = -1.0;
+                if ((state & kBoundStageMask) == 0)
+                {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                    ++layer_dual_evaluations;
+#endif
+                    bool exact_dual = false;
+                    const bool dual_can_improve = p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower, exact_dual);
+                    bound_cache[vertex] = lower;
+                    if (exact_dual)
+                    {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        ++layer_dual_exact;
+#endif
+                        state |= kBoundExactDual;
+                    }
+                    if (!dual_can_improve)
+                    {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        ++layer_dual_rejections;
+#endif
+                        // interval 下端只能拒绝当前标签；只有 exact fallback 已算出时，
+                        // 后续更小标签才能复用同一 dual，严格保持旧状态机。
+                        if (exact_dual)
+                        {
+                            state = (state & ~kBoundStageMask) | 1;
+                            bound_state[vertex] = state;
+                        }
+                        return false;
+                    }
+                    state = (state & ~kBoundStageMask) | 1;
+                    bound_state[vertex] = state;
+                }
+                if ((state & kBoundStageMask) == 1)
+                {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                    ++layer_farthest_evaluations;
+#endif
+                    farthest = FarthestRemaining(p, vertex, remaining_original);
+                    lower = std::max(lower, farthest);
+                    bound_cache[vertex] = lower;
+                    state = (state & ~kBoundStageMask) | 2;
+                    bound_state[vertex] = state;
+                    if (!(value + lower < p.best))
+                    {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        ++layer_farthest_rejections;
+#endif
+                        return false;
+                    }
+                }
+                if ((state & kBoundStageMask) == 2)
+                {
+                    if (singleton_future)
+                    {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        ++layer_a1_evaluations;
+#endif
+                        lower = std::max(lower, singleton_future->Future(p, remaining_nonanchor, vertex));
+                    }
+                    bound_cache[vertex] = lower;
+                    state = (state & ~kBoundStageMask) | 3;
+                    bound_state[vertex] = state;
+                    if (!(value + lower < p.best))
+                    {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                        ++layer_a1_rejections;
+#endif
+                        return false;
+                    }
+                }
+                if ((state & kBoundStageMask) == 3)
+                {
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                    ++layer_tour_evaluations;
+#endif
+                    if (farthest < 0.0)
+                        farthest = FarthestRemaining(p, vertex, remaining_original);
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                    if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
+                        ++layer_tour_full_evaluations;
+                    else
+                        ++layer_tour_envelope_skips;
+#endif
+                    if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
+                        lower = std::max(lower, p.tour.At(vertex, remaining_original, p.group_distance));
+                    bound_cache[vertex] = lower;
+                    state = (state & ~kBoundStageMask) | 4;
+                    bound_state[vertex] = state;
+                }
+                const bool can_improve = value + lower < p.best;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+                if (can_improve)
+                    ++layer_certificate_passes;
+                else if ((state & kBoundStageMask) == 4)
+                    ++layer_tour_rejections;
+#endif
+                if (can_improve && (state & kBoundRejectedFrontier))
+                {
+                    touched.push_back(vertex);
+                    bound_state[vertex] = state & ~kBoundRejectedFrontier;
+                }
+                return can_improve;
             };
             // lambda：仅以更小距离更新仍可能严格改善 incumbent 的 ordinary 标签。
             auto Set = [&](int vertex, double value)
@@ -670,16 +840,29 @@ void BuildOrdinaryRows(Problem& p,
                     touched.push_back(vertex);
                 distance[vertex] = value;
             };
+            // lambda：先只聚合同根拆分的逐顶点最小值；全部拆分结束后再对
+            // 每个顶点运行一次统一证书链，避免被后续更优拆分覆盖的重复求值。
+            auto Gather = [&](int vertex, double value)
+            {
+                if (value >= split[vertex])
+                    return;
+                if (split[vertex] >= fp::kInf)
+                    touched.push_back(vertex);
+                split[vertex] = value;
+            };
 
             if (size == 2)
             {
                 const int first = mask & -mask;
                 const int second = mask ^ first;
-                // lambda：把两个 singleton 的同根和登记为 size-2 ordinary seed。
+                // lambda：size-2 只有唯一规范拆分，直接进入统一证书链；没有
+                // 其他拆分会覆盖该值，不支付先暂存再二次遍历的固定成本。
                 ForEachCommonValue(p, first, second, [&](int vertex, double a, double b)
                 {
                     Set(vertex, a + b);
                 });
+                for (int vertex : touched)
+                    split[vertex] = distance[vertex];
             }
             else
             {
@@ -691,23 +874,37 @@ void BuildOrdinaryRows(Problem& p,
                         !OrdinaryAvailable(p, branch))
                         continue;
                     // lambda：把 accumulator 与规范 branch 的同根和登记为 ordinary seed。
-                    ForEachPivotBranch(p,
-                                       accumulator,
-                                       branch,
-                                       [&](int vertex, double a, double b)
+                    ForEachPivotBranch(p, accumulator, branch, [&](int vertex, double a, double b)
                     {
-                        Set(vertex, a + b);
+                        Gather(vertex, a + b);
                     });
                 }
             }
 
-            seeds = touched;
-            for (int vertex : seeds)
-                split[vertex] = distance[vertex];
-            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue;
+            if (size > 2)
+            {
+                size_t accepted = 0;
+                for (int vertex : touched)
+                {
+                    const double value = split[vertex];
+                    if (CanImprove(vertex, value))
+                    {
+                        distance[vertex] = value;
+                        touched[accepted++] = vertex;
+                    }
+                    else
+                        split[vertex] = fp::kInf;
+                }
+                touched.resize(accepted);
+            }
+            std::vector<QueueNode> initial_queue;
+            initial_queue.reserve(touched.size());
             for (int vertex : touched)
-                queue.push({distance[vertex] + Bound(vertex),
-                            distance[vertex], vertex});
+            {
+                // Set/CanImprove 只有在完整 future 已缓存后才接纳标签。
+                initial_queue.push_back({distance[vertex] + bound_cache[vertex], distance[vertex], vertex});
+            }
+            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue(std::greater<QueueNode>{}, std::move(initial_queue));
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();
@@ -725,7 +922,8 @@ void BuildOrdinaryRows(Problem& p,
                     if (distance[edge.to] >= fp::kInf)
                         touched.push_back(edge.to);
                     distance[edge.to] = next;
-                    queue.push({next + Bound(edge.to), next, edge.to});
+                    // CanImprove 成功时已完成并缓存全部 future 证书。
+                    queue.push({next + bound_cache[edge.to], next, edge.to});
                 }
             }
 
@@ -750,6 +948,25 @@ void BuildOrdinaryRows(Problem& p,
             }
             row.ready = true;
             p.ordinary_minimum[mask] = minimum;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_branch", p, -1.0, nullptr, size, static_cast<long long>(row.branch_count));
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache", p, -1.0, nullptr, size, certificate_cache_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_exact_dual_cache", p, -1.0, nullptr, size, exact_dual_cache_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_calls_row_prefix", p, -1.0, nullptr, size, layer_certificate_calls);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache_rejections_row_prefix", p, -1.0, nullptr, size, layer_certificate_cache_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_evaluations_row_prefix", p, -1.0, nullptr, size, layer_dual_evaluations);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_rejections_row_prefix", p, -1.0, nullptr, size, layer_dual_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_exact_row_prefix", p, -1.0, nullptr, size, layer_dual_exact);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_farthest_evaluations_row_prefix", p, -1.0, nullptr, size, layer_farthest_evaluations);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_farthest_rejections_row_prefix", p, -1.0, nullptr, size, layer_farthest_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_a1_evaluations_row_prefix", p, -1.0, nullptr, size, layer_a1_evaluations);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_a1_rejections_row_prefix", p, -1.0, nullptr, size, layer_a1_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_evaluations_row_prefix", p, -1.0, nullptr, size, layer_tour_evaluations);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_full_evaluations_row_prefix", p, -1.0, nullptr, size, layer_tour_full_evaluations);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_envelope_skips_row_prefix", p, -1.0, nullptr, size, layer_tour_envelope_skips);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_rejections_row_prefix", p, -1.0, nullptr, size, layer_tour_rejections);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_passes_row_prefix", p, -1.0, nullptr, size, layer_certificate_passes);
+#endif
             // 一张 D(mask) 只生成一次。使用 touched 而非 queue pop 数，既
             // 包含已接纳但因 incumbent 收紧而未 settle 的状态，又不重复
             // 统计同一顶点的多次改进或过期队列项。
@@ -801,9 +1018,12 @@ void BuildOrdinaryRows(Problem& p,
                 }
             }
 
-            for (int vertex : seeds)
-                split[vertex] = fp::kInf;
             for (int vertex : touched)
+            {
+                split[vertex] = fp::kInf;
+                distance[vertex] = fp::kInf;
+            }
+            for (int vertex : rejected)
                 distance[vertex] = fp::kInf;
         }
 
@@ -814,6 +1034,22 @@ void BuildOrdinaryRows(Problem& p,
                        &p.ordinary,
                        size,
                        layer_work);
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_calls_layer", p, -1.0, nullptr, size, layer_certificate_calls);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache_rejections_layer", p, -1.0, nullptr, size, layer_certificate_cache_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_evaluations_layer", p, -1.0, nullptr, size, layer_dual_evaluations);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_rejections_layer", p, -1.0, nullptr, size, layer_dual_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_exact_layer", p, -1.0, nullptr, size, layer_dual_exact);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_farthest_evaluations_layer", p, -1.0, nullptr, size, layer_farthest_evaluations);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_farthest_rejections_layer", p, -1.0, nullptr, size, layer_farthest_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_a1_evaluations_layer", p, -1.0, nullptr, size, layer_a1_evaluations);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_a1_rejections_layer", p, -1.0, nullptr, size, layer_a1_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_evaluations_layer", p, -1.0, nullptr, size, layer_tour_evaluations);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_full_evaluations_layer", p, -1.0, nullptr, size, layer_tour_full_evaluations);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_envelope_skips_layer", p, -1.0, nullptr, size, layer_tour_envelope_skips);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_tour_rejections_layer", p, -1.0, nullptr, size, layer_tour_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_passes_layer", p, -1.0, nullptr, size, layer_certificate_passes);
+#endif
     }
 }
 

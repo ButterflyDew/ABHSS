@@ -2,9 +2,10 @@
 """Build the fixed P2 cross-g panel from expanded GPU4GST queries.
 
 Selection is independent of algorithm runtime.  Within every selected
-dataset/g cell, five queries are stratified by rank in log(mean group size),
-then chosen by a stable SHA-256 key.  This protects the compact panel from
-both accidental size imbalance and post-hoc cherry-picking.
+dataset/g cell, candidates are stratified into five rank bins of log(mean
+group size), then chosen by a stable SHA-256 key.  The first selection round
+is the original five-query panel; the second round appends one more query per
+bin without changing the identity or order of queries 1--5.
 """
 
 from __future__ import annotations
@@ -38,7 +39,9 @@ SIZE_CLASS = {
     "GPU4GST_Reddit": "large",
 }
 ALL_G = tuple(range(5, 17))
-QUERIES_PER_CELL = 5
+SIZE_STRATA = 5
+QUERIES_PER_CELL = 10
+ORIGINAL_QUERIES_PER_CELL = 5
 SEED = 20260723
 CANDIDATE_GENERATOR_SEED = 2025
 
@@ -58,6 +61,15 @@ def sha256_file(path: Path) -> str:
         while block := source.read(4 * 1024 * 1024):
             digest.update(block)
     return digest.hexdigest()
+
+
+def manifest_path(path: Path) -> str:
+    """Use repository-relative paths for formal outputs and absolute paths for temporary audits."""
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT).as_posix()
+    except ValueError:
+        return resolved.as_posix()
 
 
 def scan_query_file(path: Path, expected_g: int) -> list[dict[str, object]]:
@@ -104,25 +116,29 @@ def select_stratified(
 ) -> list[dict[str, object]]:
     if count > len(records):
         raise ValueError(f"Cannot select {count} from {len(records)} records")
-    bin_count = min(10, count)
+    if count % SIZE_STRATA:
+        raise ValueError(f"Query count {count} is not divisible by {SIZE_STRATA} strata")
     ranked = sorted(records, key=lambda row: (float(row["log_mean_f"]), int(row["source_query_index"])))
-    bins: list[list[dict[str, object]]] = [[] for _ in range(bin_count)]
+    bins: list[list[dict[str, object]]] = [[] for _ in range(SIZE_STRATA)]
     for rank, record in enumerate(ranked):
-        quantile = min(bin_count - 1, rank * bin_count // len(ranked))
+        quantile = min(SIZE_STRATA - 1, rank * SIZE_STRATA // len(ranked))
         copied = dict(record)
         copied["size_stratum"] = quantile + 1
         bins[quantile].append(copied)
 
-    quota = [count // bin_count + (1 if index < count % bin_count else 0) for index in range(bin_count)]
+    rounds = count // SIZE_STRATA
+    for candidates in bins:
+        candidates.sort(key=lambda row: stable_key(seed, dataset, g, row["source_query_index"], row["mean_f"]))
+        if len(candidates) < rounds:
+            raise ValueError(f"A size stratum in {dataset} g={g} has fewer than {rounds} candidates")
+
     selected: list[dict[str, object]] = []
-    for bin_index, candidates in enumerate(bins):
-        candidates.sort(
-            key=lambda row: stable_key(
-                seed, dataset, g, row["source_query_index"], row["mean_f"]
-            )
-        )
-        selected.extend(candidates[: quota[bin_index]])
-    selected.sort(key=lambda row: int(row["source_query_index"]))
+    for selection_round in range(rounds):
+        tranche = [dict(candidates[selection_round]) for candidates in bins]
+        tranche.sort(key=lambda row: int(row["source_query_index"]))
+        for record in tranche:
+            record["panel_tranche"] = selection_round + 1
+        selected.extend(tranche)
     for panel_index, record in enumerate(selected, 1):
         record["panel_query_index"] = panel_index
         record["selection_key"] = stable_key(
@@ -134,14 +150,12 @@ def select_stratified(
 def copy_selected_queries(
     source: Path, destination: Path, selected: list[dict[str, object]], expected_g: int
 ) -> None:
-    wanted = {int(row["source_query_index"]) for row in selected}
+    selected_indices = [int(row["source_query_index"]) for row in selected]
+    wanted = set(selected_indices)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with source.open("r", encoding="utf-8") as input_file, destination.open(
-        "w", encoding="utf-8", newline="\n"
-    ) as output_file:
+    blocks: dict[int, tuple[str, list[str]]] = {}
+    with source.open("r", encoding="utf-8") as input_file:
         query_count = int(input_file.readline().strip())
-        output_file.write(f"{len(wanted)}\n")
-        copied = 0
         for source_index in range(1, query_count + 1):
             g_line = input_file.readline()
             g = int(g_line.strip())
@@ -149,14 +163,18 @@ def copy_selected_queries(
             if source_index in wanted:
                 if g != expected_g:
                     raise ValueError(f"Unexpected g={g} in {source}")
-                output_file.write(g_line)
-                output_file.writelines(group_lines)
-                copied += 1
-        if copied != len(wanted):
-            raise ValueError(f"Copied {copied}, expected {len(wanted)} from {source}")
+                blocks[source_index] = (g_line, group_lines)
+    if len(blocks) != len(wanted):
+        raise ValueError(f"Copied {len(blocks)}, expected {len(wanted)} from {source}")
+    with destination.open("w", encoding="utf-8", newline="\n") as output_file:
+        output_file.write(f"{len(selected_indices)}\n")
+        for source_index in selected_indices:
+            g_line, group_lines = blocks[source_index]
+            output_file.write(g_line)
+            output_file.writelines(group_lines)
 
 
-def copy_selected_group_ids(source: Path, destination: Path, selected_indices: set[int]) -> None:
+def copy_selected_group_ids(source: Path, destination: Path, selected_indices: list[int]) -> None:
     comments: list[str] = []
     data_lines: list[str] = []
     with source.open("r", encoding="utf-8") as source_file:
@@ -170,9 +188,9 @@ def copy_selected_group_ids(source: Path, destination: Path, selected_indices: s
         output_file.writelines(comments)
         output_file.write(f"# panel_queries={len(selected_indices)}\n")
         output_file.write("# source_query_indices_are_1_based\n")
-        for index, line in enumerate(data_lines, 1):
-            if index in selected_indices:
-                output_file.write(line)
+        by_source_index = {index: line for index, line in enumerate(data_lines, 1)}
+        for index in selected_indices:
+            output_file.write(by_source_index[index])
 
 
 def main() -> int:
@@ -215,7 +233,7 @@ def main() -> int:
             copy_selected_group_ids(
                 group_id_source,
                 group_id_destination,
-                {int(row["source_query_index"]) for row in selected},
+                [int(row["source_query_index"]) for row in selected],
             )
 
             cell_manifest.append(
@@ -224,14 +242,14 @@ def main() -> int:
                     "source_dataset": dataset,
                     "graph_path": f"data/{dataset}",
                     "g": g,
-                    "source_query_path": str(source.relative_to(ROOT)).replace("\\", "/"),
+                    "source_query_path": manifest_path(source),
                     "source_query_sha256": sha256_file(source),
-                    "source_group_ids_path": str(group_id_source.relative_to(ROOT)).replace("\\", "/"),
+                    "source_group_ids_path": manifest_path(group_id_source),
                     "source_group_ids_sha256": sha256_file(group_id_source),
-                    "panel_query_path": str(destination.relative_to(ROOT)).replace("\\", "/"),
+                    "panel_query_path": manifest_path(destination),
                     "panel_query_sha256": sha256_file(destination),
                     "group_ids_path": (
-                        str(group_id_destination.relative_to(ROOT)).replace("\\", "/")
+                        manifest_path(group_id_destination)
                         if group_id_destination.exists()
                         else None
                     ),
@@ -242,12 +260,14 @@ def main() -> int:
                     ),
                     "source_queries": len(records),
                     "selected_queries": len(selected),
+                    "original_panel_queries": ORIGINAL_QUERIES_PER_CELL,
+                    "additional_queries": len(selected) - ORIGINAL_QUERIES_PER_CELL,
                     "size_class": SIZE_CLASS[dataset],
                     "role": "P2_cross_g",
                     "candidate_generator_base_seed": candidate_seed,
                     "candidate_generator_derived_seed": int(generated_by_g[g]["seed"]),
                     "panel_selection_seed": args.seed,
-                    "stratification": "five equal-rank strata of log1p(realized mean group size), one stable-hash query per stratum",
+                    "stratification": "five equal-rank strata of log1p(realized mean group size), two stable-hash queries per stratum in two rounds; round one preserves the original panel",
                 }
             )
             for row in selected:
@@ -270,7 +290,7 @@ def main() -> int:
         json.dumps(query_manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     with (args.output / "selected_queries.csv").open("w", encoding="utf-8", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=list(query_manifest[0]))
+        writer = csv.DictWriter(output, fieldnames=list(query_manifest[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(query_manifest)
     print(f"Built {len(cell_manifest)} cells and {len(query_manifest)} queries under {args.output}")

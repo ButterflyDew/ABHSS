@@ -376,6 +376,14 @@ U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
 
 对每个组子集和一对固定端点，subset DP 预计算访问该子集中每个组一次的最短 Hamilton path。查询顶点 $v$ 与剩余组 mask $R$ 时，把 $v$ 分别接到路径两端；对每个被指定为端点的组取最小，再在端点组上取最大，最后除以 2，得到 $L_{\mathrm{tour}}(v,R)$。证明来自树的倍增：任意从 $v$ 出发覆盖 $R$ 的树，边倍增后存在长度至多两倍树权的闭合遍历；在组度量中 shortcut 并指定任一组作为首个端点不会增长。因此每个 fixed-endpoint 值除以 2 都不超过剩余树代价，最大值仍可采纳。
 
+实现还为每个非 singleton mask 保存“固定起点、终点自由”的最短 Hamilton path 值，并取这些值在起点组上的最大值 $P(R)$。若 $M=L_{\mathrm{far}}(v,R)$，则完整 rooted tour 的每个固定起点项都至多为 $2M+P(R)$，所以
+
+```math
+L_{\mathrm{tour}}(v,R)\le M+\frac{P(R)}{2}.
+```
+
+右侧是完整 tour 求值的常数时间上包络，不是新的剪枝下界。若当前已知的可采纳下界已经不小于该上包络，继续枚举端点不可能改变各证书的最大值，因而可等价跳过 `TourLowerBound::At`。该判断不读取图名、组数阈值、状态量或时间；它只消除结果必定被已有下界支配的求值，队列 key、保留状态和浮点精度均不改变。
+
 ### 6.7 最远组与统一 future
 
 最便宜的 future 是：
@@ -384,13 +392,19 @@ U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
 L_{\mathrm{far}}(v,R)=\max_{i\in R} d_i(v).
 ```
 
-每个顶点缓存全体组中最远组；若该组仍在 $R$ 中可 $O(1)$ 返回，否则扫描 mask。Base 的统一下界为：
+每个顶点只缓存全体组中唯一的最远组；预处理在一次组扫描中用局部最大值同时构造该 argmax，不保存固定深度排名。若该组仍在 $R$ 中可 $O(1)$ 返回，否则严格扫描 $R$。完整势 realization 的 `GroupRow` 已知是 dense，miss 路径直接读连续值数组；bounded realization 仍通过共同布局 oracle 读取 cutoff 证书。D、A、H 都调用同一个 `FarthestRemaining`，所以这只是同一数学 oracle 的布局专门化，不增加空间、不改变并列规则或比较顺序，也不存在经验 top-k 深度。Base 的统一下界为：
 
 ```math
 L_{\mathrm{future}}(v,R)=\max\{L_{\mathrm{far}},L_{\mathrm{tour}}\}.
 ```
 
-开启 `DirectedCut` 后再取 directed-cut 下界 $L_{\mathrm{cut}}$ 的最大值。热路径总是先算便宜证书；一旦 `partial + lower >= U` 即拒绝，不支付更贵证书。最终值按 row epoch 缓存。
+开启 `DirectedCut` 后再取 directed-cut 下界 $L_{\mathrm{cut}}$ 的最大值。Base 的 farthest、公共 A1 与 tour 是一个廉价的 flat realization：首次存活候选把完整 future 写入 row-epoch cache，后续标签直接复用。开启 `DirectedCut` 后，最前面的 dual certified interval 可能在尚未计算后续证书时拒绝当前标签；为复用这种安全早停，DirectedCutOnly 与 Enhanced 采用同职责的 staged realization，把统一 future 拆成 directed-cut、farthest、公共 A1 和 tour 四个单调阶段。每个顶点按 row epoch 记录已经完成到的阶段及其当前最大下界。若某个较大标签在中间阶段被拒绝，后续更小标签先用已缓存下界复查，不足以拒绝时从下一未完成阶段继续，而不是错误地把一次拒绝永久化；只有执行到最后阶段后，缓存才是完整 future。
+
+directed-cut 阶段还区分“安全区间值”和“完整证书值”。residual closure 前，证书按剩余组逐项精确求和；closure 后，代码先用预计算全势减去已覆盖组势，并以非负浮点求和的标准误差界得到一个向下/向上包围区间。区间下端足以拒绝当前标签时，只缓存该可采纳下端，不把阶段标为完成，因为更小标签可能需要更强值。若区间上端已经严格小于当前剩余预算，则当前标签可以放行；若它随后在更强阶段被拒绝，新下界会拦住所有不小于它的标签，若它最终被接纳则真实 `distance` 做同一件事。因此以后还能重新进入尚未完成阶段的标签必然更小，也必然能通过 dual；代码可以用缓存下端作为后续阶段的可采纳起点并结束 dual 判定职责，而不声称下端等于完整势。区间无法判定时才执行逐组 `double` 求和；若这个完整值仍拒绝当前标签，`exact=true` 使代码也能结束 dual 阶段，以后越过缓存拒绝边界的更小标签直接复用同一精确和，不再重复扫描剩余组。closure 前本来就逐组求和，同样返回 `exact=true`。这里复用的是候选无关证书或由缓存/真实距离顺序共同保证的单调放行事实，不是把前一个候选的拒绝结论永久化；没有压缩精度、改变求和顺序或用区间下端冒充 exact 值。两种 realization 的输入都是 `(S,v,value,best)`，输出都是“同一证书最大值是否允许严格改善”；差异由预声明的 DirectedCut 安全新增位唯一决定，不读取图名、组数、时间、内存或 row 统计。
+
+staged realization 还维护一个 row-local 单调拒绝前沿。单次缓存拒绝只登记 `rejected-seen`；同一 row 已经观察到复用后，才把被拒绝标签写入既有 `distance` 工作区并登记 `rejected-frontier`。这是确定性的 break-even：没有第二个消费者时不支付写入与 row 末清理，有复用时才用一次虚拟写入替代后续证书入口；它不读取图名、组数、组大小、状态量或墙钟。虚拟值不入堆、不进入 settled row，也不计为 `(mask, vertex)` 状态。更小标签若通过完整证书链，crossing 分支先把顶点登记到 `touched` 并清除前沿位，再由调用者写入真实距离；row 结束时 `rejected` 列表把未 crossing 的虚拟位置恢复为无穷。
+
+stage 0 表示 directed-cut interval 尚未完成 exact/upper 判定。在该阶段首次物化前沿时，代码不只保存偶然遇到的拒绝标签，而是从 `best - bound_cache[vertex]` 构造解析 cutoff，并用 `nextafter` 向上修正到按原来 `double` 加法顺序确实满足 `!(x + lower < best)` 的首个可表示非负值。浮点加法对非负标签单调，所以不小于 cutoff 的标签都必被原谓词拒绝；上界以后只会下降、缓存下界只会保持或加强，旧 cutoff 至多变弱而不会失效。stage 1--4 已经完成 dual 职责，仍只保存实际拒绝值，避免让 P1 中占主导的普通拒绝支付 eager cutoff 成本。该分类来自证书状态机语义，不是对参数的经验分段。
 
 ### 6.8 预处理顺序为何固定
 
@@ -412,7 +426,7 @@ B(S,v)=\min_{\varnothing\neq T\subsetneq S}\{D(T,v)+D(S\setminus T,v)\},
 D(S,v)=\min_{u\in V}\{B(S,u)+\mathrm{dist}(u,v)\}.
 ```
 
-实现按 $|S|$ 递增，只生成到 $\lfloor g/2\rfloor$。size 2 直接求两个 singleton 的共同精确顶点；更高层固定 mask 的最低 bit 在 accumulator 侧，只枚举不含该 pivot 的 branch，从而消除左右对称和重复拆分。
+实现按 $|S|$ 递增，只生成到层计划要求的 ordinary 边界。size 2 只有一个规范拆分，直接求两个 singleton 的共同精确顶点；更高层固定 mask 的最低 bit 在 accumulator 侧，只枚举不含该 pivot 的 branch，从而消除左右对称和重复拆分。固定 $(S,v)$ 的 future 只依赖最终的 $S$ 与 $v$，不依赖产生 seed 的拆分 $T$。因此高层先精确聚合全部规范拆分的逐顶点最小值 $B(S,v)$，再对每个有限顶点运行一次统一 future；这与逐拆分先筛选再取最小完全等价，却不会为随后被更优拆分覆盖的候选重复求证书。size 2 保留单遍路径，避免为唯一拆分支付二次遍历。
 
 ### 7.2 A* 式稀疏图闭包
 
@@ -447,10 +461,11 @@ for size = 2 .. h:
       split[v] <- min(split[v], D(P,v)+D(B,v))
 
     对每个有限 split seed x at v:
-      lower <- max(farthest, tour, selected ordinary-future realization)
-      仅当 x+lower < best 时放入最短路队列
+      Base 复用完整 flat future；DirectedCut 配置复用 staged future 前缀
+      仅当 x+完整 lower < best 时放入最短路队列
 
-    做非负边权图闭包；每次松弛前再次检查同一可采纳 future
+    对全部初始 seed 线性 heapify，再做非负边权图闭包
+    每次松弛前用该标签自己的值检查当前配置的同职责 future realization
     对 settled 顶点按编号排序、去重，并写入 D(S)
     若 D(S,v) 严格小于 split[v]，设置对应 branch bit
     累计本 row 的首次发现状态
@@ -459,7 +474,7 @@ for size = 2 .. h:
     若 rent 达到 buy 且 ordinary 输入修订已变化，调用共同树 DP
 ```
 
-同根 split 与图闭包刻意分开保存。`split[v]` 用来判断规范 branch，`distance[v]` 是闭包后的精确 rooted 值；若只保留后者，就无法区分“在当前根仍可继续零边拆分”与“必须从别的根经图边到达”的状态。所有临时 dense 数组用 `touched` 或 epoch 恢复，而不是每张 row 清空 $n$ 个位置。
+同根 split 与图闭包刻意分开保存。`split[v]` 用来判断规范 branch，`distance[v]` 是闭包后的精确 rooted 值；若只保留后者，就无法区分“在当前根仍可继续零边拆分”与“必须从别的根经图边到达”的状态。高层聚合时 `touched` 先登记所有有限 split，future 筛选后在原数组内压紧为实际初始标签；被拒绝位置立即把 `split` 恢复为无穷，使它后来若仅由图闭包到达，仍正确分类为 branch。所有临时 dense 数组用这份触及列表或 epoch 恢复，而不是每张 row 清空 $n$ 个位置。
 
 ## 8. 真实 witness 与共同 rent-or-buy 上界
 
@@ -814,7 +829,9 @@ for size = q down to ell+1:
 
 **引理 5（directed-cut future 可采纳）。** 每轮势差只从相应方向的非负 residual 容量扣除，全部组在任一有向弧上的累计收费不超过原容量。截断 cone 外的势值都等于同一个根 cap，所以跳过两端均在 cone 外的边只省略严格为 0 的梯度；稀疏邻接与稠密原边遍历对其余每条边恰好更新一次。任何从当前根连接指定剩余组的树都必须支付这些割势，因此 $L_{\mathrm{cut}}$ 不超过剩余代价。与引理 2 的证书取最大仍安全。
 
-**引理 6（稀疏图闭包精确）。** 对固定 mask，所有同根 seed 都是真实子树之和。Dijkstra 只在 `value + admissible_future < best` 的区域传播；区域外不可能导出严格优于已有上界的完整解。区域内每次松弛使用真实边权，过期队列项只被忽略，故写入 row 的值等于完整 rooted DP 在该安全锥体内的精确值。
+**引理 6（拆分因子化与稀疏图闭包精确）。** 对固定 mask，所有同根 seed 都是真实子树之和。对固定 $(S,v)$，可采纳 future 与规范拆分无关，故先取全部规范 seed 的精确最小值再检查 future，与逐 seed 检查后取最小保留相同的可改善值。Base flat cache 保存完整的 farthest/A1/tour 最大值；DirectedCut staged cache 只保存已经计算出的可采纳下界最大值。这个状态机不假设候选天然按大小到达：若标签 $x$ 在某阶段被当前缓存 $L$ 拒绝，则任何 $y\ge x$ 也被同一比较拒绝，只有满足 $y+L<best$ 的更小标签才会进入下一未完成阶段；若 $x$ 通过当前阶段却在后续阶段被拒绝，后续阶段写回的更强缓存又建立同一不变量；若 $x$ 最终被接纳，真实 `distance` 直接阻止不小于 $x$ 的标签再次进入。特别地，directed-cut 的 certified lower endpoint 只作为已知可采纳前缀；若 upper endpoint 已让当前标签严格通过，所有随后能够越过其余缓存边界的标签都更小，因而也通过 dual，无需再判 dual；若逐组 exact fallback 已求出，则固定 $(S,v)$ 的剩余组 mask 在整张 row 中不变，后续复用和重新逐组求和返回逐位相同的 `double`，无论当前标签通过还是被拒绝都可结束 dual 阶段。因此 staged cache 既不把一次区间下端拒绝永久化，也不会用区间近似替代精确证书。Dijkstra 只在 `value + admissible_future < best` 的区域传播；区域外不可能导出严格优于已有上界的完整解。区域内每次松弛使用真实边权，过期队列项只被忽略，故写入 row 的值等于完整 rooted DP 在该安全锥体内的精确值。初始容器的线性 heapify 与逐项 push 具有同一 `QueueNode` 全序，改变的只是建堆成本。
+
+拒绝前沿也不改变该闭包，而且同样不要求候选按大小到达。固定真实上界与缓存下界时，非负 `double` 加法关于标签单调；stage-0 cutoff 又用原比较式逐位验证为一个已拒绝值，所以无论何时到达，任何不小于它的标签都必被原 `CanImprove` 拒绝。查询过程中 `best` 只会下降，缓存下界只会保持或加强，已经安全的前沿不会失效。虚拟 cutoff 不进入 queue、settled row 或状态计数；只有更小标签通过完整证书链后，crossing 才把同一顶点恢复为普通工作项。因此该前沿等价于省略一批返回值必为 `false` 的候选调用，不删除任何可改善 rooted 状态。
 
 **推论（证书刷新后的重滤安全）。** residual closure 只把引理 5 的容量可行势补全，并把 primal、facility、四元路径及 support DP 的真实可行值写入 `best`。对已物化状态，若新的精确 rooted 值与可采纳 future 之和不小于新的真实上界，则它不存在严格改善 incumbent 的完整扩展。删除该项并同步压紧原 branch 位不会改变剩余项的数值、次序或 branch 定义，也不会删去一个可改善规范拆分类的最后代表。
 
@@ -871,7 +888,7 @@ O\!\left(
 
 其中 $g^4(m+n)$ 保守覆盖 $g(g-1)(g-2)$ 个有序组三元组起点、每个起点至多 $g-1$ 次 tight-edge 路径恢复；公共根路径并集包含在该项内。实际实现受当前真实上界的单调截断，通常不会达到此界。 $\rho$ 相关项来自 facility 支撑图； $s^3+2^g s^2+3^g s$ 分别覆盖 support Floyd、各 mask 的 metric 闭包和规范拆分。若只讨论这些证书之后的主状态搜索，常用简写才是 $O(3^g n+2^g(m+n)\log(n+m))$。这里按当前 `std::priority_queue` 的重复入堆二叉堆实现计每次 push/pop 的 $O(\log(n+m))$，不借用 decrease-key/Fibonacci heap 的 $O(m+n\log n)$ 界；在简单图上该对数项可等价写成 $O(\log n)$，但本实现允许重边。tour 的固定端点表使用 $O(2^g g^2)$ 空间、 $O(2^g g^3)$ 时间；零权 cover 的组维度 DP 为 $O(3^g)$。正权图只额外支付 $O(F\log(F+1))$ 的查询分量聚合；含零权边时才支付保守的 $O((n+m)\log(n+1))$ 路径压缩并查集成本。因为当前 $g\le16$，纯组维度表可控，实际瓶颈通常是图维度 row、闭包以及 Enhanced 的 facility/support 规模；论文不能把它们从最坏界中省略。
 
-输出敏感的最坏空间为 $O(2^g n+gn+2^g g^2+m+\rho^2+s^2+F)$；facility/support DP 的 $O(2^g\rho+2^g s)$ 已被 $\rho,s\le n$ 下的 $O(2^g n)$ 覆盖。Base 的组距离仍可能退化到 $O(gn)$，但通常只保存 cutoff 内精确值；Enhanced 为 directed-cut 明确支付 dense $O(gn)$，并在 facility 与 support 阶段分别临时支付 $O(\rho^2)$、 $O(s^2)$ 度量矩阵。
+输出敏感的最坏空间为 $O(2^g n+gn+2^g g^2+m+\rho^2+s^2+F)$；facility/support DP 的 $O(2^g\rho+2^g s)$ 已被 $\rho,s\le n$ 下的 $O(2^g n)$ 覆盖。Base 的组距离仍可能退化到 $O(gn)$，但通常只保存 cutoff 内精确值；Enhanced 为 directed-cut 明确支付 dense $O(gn)$，并在 facility 与 support 阶段分别临时支付 $O(\rho^2)$、 $O(s^2)$ 度量矩阵。ordinary 的 `distance`、`split`、`bound_cache` 和 Base stamp 各为线性工作区；DirectedCut 配置用一个 32-bit `bound_state` 替代 stamp/stage/exact 并行数组。拒绝前沿复用 `distance`，只让 `rejected` 保存至多 $n$ 个待复位顶点，仍为 $O(n)$ 临时空间；它不增加任何持久 row payload。
 
 逐阶段的保守边界如下：
 
@@ -921,6 +938,8 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 | directed-cut potential cone | 只枚举可能具有非零截断势差的边，并在稀疏/稠密物理遍历中取较少项 | 漏掉一条跨 cone 边会少扣 residual，使势与 primal 支撑不再对应 |
 | dual 构造非内联冷边界 | 隔离一次性 Enhanced 预处理与 Base 热控制流的机器码布局 | IPO 可把未执行的大分支并入 `PrepareProblem`，造成与状态无关的 Base 退化 |
 | epoch/stamp 缓存 | 避免每张 row 清零 $O(n)$ 下界数组 | 大图上清零成本可能超过实际稀疏搜索 |
+| flat/staged future 与单调拒绝前沿 | Base 一次缓存完整公共证书；DirectedCut 配置复用新增 dual 的中途拒绝，并允许较小标签继续尚未计算的阶段；stage 0 只在 row 已证明复用后物化按原谓词验证的解析 cutoff | 强迫 Base 支付无 dual 收益的 stage 热分支会损害小组实验；把区间下端当作 exact、把一次拒绝永久化或让虚拟 cutoff 入堆都会破坏精确性 |
+| 逐顶点 split 聚合与线性 heapify | 先得到精确 $B(S,v)$，再对每个顶点求一次 candidate-independent future，并以同一全序批量建初始堆 | 逐拆分求 future 会重复工作；若聚合跨越图闭包或改变全序则会破坏精确 row/branch 语义 |
 | A1 top-two bit/locator 缓存 | 跨 ordinary row O(1) 复用最大两个 singleton future，保持原 double 值 | 只缓存 bit 会反复二分稀疏 A1；缓存两个 double 则会放大大图 RSS |
 | A1 内核不读取增强位或 dual | 保证 Base/Enhanced 的 seed、cone、fallback 与交接逐项相同；dual 留在 ordinary/adjoint 证书栈 | 在 A1 内接 dual 会产生不同缺项原因和 fallback；强制 Base 也建 dual 又会消解可关闭增强 |
 | 单一零起点 witness scheduler | 两边只代入各自树大小；A1 与 D 连续支付 rent，达到共同 buy 才调用同一树 DP | Base 无条件预买会形成 Base-only 操作；A1 中直接改变 cutoff 而不重启会混合两套 cone 证明 |

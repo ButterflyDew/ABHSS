@@ -35,7 +35,7 @@
 |---|---|---|---|---|
 | MonoGST+ P1 五图与全查询 | *A Practical Sublinear Approximation for Group Steiner Tree* 作者提供的处理后接口；论文已被 VLDB 2026 录用但截至冻结日未公开 | 不重新下载图、不重生成查询；`build_published_workloads.py` 只转为统一文件名并记录 SHA-256 | “使用 MonoGST+ 作者实验接口的字节级冻结” | 论文/数据的公开获取路径和再分发许可仍需作者确认；不能只用公开前作 [GroupSteinerTree artifact](https://github.com/YahuiSun/GroupSteinerTree) 冒充这五个最终输入 |
 | GPU4GST P1 八图与全查询 | [GPU4GST 作者 artifact](https://github.com/toziki/GPU4GST-sigmod) 指向的 OneDrive `.in`/`.g`/CSV 产品 | `prepare_gpu4gst` 保留图边语义，将每个 `g={3,5,7}` CSV 的前 300 行转为统一 query 接口；原文件元数据和哈希在 `data_origin` | “使用作者 artifact 实际发布的成品图与全部登记查询” | GitHub 仓库/数据包未见清晰的仓库级再分发许可；公开 artifact 前应获取许可或只发布下载步骤与哈希 |
-| P2 related-group 扩展 | [Approximating Probabilistic Group Steiner Trees in Graphs](https://www.vldb.org/pvldb/vol16/p343-sun.pdf) 的组共现图、均匀根组、最小可用 BFS 深度和近邻均匀抽样协议 | 在 GPU4GST 作者 `.g` 候选组上用新 seed 生成 300 条/格，再只按实现后平均组大小五分层选 5 条 | “按原论文的 related-group 方法类生成的新扩展 panel” | 原论文/GPU4GST 没有公开能恢复其已发表查询的完整 seed 链；P2 不能写成“原作者查询”或“复现其具体随机样本” |
+| P2 related-group 扩展 | [Approximating Probabilistic Group Steiner Trees in Graphs](https://www.vldb.org/pvldb/vol16/p343-sun.pdf) 的组共现图、均匀根组、最小可用 BFS 深度和近邻均匀抽样协议 | 在 GPU4GST 作者 `.g` 候选组上用新 seed 生成 300 条/格，再只按实现后平均组大小分为五层，以两轮稳定哈希选择每层 2 条；第二轮不改变第一轮的 5 条 | “按原论文的 related-group 方法类生成的新扩展 panel” | 原论文/GPU4GST 没有公开能恢复其已发表查询的完整 seed 链；P2 不能写成“原作者查询”或“复现其具体随机样本” |
 | S2 IMDb | [IMDb 官方 non-commercial datasets](https://developer.imdb.com/non-commercial-datasets/) 在 2026-07-22 取得的每日快照 | 从 `title.basics`、`title.principals`、`name.basics` 构建 title–person 无向单位权二部图，密集重编号并冻结三个 raw hash | “在明确日期的官方 IMDb 快照上做敏感性实验” | 该页面是可变的每日导出且适用 non-commercial 条款；它不是 PrunedDP++ 2016 的历史 IMDb 快照，不得声称复现旧论文绝对数值 |
 | SteinLib 正确性 gate | [SteinLib 官方 test sets](https://steinlib.zib.de/testset.php) 的 WRP3/WRP4 | `convert_steinlib.py` 保留实例与已知最优值映射 | “在公开已知最优实例上做多实现精确性核验” | 只是 correctness panel，不应将其小规模时间当作大图性能结论 |
 
@@ -126,21 +126,44 @@ P2 只使用同一 GPU4GST 作者图族，使图转换、候选组和 related-gr
 2. 均匀选择根组，BFS 到能够提供足够相关组的最小深度，再随机抽取组。
 3. 拒绝没有共同原图连通分量的查询。
 4. 用生成 seed `2025` 固定产生 300 条候选；只用输入侧 `log1p(realized mean group size)` 排序。
-5. 分成五个等秩层，每层按 panel seed `20260723` 的稳定 SHA-256 key 选一条。
+5. 分成五个等秩层，每层按 panel seed `20260723` 的稳定 SHA-256 key 排序；第一轮每层选第一名构成原 q1--q5，第二轮每层选第二名并追加为 q6--q10。第二轮不改变第一轮的查询身份和顺序。
 
-因此每图 12 cells、60 条，六图共 72 cells、360 条。五条/格用于画趋势和完成率，不宣称能给出很窄的单格置信区间。逐条选择索引、组大小、group ID、seed 和哈希均保存在 `experiment_data/p2_cross_g`。
+因此每图 12 cells、120 条，六图共 72 cells、720 条。十条/格用于画趋势和完成率；原五条形成 tranche 1，追加五条形成 tranche 2，既可合并报告，也能单独核验追加样本没有推翻原趋势。逐条 tranche、选择索引、组大小、group ID、seed 和哈希均保存在 `experiment_data/p2_cross_g`。
 
 ### 4.3 报告
 
 每图画一条随 `g` 变化的曲线，至少同时展示：
 
-- 完成数/5；
+- 完成数/10，并同时保留 tranche 1 与 tranche 2 各自的完成数/5；
 - PAR-2；
 - 双方都完成时的成对加速比；
 - `baseline timeout / ABHSS solved` 与反方向数量；
 - 实际平均组大小范围，防止把 `f` 的随机变化误解为纯 `g` 效应。
 
 P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六图平均后的单一倍率。小图必须保留，即使 ABHSS 固定成本导致轻微劣势。
+
+### 4.4 Orkut `g=15` 扩样与 10,000 秒可运行性门
+
+追加 q6--q10 后，提交 `589894be3774ff6658e1120f9a9e899a53377ab1` 的正式 Enhanced 首轮只完成 q6--q9，q10 在 10,000 秒内没有结果行。该失败只作为优化动机；查询没有被删除，TL 没有延长，也没有按 `mean_f`、图名或状态量增加开关。
+
+完成输入无关的证书因子化、打包 staged cache、tour 支配跳过、最远组 oracle 等价快路和单调拒绝前沿后，最终 Release 二进制 SHA-256 为 `a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86`。两枚 runner 分别固定在不同物理核和本地 NUMA 节点，每个查询仍为单线程；下表十条均由该同一二进制直接完成，查询秒数不含图加载。
+
+| 查询 | tranche | size stratum | 实际 `mean_f` | 秒 | 查询峰值 MiB | `(mask,v)` states | 精确值 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| q1 | 1 | 3 | 430.067 | 2,270.862 | 3,270.934 | 105,902,192 | 21 |
+| q2 | 1 | 5 | 980.733 | 2,523.204 | 3,609.332 | 261,581,592 | 32 |
+| q3 | 1 | 4 | 587.000 | 281.276 | 2,690.473 | 31,051,638 | 38 |
+| q4 | 1 | 1 | 249.733 | 315.548 | 2,995.387 | 15,061,435 | 28 |
+| q5 | 1 | 2 | 343.067 | 4,568.638 | 7,130.719 | 560,869,444 | 32 |
+| q6 | 2 | 2 | 338.867 | 3,847.348 | 6,019.355 | 452,486,374 | 36 |
+| q7 | 2 | 4 | 662.667 | 3,451.310 | 4,815.082 | 364,962,795 | 38 |
+| q8 | 2 | 3 | 464.400 | 204.234 | 2,690.305 | 366,330 | 18 |
+| q9 | 2 | 5 | 685.067 | 1,465.794 | 3,538.766 | 135,705,582 | 35 |
+| q10 | 2 | 1 | 309.800 | 9,934.603 | 19,776.727 | 1,654,690,262 | 54 |
+
+十条总查询时间为 28,862.817 秒、总状态数为 3,582,677,644；最慢的 q10 仍以约 65.4 秒余量严格通过 10,000 秒门。q1--q9 的权值和状态与冻结同查询结果逐条一致；旧候选没有 q10 的完整轨迹，因此 q10 不虚构历史状态对照，其正确性由同一源码的独立精确门、证明和共同 row 诊断支持。
+
+`mean_f` 仍不是难度的单调解释变量：q10 属于最低 size stratum，却远慢于组更大的 q8；因此不能按平均组大小删除 q10 或设置经验超参数。该表是正式 P2 前的可运行性与不退化门，不替代三方法正式矩阵。正式重跑仍对每条查询使用固定 10,000 秒，并以冻结机器、commit 和结果行为准；若计时波动使 q10 timeout，应如实计入完成率/PAR-2，不能延长该条 TL。失败方向只保留在 `docs/archive`，没有进入正式求解器。
 
 ## 5. 副实验： $\langle g,f\rangle$ 受控敏感性
 
@@ -181,16 +204,16 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 |---|---|---:|---:|---:|
 | `P1_monogstplus_published` | 主 1 | 5 | 1,118 | 3,354 |
 | `P1_gpu4gst_published` | 主 1 | 24 | 7,200 | 21,600 |
-| `P2_cross_g` | 主 2 | 72 | 360 | 1,080 |
+| `P2_cross_g` | 主 2 | 72 | 720 | 2,160 |
 | `S2_controlled_gf` | 副 | 30 | 150 | 450 |
-| 合计 | 性能 | 131 | 8,828 | 26,484 |
+| 合计 | 性能 | 131 | 9,188 | 27,564 |
 
 建议顺序：正确性 gate → P1 小图和 Mono 自然图 → P2 → S2 → P1 大图长任务。P1 是全询问承诺，不能因为后半段成本高而只发表先完成的图。所有长任务使用固定 case sharding 和同一 run directory 断点续跑。
 
 ## 7. 统计、图表与 claim guardrails
 
 - P1 的主要量是数据集级总工作量，不对 13 图按查询数再次加权成一个“总体平均倍率”。
-- P2/S2 的五条/格先报告原始分母和 timeout 方向；共同完成的 geomean speedup 不能代表 timeout 查询。
+- P2 的十条/格与 S2 的五条/格均先报告原始分母和 timeout 方向；共同完成的 geomean speedup 不能代表 timeout 查询。P2 还保留 tranche 字段，必要时可分别报告原 q1--q5 与追加 q6--q10，检查扩样是否改变结论。
 - 同时保留 query-weighted 与 dataset-equal-weight 的补充汇总，但正文结论以逐图/逐层趋势为主。
 - 任何目标值或 feasibility 不一致都会冻结相应性能结论。
 - 不比较不同完成子集的平均时间。
@@ -333,7 +356,7 @@ SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命
 
 ### 查询
 
-- [ ] P2 是六图、`g=5..16`、5 条/格，共 360 条。
+- [ ] P2 是六图、`g=5..16`、10 条/格，共 720 条；q1--q5 与原 panel 一致，q6--q10 是五个原 size strata 各追加一条。
 - [ ] P2 选择只使用输入组大小与固定哈希，不读取任何 solver 结果。
 - [ ] S2 是两图、3 个 `g`、5 个 `f`、5 条/格，共 150 条。
 - [ ] S2 未把实际平均组大小强制调成目标 `f`。

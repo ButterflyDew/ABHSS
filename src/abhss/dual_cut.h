@@ -103,8 +103,9 @@ public:
      * 求和的标准 gamma 误差界向下修正，保证返回值不超过直接剩余组和。
      * 未转置时退化为原来的剩余 mask 直接求和。
      */
-    bool CanImproveAllExcept(int vertex, int excluded_mask, double value, double incumbent, double& lower) const
+    bool CanImproveAllExcept(int vertex, int excluded_mask, double value, double incumbent, double& lower, bool& exact) const
     {
+        exact = false;
         if (!vertex_potential_.empty())
         {
             const int original_excluded_mask = excluded_mask;
@@ -130,10 +131,12 @@ public:
             if (value + upper < incumbent)
                 return true;
             lower = At(vertex, ((1 << potential_group_count_) - 1) ^ original_excluded_mask);
+            exact = true;
             return value + lower < incumbent;
         }
         const int group_count = static_cast<int>(potential_.size());
         lower = At(vertex, ((1 << group_count) - 1) ^ excluded_mask);
+        exact = true;
         return value + lower < incumbent;
     }
 

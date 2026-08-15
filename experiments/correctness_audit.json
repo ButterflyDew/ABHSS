@@ -1,12 +1,12 @@
 {
-  "schema_version": 6,
-  "audited_at": "2026-08-02",
+  "schema_version": 7,
+  "audited_at": "2026-08-15",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
     "zero_weight_witness": "PASS: base, directed-cut-only and enhanced all return 1",
-    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 144 deterministic random connected instances with g=2..10; the same gate validates the common distance-root initialization triple, bounded/complete value/IsExact relation and disconnected canonical-terminal fallback, strict common A1 in every profile, the remaining add-or-replace ConfigurationProfile, exact values of the common witness buy formula, scheduler initialization at rent=0/evaluation_count=0, rejects unknown enhancement bits, and checks exact one-realization coverage of every required anchored layer for group counts 0..16; cumulative discovered-state totals are base=2815, directed-cut-only=913, enhanced=913",
+    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 5000 deterministic random connected instances with g=2..10, 500 positive unique-terminal stress instances with g=6..10, and 160 omitted-half transpose instances with g=7..16; the same gate validates the common distance-root initialization triple, bounded/complete value/IsExact relation and disconnected canonical-terminal fallback, strict common A1 in every profile, the remaining add-or-replace ConfigurationProfile, exact values of the common witness buy formula, scheduler initialization at rent=0/evaluation_count=0, rejects unknown enhancement bits, and checks exact one-realization coverage of every required anchored layer for group counts 0..16; cumulative discovered-state totals are base=103878, directed-cut-only=31982, enhanced=28064",
     "mask_vertex_state_accounting": "PASS: ABHSS Base/Enhanced counts are deterministic across repeated runs, PrunedDP++ Hash/Dense report the same present-entry count, and trivial queries report zero",
     "query_prelude_contracts": "PASS: empty, singleton, overlapping-zero, disconnected-infeasible, out-of-range vertex and g>16 cases have the declared behavior",
     "strict_bound_closure": "PASS: a 5e-10 positive upper/lower gap is not misclassified as exact closure",
@@ -23,11 +23,12 @@
     "result": "PASS"
   },
   "repository_consistency_audit": {
-    "current_release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
-    "github_markdown": "PASS: all 19 tracked Markdown files are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
-    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 26,484 performance tasks (P1=8,318, P2=360, S2=150 queries across three methods)",
+    "current_release_binary_sha256": "a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86",
+    "github_markdown": "PASS: all 81 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
+    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 27,564 performance tasks (P1=8,318, P2=720, S2=150 queries across three methods)",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
-    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common-A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, recurrence-derived A/H schedule, output fields, timeout, workload counts and source limitations as the code and machine manifests"
+    "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 72 cells and 720 queries in a temporary directory; every query, group-id, selected-query JSON/CSV file was byte-identical, and cells.json was identical after removing only the two output-location fields",
+    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common-A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, recurrence-derived A/H schedule, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts and source limitations as the code and machine manifests"
   },
   "configuration_inclusion_clarification_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#inclusion_clarification_gate_20260724",
@@ -121,9 +122,9 @@
   },
   "endpoint_floor_a1_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#endpoint_floor_a1_gate_20260802",
-    "status": "CURRENT",
+    "status": "ACTIVE prerequisite; extended by monotone_certificate_frontier_gate_20260815",
     "contract": "all legal configurations use the same max(farthest, endpoint-floor) A1 continuation, cone, positive fallback, row representation and ownership transfer, without configuration, graph-name or empirical group-count branches",
-    "current_release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+    "current_release_binary_sha256": "a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86",
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
     "youtube_p1_candidate_queries": 1800,
@@ -132,6 +133,54 @@
     "objective_mismatches": 0,
     "candidate_timeout_regressions": 0,
     "youtube_p1_target": "PASS: Base 2953.211649 seconds versus PrunedDP++ 3004.472131 seconds",
+    "result": "PASS"
+  },
+  "monotone_certificate_frontier_gate": {
+    "evidence": "docs/archive/MONOTONE_CERTIFICATE_FRONTIER_PROBE_20260815.md",
+    "status": "CURRENT",
+    "contract": "DirectedCut configurations factor candidate-independent future certificates into monotone stages and lazily materialize a row-local rejection frontier only after observed reuse; stage 0 derives a cutoff with the unchanged binary64 predicate, virtual values never enter the queue, settled row or state count, and Base remains on its flat same-role realization",
+    "final_binary_sha256": "a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86",
+    "compile_policy": "Release GCC flags end in -O2 with LTO, warnings enabled and no fast-math or floating-point precision change",
+    "local_ctest": "5/5 PASS",
+    "independent_exactness": "PASS: 5000 deterministic random connected cases g=2..10, 500 positive unique-terminal stress cases g=6..10 and 160 omitted-half transpose cases g=7..16; cumulative discovered states base=103878, directed-cut-only=31982, enhanced=28064",
+    "theoretical_audit": "PASS: admissible cached lower bounds are monotone, every analytical cutoff is checked by the original strict double predicate, incumbent upper bounds only decrease, no candidate-arrival ordering is assumed, crossing restores a real work item before insertion, and rejected/touched cleanup prevents row leakage",
+    "youtube_p1_enhanced": {
+      "queries": 300,
+      "candidate_seconds": 2107.962622,
+      "candidate_peak_rss_mib": 218.477,
+      "candidate_states": 67570613,
+      "answer_mismatches": 0,
+      "state_mismatches": 0,
+      "historical_seconds": [2117.447315, 2119.582756]
+    },
+    "youtube_p1_base": {
+      "queries": 300,
+      "candidate_seconds": 1859.266165,
+      "candidate_peak_rss_mib": 122.453,
+      "candidate_states": 74359677,
+      "same_cpu_frozen_seconds": 1876.587816,
+      "same_cpu_frozen_peak_rss_mib": 128.586,
+      "answer_mismatches": 0,
+      "state_mismatches": 0
+    },
+    "orkut_g15": {
+      "query_panel_sha256": "715ee781b2c2c189682a332eac7ed9b5c5f2c0e0bd4d7323205b4e65dab0f83c",
+      "queries": 10,
+      "query_seconds": [2270.861729, 2523.203538, 281.276293, 315.547937, 4568.638367, 3847.347995, 3451.310315, 204.234148, 1465.793602, 9934.602789],
+      "weights": [21, 32, 38, 28, 32, 36, 38, 18, 35, 54],
+      "peak_rss_mib": [3270.934, 3609.332, 2690.473, 2995.387, 7130.719, 6019.355, 4815.082, 2690.305, 3538.766, 19776.727],
+      "states": [105902192, 261581592, 31051638, 15061435, 560869444, 452486374, 364962795, 366330, 135705582, 1654690262],
+      "completed_with_query_seconds_below_10000": 10,
+      "maximum_query": 10,
+      "maximum_query_seconds": 9934.602789,
+      "sum_query_seconds": 28862.816713,
+      "maximum_peak_rss_mib": 19776.727,
+      "total_states": 3582677644,
+      "q1_q9_answer_mismatches": 0,
+      "q1_q9_state_mismatches": 0,
+      "q10_full_historical_comparator": "unavailable because every frozen predecessor timed out; correctness relies on the exact gates, proof and identical common-row diagnostics rather than a fabricated full trajectory"
+    },
+    "timeout_or_feasibility_regressions": 0,
     "result": "PASS"
   },
   "known_optimum_panel": {

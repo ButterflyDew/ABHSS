@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-23T13:29:24.763168+00:00",
+  "generated_at": "2026-08-12T03:46:07.938987+00:00",
   "scope": "all unique graph/query-file pairs referenced by paper_matrix.json",
   "policy": "retain and run infeasible queries present in the exact published P1 workload; require every generated P2/S2 and correctness-gate query to be feasible",
   "matrix_path": "experiments/paper_matrix.json",
   "matrix_sha256": "aed5db1ed83d134f5882f4c9d4544bf26549e9ee5a5392d74c3066b96c273162",
-  "audit_executable": "build/audit_query_feasibility.exe",
+  "audit_executable": "build/audit_query_feasibility",
   "totals": {
     "graphs": 26,
     "query_files": 143,
-    "unique_query_records": 8840,
-    "feasible": 8785,
+    "unique_query_records": 9200,
+    "feasible": 9145,
     "infeasible": 55,
     "published_workload_infeasible_retained": 55,
     "generated_or_gate_infeasible": 0
@@ -260,123 +260,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "16df4e2286c19e09f75151c99b565a06cb0da0cbc89942a315d16c39c736701b"
+          "sha256": "76e9f4a5d3e186c507a5c72cf07447b79d52794d55c48bdb9cddea1742bbe5fb"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "5c548545883d16b5e2109c1caad48f3c290dfa0dfb89a0437e9c3b189f5caba4"
+          "sha256": "bbb812ba4df885bd2a93a77c450fff12f3ee415de775a2176b1c01ba880c648e"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "64dd932e0210ae30df4f75d65a8a592fd088709edb7ce3698040a72e5d7a39c7"
+          "sha256": "04feab6a44c7fb78f662f934c965b5541c1d85f8a7e4152941eb6cc6f9531c5b"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "29828e2cd0e7a0ad425311b5a8a200ca7957625315de78b5c9059be96a9d19fc"
+          "sha256": "870e8aadc05242fd2fe339b76d49a44889216394a87c9c5fefa7fdfed8cce814"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "378a7ad372eaf503b07ca6884eceea3cb30e37463fe355df85be43937e043ecd"
+          "sha256": "6a8a4873f8b28c62425c5d8b0cd1fecd0b54f61eaa52490eb286e44db2f2f797"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "3a740c557f5037b20a2e0aeebd31534354a77622a3db488284d18e99692c72b2"
+          "sha256": "b5b5ef8b8a5cc93eea668320bd9aae1fde43ccf54128c9a13d529bce63d9cb05"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "15a65b769e62bff4021bdb36826fa63d6fecddd23256908aed24d27106a8362d"
+          "sha256": "541ccf593b5d37fb5db584fb0446dd13e010225d9d8da3494ad50285a201c4ab"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "a9db3ae6310076dc94a7db9cf21ed09f3062a27788356199d46b18c63989b3e7"
+          "sha256": "a746011ecdbd246964621de27f8183d9714c5338a7f404226e28fcb8a28c1289"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "36d814212ce297466aa863ea765eac0b2d4846ac96a4ed31b70ae881e6cb8b0f"
+          "sha256": "fd8ced5ee42f376e8711755c71e2a5e8e29839f4f16db426567f7140da5da14d"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "6fd652c56dfb5c5fbcd9b0de0a37ea5215bcef23e4620c8b423ebf69dfcbe991"
+          "sha256": "70744831ec8be3b6b00817f94aafd74ddd288378e85fb7cca3224fe5f8c00293"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "a4fa937887ac6973e2da386af31f7190a9b437d2db1afe6c003b8da6b029f00d"
+          "sha256": "7d42f2362d60f1a48854e7388553dd444028b73875065ece83a499b5b7e4540f"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_DBLP/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "d6c3695a6958be1d1096f39d1676544fb0b8efe68f410bfe2ad5acdd48e8dca0"
+          "sha256": "88bc89deee190ea55c5e23dfaeb717b7eb535bf010d8d663595d669ab2d4a0c8"
         }
       ],
       "graph_sha256": "841ddb99c7be2d65c9a629cd7c014883e8f24ca177e996e1efa221266629a82e",
@@ -506,123 +506,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "cce7d24be2353e3703e8de1f044b54bcdfac05140369cc228ee1075ca5e4f5d9"
+          "sha256": "708db69f3f4a0c999324dd56fc329ff92057a6388f66bba3ebb442b073a96cf2"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "3a86ad2ecb7072db64d999a2b0bc5076ebb8334eb52d554d224e53778302cbd7"
+          "sha256": "304b2767f52bd1d307f5c62608ac565f7e49ffff6e2728fea54a20f56895e99e"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "5e39310ed1b32525b4e3d67c6db6c05fc153b41866ec97bdf2afe122fa238e3f"
+          "sha256": "0f08b357457ed568df1b75ad66fc2148a84ea72eeb7ad64c4c647ab0253da713"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "518e62ef0a314ba315856d03849955fb7e6f59859cdce4d37d8b9191d728f3d4"
+          "sha256": "cd9b909c18a6223827624c06f3330fb0fd24274e93d89c703bdcb36971bf3845"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "7da2fcacc60c1a2a59cebf68d987b8b5868c2ed7ba2bbe289eb467c743db2d10"
+          "sha256": "316cd8b3c67ca0d21161def48b0bad60f2fe36b250d88ef86672170dcb8cb407"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "1db139a8762c13093ac4375dc144ed96753870e41c1f65f2866b6a0d7f4a3c51"
+          "sha256": "3be7f47fe21f3475cf3b8cdc20857e06a00a3774e78a179233ef80bc0c5a1f8f"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "332fc0065326ac5deb5fdb345c48d3bd7a6d13fd36305b1b0973f1ef512fb341"
+          "sha256": "0489fa7b59ed53daf5ce625bb0a180bc4f575ff1fa6dcf77ceeee689594edc08"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "23c193ebd16f020cf56ae753cefc4dc4ee3247ac7fd7e107c76aa6714e406b81"
+          "sha256": "8c929173f036fb085750b58798fc0cb6fa8401c0ce1a56702d3d8d3f31d2b9ad"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "12f4f1c0448e3783865186532d46e6b96ea5edb7ec5658fd6830db1fa5ba83d0"
+          "sha256": "374c587bdb8a80a721a841f256af78763d95a575d6f373cc353975948f54ff7f"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "a4c83273bc6de09624439f7e5c78ce85e8020ef3d4550feb44c58867f27732b3"
+          "sha256": "f63f30bf7e1c7514b0799793aebee74c2d302255cf44082d0e07988b34b0e90b"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "02cd991d1a9864d3d64fe666db1c0f10c2af1ef52a01fef2786447e72f214255"
+          "sha256": "b265bdfd44a2559e1327b8f5389b0d1fb27cf579ad16cf87fd5a9f38899f12f6"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "2dcc12afe39bc184504688540e9f9ab11738b960a70733d3da295e584bc4e4d1"
+          "sha256": "dbb34cc8bd39550b0f1572d1230306b2c6d48485f2e358205164b916a6af4232"
         }
       ],
       "graph_sha256": "291b2a6da265bdb008840f8cd906eaa5f00d3ab414d75b5bf4dfe7ecd33b8770",
@@ -668,123 +668,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "93fd91ba8866739816608f1283bc443e0426474d77a7b16ed1ba301a08fe8d54"
+          "sha256": "a60d51ce55c21f9f84be780fe37663be576a4ef5298d41422beaac56497a9e5a"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "c9e3dca512323e25e79e76ccb04b86d8cffe2e00d86af4f8b5e08157f3229ffa"
+          "sha256": "cebe161fc273d98540739e5e99e0fe28cd29dfeacb9e8e0db7d8ca4ed2d9bb88"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "e1f28c0a733ad3b34cc56d6d72bbed1b566de60a7a6385e1d80751be1f20828b"
+          "sha256": "1727bc011333f77d0a0a2ded6f41912a5d2f51cb26fa7a9c24dea199341ce34b"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "633af61976d63714875eb86e466ee2b61f4823eb20b7fd8256cec09ee0b306dc"
+          "sha256": "299b567c954d5b13968b4c87dfb15b95ee7385a3a29d6e4d25e47a218ee0097a"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "105ab32589011efc71aed5f0c0aca61704e4bded73dc17953898725673d350a6"
+          "sha256": "bb3aae5b172b4d5ae68d44aefb7ce73e8b589654db679c4d59040450fe857bf5"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "c18b7f3aff56b60a884beeb28a4614c0a871ec53a6418af7e786e7be4ce9f218"
+          "sha256": "715ee781b2c2c189682a332eac7ed9b5c5f2c0e0bd4d7323205b4e65dab0f83c"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "e18250edb68dee2214ccf6eba39dd573d7e7de7099c23bf4ab50f24b75cba5ce"
+          "sha256": "1408a4c8f275ec03a80e224f2e4d663d4ed42815e1dd9a2333ecf97b219d900f"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "06429043a2923517c85811c7f4f637cf59dcccb2f882741a09977028ed0a1417"
+          "sha256": "e895d9261e01241ced4064041d90ae2d9cc1d1eba0bbc7eb07d28263f77fa256"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "6ad223cf54860e634d42463d1d34650b02b573b3c3468ffbf6fa620ea286c2b5"
+          "sha256": "ce838640d9698d5c08b243aa1c742950574e508acf5458b01bfff99072900d9d"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "44c666097072bc0e9c1366a20a9d5a45932536fbd97c2b092c4d9b061389afb0"
+          "sha256": "5ac9127558618535c075c6960fcea43be8f90c162345728c58c6e73f4159fd55"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "a7f329a27df1e0f0b9323506906a88c8b5a491b34539136a068c0a96e28d1d27"
+          "sha256": "45e826c5c05a83e62e895d1a66e276a2d33b966620ec89027eb774c8e194a089"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "76b42075d021dfc0f0d63303d28cafd6efb67f6f5f0e62d944377c4b45662d08"
+          "sha256": "30e740e81840542ed11c85a605e8b9a62777d90e4a999a4e4f4bb4235778392c"
         }
       ],
       "graph_sha256": "6ba1ab21d33146c11d99ef83031f3ec284b0d8b4ddf975d66c4a0cbf08db1f00",
@@ -830,123 +830,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "231b47540a4495e12086acc9cf6e69f61913801b4a5a7ee3bf98df76d2926d21"
+          "sha256": "7f2f1b68ba6c27ca55ae53c5c2410e80d58a008d99dfe478af8c98d165a5d3bb"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "d4cb4e86b05c43ee46450e0a57246969e48e96b02c427e1fc0c2f12e253fc826"
+          "sha256": "4dda0864bf02cac11c57a6e62c600a13a968e2259454f96c95dc6008302c2c5c"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "a057e2a3e9fa48028c457fa8e97022caf9dcc4446e26faf13c074f94bf9b8d43"
+          "sha256": "d67f35cfc78f8e87a2371012305de90c86db6c3325f4ce9dd6822c7e3c8f9a64"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "2bcd4f6561c64cbb1fb98b2a4e88dd33e09c7beab0c77f35d8acffa0ec768114"
+          "sha256": "46de549e34d95d6c3b1aa3f9c22fd5834635d1a0d261839f569f9d16988c2ae9"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "10dd3df87b579f56730c7d8dfef26b916bd9528efcb271eb4b6cff5ea7aaf212"
+          "sha256": "35ae4c493d07f16305752170323b4f75efd9d6838fb5b0d5b4d7a07682f780b1"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "62ef53b9241c8b5da51c3ef4b777f5ac9957bfdeb5fe549835e63ee5fcd1bba7"
+          "sha256": "e589f231660c08cc1f917f865056094060649eff3b8d4a0dc7d6b4ad221e8acd"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "2970281cf7a24588857c2f8a9b7328a35104b572254289c4162842cfec206105"
+          "sha256": "e59ce0606fd8cf9df33514a14a79cbebaf8ab3fcf900d04008985e9b6a526838"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "de5c7da10ca8ea00336a7cc2820b7ee7eed4b9b90d83f0cef189234b5bafc60f"
+          "sha256": "ab9d3cbcc4d22c37171c8d165f6753c11f006d90b21674ea95294582d2772efe"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "3124d37698ba6b7bc078b31761bd76d7ca3d2bd29e2ef1379a03d3fcda153529"
+          "sha256": "dd9267794a34fa0a7efe98d78555a2a937a4592c8ad944642c28d79cba6d7d2c"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "6500ad3000301230beb430d8c86f142a26b01de64622a284e70f0e017831b2e6"
+          "sha256": "f74350f5bab4391637b91986db8a407df1ba506d488bc6d616e3dca52e7c3db0"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "21dfaaac0ee43725dd2b85938ec13e754fa0c0a734e579940f1ca7758b86087a"
+          "sha256": "928ede46e6890d55f077522dbed1ec0a1a0bc69b18e24f01af2f52fba38d207b"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "71d281985ead31ddaf7750a3a45cb8797def6ad4ee5000deed6c8a411cd89918"
+          "sha256": "ca4b8f01fe27e030b9eac3e8fc8dc02eaf21fbddecd9f5415d6de67c2912db0c"
         }
       ],
       "graph_sha256": "c5efd7f630f1756edf2da9a27132c10924d5250e7c585b62b460be2fdb710ca8",
@@ -992,123 +992,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "a1ebd66b021e535674acb65c918a615d901c6537c9753ecc00016168e8a0ae9c"
+          "sha256": "93646f9be0a89eb3ed24573386fb758005cfa72cd2ede73f05de346f1f79115a"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "4ea0656a78e1d0d9a27f40403ce1ff7cc48fb695af7627c013b09e44bed4ad5a"
+          "sha256": "b80a1ea22687d4de1a5528c427328261c508661270690837dbcd547d24fdf2fc"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "410c8c6a4bb25c8e00a73a585488fe7c0113c08b52d6b23d6c4c6095b3f2e809"
+          "sha256": "140f841401431f1a5eefb047ed4245022a1e6e7b5eceb0b8ec4176f130c50845"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "30d98d20d879acf6702b601aae0e5d0aadda90e4b2b119949f10f09bb22f09c1"
+          "sha256": "7133f15cd96bac97d9f91e58f592ccf1b5abf6ea9556f18ba37b980f86668dac"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "78bc4931cd78fb774d8eef2326e8ce5b89b1e9b8991eaf05673fd74966566db6"
+          "sha256": "fdac549302cdaf4506f63e12132302c3712914854e0a4c1fbd4b7bab21d15a05"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "3b21e58de3d4d8b64de55cc82f7fa2c0749818c775a9d8fc5959b1c25666612d"
+          "sha256": "aa976ea26079e1a27de5c5c3cb8ff248763e925f76a91f20a3bb4fe2860a9002"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "a495df40cc8ebb4b0938f861649a391f270860ed363dc74abc8e0b09f8877c28"
+          "sha256": "051787afc5671d48b9709cde6c55afa5c52b437496f0d3aa129c3e2c174d1d18"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "1b34dc4cbb721cf07a0e66b28919c16351e76841a808546848a7d9971e0a4b43"
+          "sha256": "f63f81762deda09c7530f89204f2a8d199ad1d91ba6885d351046043dc6d5132"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "13b5126c399e8b25a596599f132d3ac5569a8eb2d54e01b542a43c91bce9d72a"
+          "sha256": "dabad98f35baab5f9ced8a2a37314a1ea73cd05cfd6ad8df7c272d80ce17f238"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "430d1804ceb471ece5ecb02be7aab1cd71304978b21366948cd4499690eda578"
+          "sha256": "55629aa7fb6c027864090a28170dbe0341203fadd3ee98348358694aaeed9073"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "7c086f94a3c74acc8f406aa19c81f0a4917923902016cf101f7bd16fdb620ca2"
+          "sha256": "a33f0776af69b4bd75285a182884a4c878db71a3215370e8677ae664e0c88411"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Twitch/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "365cb6b931b4d2d7eedf22abd20c4bca64549f281b3d2f680c28c4b06cc03a6b"
+          "sha256": "0de82076ca2638ae3d4473d60dfdc41f43b676f2eb99decccd207811370aa024"
         }
       ],
       "graph_sha256": "73b7df2979497861e60980bb807408582238f214a2a3e5038aa55c82dd4b1ae4",
@@ -1154,123 +1154,123 @@
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g10.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 10,
           "maximum_g": 10,
           "infeasible_query_indices": [],
-          "sha256": "b5127bfa98d03babec20a860ba6f0c9213d26fb9bf6b7dd73776633a55b5da78"
+          "sha256": "b0e83ff1b8c9fc61dd37497128ec203fe4825c7abeb82f28de7d020820e09c35"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g11.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 11,
           "maximum_g": 11,
           "infeasible_query_indices": [],
-          "sha256": "2cf6c3ef7de3a977b09799cf570fd99d21a641d6e86a19cf98a52471c7f17135"
+          "sha256": "4348bfe8be8f696be8a3e01e0943d196f4dcbc175b401c5104dca3b7f5e51157"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g12.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 12,
           "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "5bfc0684a3bdc53ddbdd7c1f7d92f2537574fa407b0f716e6a08a5a45ed2ce29"
+          "sha256": "89c0c55d71ca638a95fccaba6d60b9c53ecd8ad12a034aa7abca873c941bd2ea"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g13.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 13,
           "maximum_g": 13,
           "infeasible_query_indices": [],
-          "sha256": "a595df491442fced8ca4a685eaa3c51f61e16eba86593e95368f94868905e4ea"
+          "sha256": "d4f9ab01362e4526333ebdbb7c2e47edfc6f1d5b1ea6d463b43f1694308b7f2b"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g14.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 14,
           "maximum_g": 14,
           "infeasible_query_indices": [],
-          "sha256": "aa584a005205e3e5cb7fd93a17bf1bf8b75f8f19c18a42b228957abe495c9fbd"
+          "sha256": "2882f10335207602b9be97be5846abdfb0ef879771afc0fb7c988b0f7d0ca7b3"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g15.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 15,
           "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "ae16f30a7b7a7420e5eaf4fc2aefe5fbe7a5df9df4ac03078aa457740fc75d93"
+          "sha256": "112e8ed58839e8b8354b8eb6511c3858928ec449a9b4eef7b506cc32a049da20"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g16.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 16,
           "maximum_g": 16,
           "infeasible_query_indices": [],
-          "sha256": "4fdcea988bb24ea67e0bfb7c9f61216085cac3ce84a7d30a94f941b68af5b5af"
+          "sha256": "e6dae50df47e4a9df1f6b6812282cb04bcbe4149befcfc76fcee323ab35d69de"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g5.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 5,
           "maximum_g": 5,
           "infeasible_query_indices": [],
-          "sha256": "090473bb9d1f55fcf43fe7285c0e8b42133d8e2356841099e12f98b6f9333f49"
+          "sha256": "c242b2705f551f1f2097bbf06685781499f0bf010fcabe7a43ee4ea17443de80"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g6.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "6b33405dfcfcb1d510da7f0a22ed1e6a404edfc3e17240f7b20ecebc7808adeb"
+          "sha256": "d91bb57fcbb3f8afeae6aab1a31a7277255da8de8bcc607965a3944fba39cdf3"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g7.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 7,
           "maximum_g": 7,
           "infeasible_query_indices": [],
-          "sha256": "fb71e13511bdae38c8c10e64f083fa989ab797b31439584d207a0c87aafce6df"
+          "sha256": "d31675cd03642c89d2b64d23d212d15ec49c8d6317fb14e47c3b7e28e98f1fe7"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g8.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 8,
           "maximum_g": 8,
           "infeasible_query_indices": [],
-          "sha256": "a166a95fc39a2a3952366c8f5e9795fc01dd766e8f10c4d71443e315c4f27bd0"
+          "sha256": "99ea107fbcf010f3e7a0d65b1a3cf685c626bf1bcd6fda9303c68458fd35fc1c"
         },
         {
           "path": "experiment_data/p2_cross_g/GPU4GST_Youtube/cross_g9.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 9,
           "maximum_g": 9,
           "infeasible_query_indices": [],
-          "sha256": "b021f29dee16bfecfa5d744928bc55cfe5b76105d3bf7f0342a57ae28b04386b"
+          "sha256": "0a3e3430284dd4da10c62d54f84702e415271bdcd18cbe6275b4e8f29432f35d"
         }
       ],
       "graph_sha256": "848647c1a0a83b447efa7acd4a4026be0a7fc1cb12417c518eb3aab4ed3cf6c0",

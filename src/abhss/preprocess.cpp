@@ -731,6 +731,16 @@ double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) cons
     return value * 0.5;
 }
 
+/** @brief 用最远根距离和最大终点自由路径值上包络完整 rooted tour。 */
+double TourLowerBound::UpperEnvelope(int mask, double farthest) const
+{
+    if (!mask || !(mask & (mask - 1)))
+        return farthest;
+    double upper = farthest + endpoint_floor_value_[mask];
+    upper += farthest;
+    return upper * 0.5;
+}
+
 /** @brief 用预选起点组和终点自由路径值计算 A1 的常数时间下界。 */
 double TourLowerBound::EndpointFloorAt(int vertex, int mask, const GroupTable& distance) const
 {
@@ -1220,7 +1230,7 @@ double BuildPrimalFacilityUpper(const Problem& p,
     return best;
 }
 
-/** @brief 先检查顶点缓存的全局最远组，未命中再扫描剩余原始组 mask。 */
+/** @brief 先检查全局最远组，未命中时按当前距离 realization 扫描剩余组。 */
 double FarthestRemaining(const Problem& p, int vertex, int original_mask)
 {
     if (!original_mask)
@@ -1229,10 +1239,15 @@ double FarthestRemaining(const Problem& p, int vertex, int original_mask)
     if (original_mask & (1 << cached))
         return p.group_distance[cached][vertex];
     double value = 0.0;
-    for (int bits = original_mask; bits; bits &= bits - 1)
+    if (!p.UsesBoundedGroupDistances())
     {
-        const int group = FirstBit(bits & -bits);
-        value = std::max(value, p.group_distance[group][vertex]);
+        for (int bits = original_mask; bits; bits &= bits - 1)
+            value = std::max(value, p.group_distance[FirstBit(bits & -bits)].value[vertex]);
+    }
+    else
+    {
+        for (int bits = original_mask; bits; bits &= bits - 1)
+            value = std::max(value, p.group_distance[FirstBit(bits & -bits)][vertex]);
     }
     return value;
 }
@@ -1250,8 +1265,9 @@ double FutureBound(const Problem& p,
                    int original_mask,
                    double farthest)
 {
-    double value = std::max(
-        farthest, p.tour.At(vertex, original_mask, p.group_distance));
+    double value = farthest;
+    if (value < p.tour.UpperEnvelope(original_mask, farthest))
+        value = std::max(value, p.tour.At(vertex, original_mask, p.group_distance));
     if (p.UsesDirectedCut())
         value = std::max(value, p.dual.At(vertex, original_mask));
     return value;
@@ -1355,12 +1371,22 @@ bool PrepareProblem(Problem& p)
             p.original_mask[mask ^ (1 << bit)] | (1 << p.bit_to_group[bit]);
     }
 
-    p.farthest_group.assign(p.graph.n + 1, 0);
+    p.farthest_group.resize(p.graph.n + 1);
     for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+    {
+        int farthest = 0;
+        double farthest_value = p.group_distance.front()[vertex];
         for (int group = 1; group < p.g; ++group)
-            if (p.group_distance[group][vertex] >
-                p.group_distance[p.farthest_group[vertex]][vertex])
-                p.farthest_group[vertex] = static_cast<unsigned char>(group);
+        {
+            const double value = p.group_distance[group][vertex];
+            if (value > farthest_value)
+            {
+                farthest = group;
+                farthest_value = value;
+            }
+        }
+        p.farthest_group[vertex] = static_cast<unsigned char>(farthest);
+    }
 
     std::vector<std::vector<double>> metric(
         p.g, std::vector<double>(p.g, fp::kInf));

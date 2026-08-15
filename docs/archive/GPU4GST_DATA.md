@@ -34,13 +34,13 @@ P2 使用六张作者图，按规模分为：
 
 候选查询使用 related-group 共现 BFS：两个候选组共享原图顶点时在组图中相邻；均匀选择根组，BFS 到能够找到足够相关组的最小深度，再抽取 `g-1` 个组，并拒绝没有共同原图连通分量的查询。该方法来自 GPU4GST 所沿用的 *Approximating Probabilistic Group Steiner Trees in Graphs* 查询协议。GPU4GST 没有公开其原始随机种子和完整生成代码，因此 P2 只声称“按同类方法独立生成”，不声称恢复作者输出。
 
-每张图、每个 `g=5..16` 用生成 seed `2025` 固定产生 300 条候选。正式 panel 按 `log1p` 后的真实平均组大小排序为五个等秩层，每层用 panel seed `20260723` 派生的稳定哈希选一条：
+每张图、每个 `g=5..16` 用生成 seed `2025` 固定产生 300 条候选。正式 panel 按 `log1p` 后的真实平均组大小排序为五个等秩层，每层用 panel seed `20260723` 派生的稳定哈希排序。第一轮每层选第一名形成原 q1--q5；第二轮每层选第二名并追加为 q6--q10，原五条的身份和顺序不变：
 
-- 每格 5 条；
+- 每格 10 条；
 - 每图 60 条；
-- 六图共 360 条。
+- 六图共 720 条。
 
-分层只读输入，不读 solver 结果，因此不会按 ABHSS 的有利区域挑查询。`query_g*.txt` 是 300 条候选；`experiment_data/p2_cross_g/*/cross_g*.txt` 才是正式五条 panel。对应 `.group_ids.txt`、查询哈希和选择规则都在 `cells.json/csv` 中。
+分层只读输入，不读 solver 结果，因此不会按 ABHSS 的有利区域挑查询。`query_g*.txt` 是 300 条候选；`experiment_data/p2_cross_g/*/cross_g*.txt` 才是正式十条 panel。对应 `.group_ids.txt`、查询哈希和选择规则都在 `cells.json/csv` 中。
 
 ## 4. 转换和重建
 
@@ -53,7 +53,7 @@ python tools/data/build_published_workloads.py
 python tools/data/build_gpu_query_panels.py
 ```
 
-第一步同时生成 P1 的作者查询接口和 P2 的 300 条候选；后两步冻结 P1 身份与 P2 五条 panel。正式运行前还必须执行 feasibility audit 和环境校验，详见 [`RUN.md`](../../RUN.md)。
+第一步同时生成 P1 的作者查询接口和 P2 的 300 条候选；后两步冻结 P1 身份与 P2 十条 panel。正式运行前还必须执行 feasibility audit 和环境校验，详见 [`RUN.md`](../../RUN.md)。
 
 ## 5. 再分发边界
 

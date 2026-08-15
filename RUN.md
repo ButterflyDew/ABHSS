@@ -135,9 +135,9 @@ Windows 将 `python3` 换为 `python`。开发期若图与查询哈希完全不�
 |---|---:|---:|---:|
 | P1 MonoGST+ | 1,118 | 3 | 3,354 |
 | P1 GPU4GST | 7,200 | 3 | 21,600 |
-| P2 cross-`g` | 360 | 3 | 1,080 |
+| P2 cross-`g` | 720 | 3 | 2,160 |
 | S2 controlled $\langle g,f\rangle$ | 150 | 3 | 450 |
-| 性能矩阵合计 | 8,828 | 3 | 26,484 |
+| 性能矩阵合计 | 9,188 | 3 | 27,564 |
 
 可行性审计必须恰好保留 P1 中已知 55 条无解自然查询（LinkedMDB 46、DBpedia 9），并要求 P2、S2 与 gate 的新查询无一条不可行。
 
@@ -182,6 +182,14 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/paper_runs/paper --suite P2_cross_g
 python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/paper_runs/paper --suite S2_controlled_gf
 ```
+
+P2 的 q1--q5 是原 panel，q6--q10 是本次追加 tranche。若旧五条已经在同一机器和二进制上完成，可只运行新增部分；为避免旧 run metadata 所记录的查询文件哈希与十条版 panel 冲突，使用新的 run-id/run-dir：
+
+```bash
+python3 tools/experiments/run_experiments.py --run-id p2_extra --run-dir results/paper_runs/p2_extra --suite P2_cross_g --query-index 6 --query-index 7 --query-index 8 --query-index 9 --query-index 10
+```
+
+汇总成十条/格的正式结果时必须同时保留旧 run directory、新增 tranche run directory、各自 commit 与机器环境记录；不得覆盖或重新编号旧 q1--q5。
 
 每条查询有独立 10,000 秒 solver deadline。图加载在 `[Ready]` 前完成，不进入逐查询 timer，另由 1,800 秒 watchdog 保护。加载包含一次连通分量建索引；它是所有本地方法共享的 I/O 成本，只作 artifact usability 指标，不得并入算法 speedup。
 

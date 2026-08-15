@@ -134,8 +134,8 @@ def run_p2_frontier(run_dir: Path, run_name: str, cpus: list[int], timeout: int)
             for position, case in enumerate(cases):
                 invoke(cpu, run_dir, run_name, ["--suite", P2_SUITE, "--case", case.case_id, "--method", method, "--timeout", str(timeout)], f"p2_{method}_{dataset}.log")
                 rows = case_records(run_dir, P2_SUITE, case.case_id, method)
-                if len(rows) != 5:
-                    raise RuntimeError(f"{case.case_id}/{method}: expected 5 records, got {len(rows)}")
+                if len(rows) != 10:
+                    raise RuntimeError(f"{case.case_id}/{method}: expected 10 records, got {len(rows)}")
                 if any(row["status"] not in ("ok", "timeout") for row in rows):
                     raise RuntimeError(f"{case.case_id}/{method}: abnormal status")
                 if any(row["status"] == "timeout" for row in rows):
@@ -254,7 +254,7 @@ def campaign_p2() -> None:
     p2_dir = ROOT / "results" / "paper_runs" / p2_name
     write_policy(p2_dir, {"campaign": "P2 full Enhanced plus adaptive Base/PrunedDP++ frontier", "created_at": now(), "cpus": cpus, "formal_timeout_seconds_per_query": FORMAL_TIMEOUT, "phase": "enhanced_running"})
     run_p2_enhanced_graph_lanes(p2_dir, p2_name)
-    p2_timeout = freeze_probe_timeout(p2_dir, P2_SUITE, "abhss_enhanced", 360)
+    p2_timeout = freeze_probe_timeout(p2_dir, P2_SUITE, "abhss_enhanced", 720)
     write_policy(p2_dir, {"campaign": "P2 full Enhanced plus adaptive Base/PrunedDP++ frontier", "created_at": now(), "cpus": cpus, "formal_timeout_seconds_per_query": FORMAL_TIMEOUT, "exploratory_frontier_timeout_seconds": p2_timeout, "frontier_rule": "for each graph and method, run g=5..16 and stop after the first cell containing a timeout; larger g are explicitly not run", "timeout_freeze_rule": "min(10000, ceil(2 * maximum Enhanced solver_seconds)); use 10000 if Enhanced timed out", "phase": "base_pruned_frontier_running"})
     skipped = run_p2_frontier(p2_dir, p2_name, cpus, p2_timeout)
     consolidate(p2_dir)

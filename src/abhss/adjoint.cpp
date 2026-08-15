@@ -331,12 +331,7 @@ void BuildTransposedTerminals(Problem& p,
             for (int target : touched_targets)
             {
                 const int included = p.anchor_bit | p.original_mask[target];
-                double farthest = p.group_distance[p.anchor_group][vertex];
-                for (int bits = target; bits; bits &= bits - 1)
-                    farthest = std::max(
-                        farthest,
-                        p.group_distance[
-                            p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
+                const double farthest = FarthestRemaining(p, vertex, included);
                 const double prefix = std::max(
                     farthest,
                     std::max(p.tour.At(vertex, included, p.group_distance),
@@ -417,12 +412,7 @@ void SolveHighAdjoint(Problem& p,
                 if (prefix_stamp[vertex] == stamp)
                     return prefix_cache[vertex];
                 prefix_stamp[vertex] = stamp;
-                double farthest = p.group_distance[p.anchor_group][vertex];
-                for (int bits = mask; bits; bits &= bits - 1)
-                    farthest = std::max(
-                        farthest,
-                        p.group_distance[
-                            p.bit_to_group[FirstBit(bits & -bits)]][vertex]);
+                const double farthest = FarthestRemaining(p, vertex, included);
                 prefix_cache[vertex] = std::max(
                     farthest,
                     std::max(p.tour.At(vertex, included, p.group_distance),

@@ -37,7 +37,7 @@ MonoGST+ 已被 VLDB 2026 接收但尚未公开，当前手稿及大文件只供
 
 P2 复用 GPU4GST 作者图与 `.g` 候选组，只新增 `g=5..16` 查询。生成语义来自 GPU4GST 所沿用的 related-group 方法：在候选组共现图上选根组并 BFS 到足够深度，再抽取相关组；没有共同原图连通分量的查询被拒绝。
 
-每个 `(graph,g)` 使用生成 seed `2025` 固定产生 300 条候选，然后仅依据输入组的 `log1p` 平均大小秩分成五层，每层用 panel seed `20260723` 派生的稳定 SHA-256 key 选一条。选择过程不读取任何求解器时间、内存、目标值或完成状态。正式六图为 Musae、Twitch、Youtube、DBLP-GPU4GST、Orkut、Reddit，共 72 格、360 条。
+每个 `(graph,g)` 使用生成 seed `2025` 固定产生 300 条候选，然后仅依据输入组的 `log1p` 平均大小秩分成五层，每层用 panel seed `20260723` 派生的稳定 SHA-256 key 排序。第一轮每层取第一名形成原 q1--q5，第二轮每层取第二名并追加为 q6--q10；扩展不改变原五条身份和顺序。选择过程不读取任何求解器时间、内存、目标值或完成状态。正式六图为 Musae、Twitch、Youtube、DBLP-GPU4GST、Orkut、Reddit，共 72 格、720 条。
 
 - 原始生成器：`tools/gpu4gst_data/prepare_gpu4gst.cpp`
 - 固定选择器：`tools/data/build_gpu_query_panels.py`

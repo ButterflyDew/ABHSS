@@ -190,6 +190,13 @@ public:
      */
     double At(int vertex, int mask, const GroupTable& distance) const;
     /**
+     * @brief 返回完整 rooted tour 实现值的常数时间安全上包络。
+     *
+     * `farthest` 必须是 vertex 到 mask 中最远组的距离。若已有可采纳下界
+     * 不小于该值，则完整 `At` 不可能增大下界，可以跳过端点扫描。
+     */
+    double UpperEnvelope(int mask, double farthest) const;
+    /**
      * @brief 返回固定规范起点组、终点自由的常数时间路径下界。
      *
      * 多组 mask 选择终点自由 Hamilton 路径代价最大的起点组；查询时只读取该组到 vertex 的距离。单组直接返回组距离，空集返回 0。
