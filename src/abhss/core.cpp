@@ -414,9 +414,10 @@ void BuildReusableAnchoredSingletonLayer(
                 p.graph.n, [&](int vertex, double value)
             {
                 const auto& anchor = p.group_distance[p.anchor_group];
-                if (!anchor.IsExact(vertex))
+                const double anchor_distance = anchor.ExactValueOrInf(vertex);
+                if (anchor_distance >= fp::kInf)
                     return;
-                const double candidate = value + anchor[vertex];
+                const double candidate = value + anchor_distance;
                 if (!(candidate < singleton_future.cutoff) ||
                     candidate >= distance[vertex])
                     return;
@@ -451,9 +452,7 @@ void BuildReusableAnchoredSingletonLayer(
                     rent_until_buy =
                         witness_scheduler.RemainingRentUntilBuy();
                 }
-                if (node.distance != distance[node.vertex] ||
-                    !(node.distance < singleton_future.cutoff) ||
-                    !(node.key < p.best))
+                if (node.distance != distance[node.vertex] || !(node.distance < singleton_future.cutoff) || !(node.key < p.best))
                     continue;
                 settled.push_back(node.vertex);
                 for (const auto& edge : p.graph.adj[node.vertex])
@@ -549,8 +548,8 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
     // lambda：在同一顶点累加锚组和至多三个 ordinary 块并提交完整候选。
     auto Visit = [&](int vertex)
     {
-        double total = p.group_distance[p.anchor_group][vertex];
-        if (!p.group_distance[p.anchor_group].IsExact(vertex))
+        double total = p.group_distance[p.anchor_group].ExactValueOrInf(vertex);
+        if (total >= fp::kInf)
             return;
         for (int mask : masks)
         {
@@ -559,9 +558,10 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
             if (p.popcount[mask] == 1)
             {
                 const int group = p.bit_to_group[FirstBit(mask)];
-                if (!p.group_distance[group].IsExact(vertex))
+                const double singleton = p.group_distance[group].ExactValueOrInf(vertex);
+                if (singleton >= fp::kInf)
                     return;
-                total += p.group_distance[group][vertex];
+                total += singleton;
             }
             else
             {
@@ -594,12 +594,15 @@ void BuildOrdinaryRows(Problem& p,
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
     std::vector<double> bound_cache(p.graph.n + 1);
-    // Base 继续使用单一 stamp；开启 DirectedCut 的配置将 row epoch、证书阶段、
-    // exact 诊断位和两个拒绝前沿位打包在一个 32-bit 字中，避免热路径随机访问并行状态数组。
-    std::vector<int> bound_stamp(p.UsesDirectedCut() ? 0 : p.graph.n + 1);
-    std::vector<std::uint32_t> bound_state(p.UsesDirectedCut() ? p.graph.n + 1 : 0);
+    // Base 继续使用单一 stamp；开启 DirectedCut 的配置将 row epoch、证书阶段和两个拒绝前沿位
+    // 打包在一个 32-bit 字中。诊断构建复用保留位记录 exact dual，论文构建不会写该位。
+    const bool staged_certificate_cache = p.UsesDirectedCut();
+    std::vector<int> bound_stamp(staged_certificate_cache ? 0 : p.graph.n + 1);
+    std::vector<std::uint32_t> bound_state(staged_certificate_cache ? p.graph.n + 1 : 0);
     constexpr std::uint32_t kBoundStageMask = 7;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
     constexpr std::uint32_t kBoundExactDual = 8;
+#endif
     constexpr std::uint32_t kBoundRejectedSeen = 16;
     constexpr std::uint32_t kBoundRejectedFrontier = 32;
     constexpr std::uint32_t kBoundMetadataMask = 63;
@@ -638,7 +641,6 @@ void BuildOrdinaryRows(Problem& p,
             rejected.clear();
             const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
             const int remaining_nonanchor = p.full_mask ^ mask;
-            const bool staged_certificate_cache = p.UsesDirectedCut();
             bool rejection_frontier_admitted = false;
             ++stamp;
             const std::uint32_t row_epoch = static_cast<std::uint32_t>(stamp) << 6;
@@ -736,13 +738,13 @@ void BuildOrdinaryRows(Problem& p,
                     bool exact_dual = false;
                     const bool dual_can_improve = p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower, exact_dual);
                     bound_cache[vertex] = lower;
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
                     if (exact_dual)
                     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
                         ++layer_dual_exact;
-#endif
                         state |= kBoundExactDual;
                     }
+#endif
                     if (!dual_can_improve)
                     {
 #if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
@@ -988,10 +990,9 @@ void BuildOrdinaryRows(Problem& p,
                     // lambda：在平衡半格把互补 ordinary 状态与锚组距离结算为完整上界。
                     ForEachCommonValue(p, mask, complement, [&](int vertex, double a, double b)
                     {
-                        if (p.group_distance[p.anchor_group].IsExact(vertex))
-                            p.best = std::min(
-                                p.best,
-                                a + b + p.group_distance[p.anchor_group][vertex]);
+                        const double anchor_distance = p.group_distance[p.anchor_group].ExactValueOrInf(vertex);
+                        if (anchor_distance < fp::kInf)
+                            p.best = std::min(p.best, a + b + anchor_distance);
                     });
                 }
             }

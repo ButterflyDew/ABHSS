@@ -71,7 +71,7 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
     // lambda：在目标组的 tight-edge 子图中恢复真实最短路；epoch 阻止零权环。
     auto Recover = [&](int root, int group)
     {
-        if (!distance[group].IsExact(root))
+        if (distance[group].ExactValueOrInf(root) >= fp::kInf)
             return false;
         ++current_epoch;
         path.assign(1, root);
@@ -82,11 +82,15 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
         while (!path.empty() && !(membership[path.back()] & group_bit))
         {
             const int vertex = path.back();
+            const double current_distance = distance[group].ExactValueOrInf(vertex);
             bool advanced = false;
             while (next_edge[vertex] < static_cast<int>(graph.adj[vertex].size()))
             {
                 const AdjEdge& edge = graph.adj[vertex][next_edge[vertex]++];
-                if (epoch[edge.to] == current_epoch || !distance[group].IsExact(edge.to) || !fp::Eq(edge.w + distance[group][edge.to], distance[group][vertex]))
+                if (epoch[edge.to] == current_epoch)
+                    continue;
+                const double next_distance = distance[group].ExactValueOrInf(edge.to);
+                if (next_distance >= fp::kInf || !fp::Eq(edge.w + next_distance, current_distance))
                     continue;
                 epoch[edge.to] = current_epoch;
                 next_edge[edge.to] = 0;
@@ -122,12 +126,15 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
                 if (covered & (1 << group))
                     continue;
                 for (int vertex : tree_vertices)
-                    if (distance[group].IsExact(vertex) && distance[group][vertex] < next_distance)
+                {
+                    const double candidate = distance[group].ExactValueOrInf(vertex);
+                    if (candidate < next_distance)
                     {
                         next_group = group;
                         next_root = vertex;
-                        next_distance = distance[group][vertex];
+                        next_distance = candidate;
                     }
+                }
             }
             // 当前树可视为零代价收缩点；任何覆盖下一组的连通扩展都至少再付
             // 树到该组的最短距离。必要条件失败时无需恢复注定不能改进的路径。
@@ -153,11 +160,14 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
             int start = 0;
             double start_distance = fp::kInf;
             for (int vertex : query.groups[second])
-                if (distance[first].IsExact(vertex) && distance[first][vertex] < start_distance)
+            {
+                const double candidate = distance[first].ExactValueOrInf(vertex);
+                if (candidate < start_distance)
                 {
                     start = vertex;
-                    start_distance = distance[first][vertex];
+                    start_distance = candidate;
                 }
+            }
             // 种子树只有起点，故其必要连接费用正是 start_distance。
             if (!start || !CanImproveAfterConnection(start_distance))
                 continue;
@@ -196,11 +206,14 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
                     int forced_root = 0;
                     double forced_distance = fp::kInf;
                     for (int vertex : tree_vertices)
-                        if (distance[forced].IsExact(vertex) && distance[forced][vertex] < forced_distance)
+                    {
+                        const double candidate = distance[forced].ExactValueOrInf(vertex);
+                        if (candidate < forced_distance)
                         {
                             forced_root = vertex;
-                            forced_distance = distance[forced][vertex];
+                            forced_distance = candidate;
                         }
+                    }
                     if (!forced_root || !CanImproveAfterConnection(forced_distance) || !Recover(forced_root, forced))
                         promising = false;
                     else
@@ -233,11 +246,14 @@ PathGrowthUpper BuildSeededPathGrowthUpper(const Graph& graph, const Query& quer
                         int fourth_root = 0;
                         double fourth_distance = fp::kInf;
                         for (int vertex : tree_vertices)
-                            if (distance[fourth].IsExact(vertex) && distance[fourth][vertex] < fourth_distance)
+                        {
+                            const double candidate = distance[fourth].ExactValueOrInf(vertex);
+                            if (candidate < fourth_distance)
                             {
                                 fourth_root = vertex;
-                                fourth_distance = distance[fourth][vertex];
+                                fourth_distance = candidate;
                             }
+                        }
                         if (!fourth_root || !CanImproveAfterConnection(fourth_distance) || !Recover(fourth_root, fourth))
                             fourth_promising = false;
                         else

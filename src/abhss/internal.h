@@ -89,8 +89,8 @@ void ForEachBranch(const Row& row, Use&& use)
  *
  * 基础配置只保留严格小于安全 cutoff 的精确距离，并按实际字节数在 dense
  * 与“有序值+membership/rank 位图”间选择；DirectedCut 增强需要完整势，
- * 因而使用非 bounded dense 表。各布局共享“读取值 + IsExact”合同；bounded
- * 表的 cutoff 占位不能脱离 IsExact 冒充真实距离。
+ * 因而使用非 bounded dense 表。各布局共享两种读取职责：`operator[]` 可返回 cutoff 下界占位，
+ * `ExactValueOrInf` 只返回真实距离；占位不能冒充 DP seed。
  */
 struct GroupRow
 {
@@ -105,8 +105,6 @@ struct GroupRow
 
     /** @brief 读取顶点距离；有界表的未保存位置返回 cutoff 证书值。 */
     double operator[](int v) const;
-    /** @brief 判断该顶点是否保存了严格小于 cutoff 的精确距离。 */
-    bool IsExact(int v) const;
     /** @brief 单次布局查找：精确位置返回真实距离，cutoff 占位返回正无穷。 */
     double ExactValueOrInf(int v) const;
     /** @brief 返回可被精确枚举的顶点数，用于选择最小交集驱动方。 */
@@ -416,8 +414,16 @@ void ForEachOrdinaryBranch(const Problem& p, int mask, Use&& use)
         ForEachBranch(p.ordinary[mask], std::forward<Use>(use));
 }
 
-/** @brief 统一读取空 mask、singleton 组距离或多组 ordinary row。 */
-double OrdinaryValue(const Problem& p, int mask, int vertex);
+/** @brief 统一读取空 mask、精确 singleton 距离或多组 ordinary row。 */
+inline double OrdinaryValue(const Problem& p, int mask, int vertex)
+{
+    if (!mask)
+        return 0.0;
+    if (p.popcount[mask] == 1)
+        return p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactValueOrInf(vertex);
+    return RowValue(p.ordinary[mask], vertex);
+}
+
 /** @brief 判断非空 ordinary mask 是否已生成、可供后续层使用。 */
 bool OrdinaryAvailable(const Problem& p, int mask);
 

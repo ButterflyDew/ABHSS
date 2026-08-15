@@ -332,11 +332,9 @@ void BuildTransposedTerminals(Problem& p,
             {
                 const int included = p.anchor_bit | p.original_mask[target];
                 const double farthest = FarthestRemaining(p, vertex, included);
-                const double prefix = std::max(
-                    farthest,
-                    std::max(p.tour.At(vertex, included, p.group_distance),
-                             p.dual.GroupAt(vertex, p.anchor_group) +
-                                 Potential(Potential, target)));
+                double prefix = std::max(farthest, p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, target));
+                if (prefix < p.tour.UpperEnvelope(included, farthest))
+                    prefix = std::max(prefix, p.tour.At(vertex, included, p.group_distance));
                 if (terminal_best[target] + prefix < p.best)
                 {
                     terminal_vertex[target].push_back(vertex);
@@ -413,10 +411,10 @@ void SolveHighAdjoint(Problem& p,
                     return prefix_cache[vertex];
                 prefix_stamp[vertex] = stamp;
                 const double farthest = FarthestRemaining(p, vertex, included);
-                prefix_cache[vertex] = std::max(
-                    farthest,
-                    std::max(p.tour.At(vertex, included, p.group_distance),
-                             p.dual.At(vertex, included)));
+                double prefix = std::max(farthest, p.dual.At(vertex, included));
+                if (prefix < p.tour.UpperEnvelope(included, farthest))
+                    prefix = std::max(prefix, p.tour.At(vertex, included, p.group_distance));
+                prefix_cache[vertex] = prefix;
                 return prefix_cache[vertex];
             };
             // lambda：仅登记仍可能严格改善 incumbent 的 H 距离标签。
@@ -448,7 +446,7 @@ void SolveHighAdjoint(Problem& p,
                                 std::vector<QueueNode>,
                                 std::greater<QueueNode>> queue;
             for (int vertex : touched)
-                queue.push({distance[vertex] + Prefix(vertex),
+                queue.push({distance[vertex] + prefix_cache[vertex],
                             distance[vertex],
                             vertex});
             while (!queue.empty())
@@ -466,7 +464,7 @@ void SolveHighAdjoint(Problem& p,
                     if (distance[edge.to] >= fp::kInf)
                         touched.push_back(edge.to);
                     distance[edge.to] = next;
-                    queue.push({next + Prefix(edge.to), next, edge.to});
+                    queue.push({next + prefix_cache[edge.to], next, edge.to});
                 }
             }
             std::sort(settled.begin(), settled.end());

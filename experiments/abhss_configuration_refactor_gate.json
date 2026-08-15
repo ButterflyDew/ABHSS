@@ -877,7 +877,7 @@
     "extends": "common_witness_rent_or_buy_gate_20260725; that scheduler contract remains active",
     "contract": {
       "common_entry": "For every feasible query that reaches nontrivial distance preprocessing, every legal configuration calls BuildDistanceRootInitialization exactly once from PrepareProblem; zero-cost component closure returns before this responsibility is needed.",
-      "common_output": "Every realization returns DistanceRootInitialization{group_distance, root, upper}; upper is a feasible original-graph upper bound and every downstream consumer reads the same value/IsExact distance-oracle contract.",
+      "common_output": "Every realization returns DistanceRootInitialization{group_distance, root, upper}; upper is a feasible original-graph upper bound and every downstream consumer reads the same operator[]/ExactValueOrInf distance-oracle contract.",
       "bootstrapped_bounded": "Privately attempts a canonical real-edge SPT-union cutoff, builds a bounded GroupRow oracle, and executes the common root-star scan. If canonical terminals lack a common component, the provisional cutoff is infinite, finite labels are not truncated, and the common-root scan obtains a finite upper in the already-validated feasible component.",
       "complete_potential": "Builds a complete GroupRow distance oracle and executes the same root-star scan; complete distances also support the safely added directed-cut certificate.",
       "outer_control_flow": "PrepareProblem no longer schedules BuildCanonicalSptUpper or any other Base-only SPT stage; SPT bootstrap and full-distance expansion are the private representation costs of two same-role realizations.",

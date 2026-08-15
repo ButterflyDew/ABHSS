@@ -238,7 +238,7 @@ Enhanced
 
 `D/A/H` 共用一种 `Row`：递增的顶点数组、对齐的值数组、ordinary 专用 branch bitmap、`branch_count` 和显式 `ready`。`ready` 区分“已经生成但为空”和“尚未生成”。不存在 Base/Enhanced 各一套 row，也不存在运行中在 dense/hash/bitmap DP 状态之间切换。
 
-单组到全图的距离  $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`IsExact`、`ExactValueOrInf` 和 `ForEachExact` 暴露同一语义。
+单组到全图的距离  $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`ExactValueOrInf` 和 `ForEachExact` 暴露同一语义。
 
 ### 5.1 `Row` 的逻辑值与物理 payload
 
@@ -246,7 +246,7 @@ Enhanced
 
 ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-bit branch bitmap。第 $j$ 个 payload 是否为规范 branch，由 `branch_bits[j >> 6]` 的第 `j & 63` 位给出。 $A$ 与 $H$ 沿用完全相同的有序 `vertex/value/ready` 布局，只是不解释 branch 位。这样，三种状态可以共用二分读取、双指针交集、诊断统计和所有权移动。
 
-### 5.2 `GroupRow`、cutoff 与 `IsExact`
+### 5.2 `GroupRow`、cutoff 与单次精确读取
 
 有界 `GroupRow` 对每个顶点暴露一个有限读取值，但该值有两种含义：
 
@@ -260,9 +260,9 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 \qquad d_i(v)\ge U_0\text{ 且精确值未保存}.
 ```
 
-因此 `IsExact(v)` 不是浮点精度标记，而是“这个位置保存的是否为真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树；所有 singleton 合并、完整结算与 witness 路径都必须先检查 `IsExact`。需要随机读取真实 singleton 的上界 DP 调用 `ExactValueOrInf(v)`：它与 `operator[]` 使用同一次 dense/bitmap 定位，但把非精确位置直接返回为正无穷，避免先读取 cutoff 再忘记检查 membership。
+这里的 membership 不是浮点精度标记，而是“这个位置是否保存了真实多源最短距离”。cutoff 占位值可以作为不大于真实距离的拒绝证书，却不能作为 DP seed。若真实距离为 137、cutoff 为 100，把占位的 100 加进 split 会构造不存在的低成本树。需要随机读取真实 singleton 的消费者统一调用 `ExactValueOrInf(v)`：它只做一次 dense/bitmap 定位，精确位置返回真实距离，非精确位置直接返回正无穷。旧的“先判断 membership、再用另一入口重读同一位置”已被该单次合同严格替代，避免重复定位和漏检 membership。
 
-有界 dense 布局以 `value[v] < cutoff` 判定精确性。稀疏布局用 `bits[v >> 6]` 判 membership，再通过该 64-bit word 之前的 `rank` 与 word 内低位 `popcount` 定位压紧的值数组。完整距离布局中每个位置都是真实值，故 `IsExact(v)` 恒真。这三个物理分支只实现一个读取契约，不产生三种算法状态。
+有界 dense 布局以 `value[v] < cutoff` 判定精确 membership。稀疏布局用 `bits[v >> 6]` 判 membership，再通过该 64-bit word 之前的 `rank` 与 word 内低位 `popcount` 定位压紧的值数组。完整距离布局中每个位置都是真实值，`ExactValueOrInf(v)` 直接返回 dense payload。这三个物理分支只实现一个读取契约，不产生三种算法状态。枚举消费者使用 `ForEachExact`，需要下界占位的消费者才使用 `operator[]`。多源 Dijkstra 只在标签从无穷首次变为有限时把顶点加入 `touched`，其后只允许严格改进，因此同一组内的 `touched` 天然无重复。完整或 bounded-dense 布局直接取得 dense 数组，不再排序；ranked-bitmap 布局只为递增 payload 排序一次，不再执行结果必为空的 `unique`。这一减空不依赖边权为整数，也不改变堆并列、距离值或顶点顺序。
 
 ### 5.3 两套 mask 编号为什么同时存在
 
@@ -318,7 +318,7 @@ L_{\mathrm{cc}}=(c_0-1)w_+\le\mathrm{OPT}.
 
 Bootstrapped-bounded 的候选根搜索复用一组 `distance`、`parent_edge` 和 edge bitmap：每轮顺序重置距离与位图，父边只在本轮已发现顶点上读取，因此无需清零；bounded 多源距离在最终选择稀疏 `GroupRow` 时也复用同一 dense scratch，只重置该组触及的顶点。复用不改变堆序、父边、cutoff、精确 membership 或输出 row，只消除同一查询内重复的大块申请；它属于相应 realization 内部的物理优化，不形成 Base 独占的外层逻辑职责。
 
-bounded `GroupRow` 的未保存位置返回 cutoff $U_0$，但明确标记为非精确。任何严格优于 incumbent 的完成解中，单个必需连接代价不可能达到或超过 $U_0$；因此 cutoff 可作拒绝下界，却不能作为 DP singleton。枚举型 DP 消费者先检查 `IsExact`，随机读取型消费者使用 `ExactValueOrInf`。有界表再按实际字节在两种等价布局中确定性选择：
+bounded `GroupRow` 的未保存位置由 `operator[]` 返回 cutoff $U_0$，但 `ExactValueOrInf` 对同一位置返回正无穷。任何严格优于 incumbent 的完成解中，单个必需连接代价不可能达到或超过 $U_0$；因此 cutoff 可作拒绝下界，却不能作为 DP singleton。枚举型 DP 消费者使用 `ForEachExact`，随机读取型消费者使用 `ExactValueOrInf`。有界表再按实际字节在两种等价布局中确定性选择：
 
 - dense bounded：长度 $n+1$ 的值数组，锥体外写 cutoff；
 - ranked bitmap：递增精确顶点与值、membership 位图、每个 64-bit word 的 rank 前缀。
@@ -337,7 +337,7 @@ U_{\mathrm{star}}(r)=\sum_{i=0}^{g-1}d_i(r).
 
 对每个互异的有序组三元组 $(i,j,k)$，先在 $K_j$ 中选取到 $K_i$ 距离最小的规范终端，并在 $d_i$ 的 tight-edge 子图中恢复种子路径；随后显式把第三组 $K_k$ 以距当前树最近的真实最短路接入。完成这一次有限前瞻后，每轮选择当前树到未覆盖组的全局最短距离并继续生长。枚举全部 $k$ 严格包含旧的 pair-seeded 贪心：其中一个 $k$ 恰是旧规则第一次选择的组；其余 $k$ 提供不同的早期共享结构，而不是由数据驱动选择分支。物理实现把候选枚举按有序对 $(i,j)$ 因子化：种子 tight path 只恢复一次，保存其真实 `edge_id`，然后在每个 $k$ 开始时重放同一批种子边。因此候选集合、并列规则、计价和终止条件与逐三元组重建完全一致，只少做重复的路径恢复。路径触及的全部组同时标记为覆盖；原图边按 `edge_id` 去重并按输入权值计费。
 
-恢复过程只读取 `IsExact` 的距离位置；bounded 表缺失的路径只会使当前起点失效，不会把 cutoff 当成边权。DFS 使用访问 epoch，因此零权 tight-edge 环不会造成恢复环。每条成功路径与已有树相交于起点，故中间结构始终连通；覆盖全部组时即得到真实可行子图。边权非负且边只会加入，所以已选边费用单调不减。若当前真实树为 $T$、已付费用为 $w(T)$，则任何继续覆盖组 $K_i$ 的连通扩展至少再付 $d(T,K_i)=\min_{v\in V(T)}d_i(v)$：把 $T$ 收缩为零代价起点，取扩展路径最后一次离开 $T$ 的位置即可。因此代码在 tight-path DFS 前先检查 $w(T)+d(T,K_i)$ 是否仍严格小于 incumbent；失败时省略的恢复不可能产生更优候选。种子、显式第三组、购买后的第四组和后续最近组使用同一必要条件。该短路不含阈值，也不改变任何可能严格改善 incumbent 的候选、并列规则或最终上界。一旦已付费用本身不再严格小于调用前的 `best` 或本模块已找到的更优值，该起点同样可以无参数地安全终止。三个合法配置在各自 witness 构造后调用同一函数；Enhanced 较早取得的 dual/facility incumbent 只会让同一条件更早成立。
+恢复过程只读取 `ExactValueOrInf` 返回有限值的距离位置；每个 DFS 顶点先缓存当前 tight distance，再扫描邻边，避免对同一稀疏 membership/rank 位置重复定位；bounded 表缺失的路径只会使当前起点失效，不会把 cutoff 当成边权。DFS 使用访问 epoch，因此零权 tight-edge 环不会造成恢复环。每条成功路径与已有树相交于起点，故中间结构始终连通；覆盖全部组时即得到真实可行子图。边权非负且边只会加入，所以已选边费用单调不减。若当前真实树为 $T$、已付费用为 $w(T)$，则任何继续覆盖组 $K_i$ 的连通扩展至少再付 $d(T,K_i)=\min_{v\in V(T)}d_i(v)$：把 $T$ 收缩为零代价起点，取扩展路径最后一次离开 $T$ 的位置即可。因此代码在 tight-path DFS 前先检查 $w(T)+d(T,K_i)$ 是否仍严格小于 incumbent；失败时省略的恢复不可能产生更优候选。种子、显式第三组、购买后的第四组和后续最近组使用同一必要条件。该短路不含阈值，也不改变任何可能严格改善 incumbent 的候选、并列规则或最终上界。一旦已付费用本身不再严格小于调用前的 `best` 或本模块已找到的更优值，该起点同样可以无参数地安全终止。三个合法配置在各自 witness 构造后调用同一函数；Enhanced 较早取得的 dual/facility incumbent 只会让同一条件更早成立。
 
 ### 6.4 至多三组的共同精确闭包
 
@@ -634,7 +634,7 @@ U_{\mathrm{split}}=
 A(S,v)+D(L,v)+D(R\setminus L,v).
 ```
 
-实现从实际可枚举值最少的一侧驱动交集，singleton 先检查 `IsExact`，多组块要求 ready 并遵守 branch 规范。结算产生的是完整可行树候选，不写入新的 full-mask DP row。
+实现从实际可枚举值最少的一侧驱动交集，singleton 通过 `ExactValueOrInf` 做一次定位并拒绝非精确位置，多组块要求 ready 并遵守 branch 规范。结算产生的是完整可行树候选，不写入新的 full-mask DP row。
 
 ### 10.3 为什么只到 $q=h-1$
 
@@ -667,7 +667,7 @@ L_{\mathrm{cut}}(v,R)=\sum_{i\in R}\pi_i(v)
 \le \text{从 }v\text{ 完成 }R\text{ 的最小代价}.
 ```
 
-changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短路条件。得到根距离  $c_i=\pi_i(r)$ 后，代码把严格满足 $\pi_i(v)<c_i$ 的顶点记为本组 potential cone。cone 外所有顶点的截断势都逐位等于 $c_i$，所以两端均在 cone 外的边势差严格为 0，无需执行 residual 扣减。可能非零的边集合恰为至少一个端点在 cone 内的边。
+changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短路条件。得到根距离  $c_i=\pi_i(r)$ 后，代码把严格满足 $\pi_i(v)<c_i$ 的顶点记为本组 potential cone。cone 外所有顶点的截断势都逐位等于 $c_i$，所以两端均在 cone 外的边势差严格为 0，无需执行 residual 扣减。可能非零的边集合恰为至少一个端点在 cone 内的边。对任一无向边，两个有向势梯度不可能同时为正：若两端势不等，只有从高势端指向低势端的梯度为正；若相等，两向都为零。初始 cone 扣减与购买后的 residual 补全因此共用 `SubtractPositiveGradient`，每条被枚举边只标记并回写唯一可能为正的有向弧，零方向不再执行空的 `max` 回写。该替换与原来的双向 `max` 逐位等价，不改变浮点减法、residual、changed-arc 集或 primal 支撑。
 
 为了不让 cone 很大时退化，代码先累计 cone 顶点的邻接项数。若该数小于 $m$，从 cone 邻接表枚举候选边，并让 cone 内边只在原边记录的 `u` 端处理一次、跨界边在唯一 cone 端处理一次；否则扫描原边数组，但立即跳过两端均不在 cone 的边。两种物理遍历执行完全相同的势差、changed-arc 标记和 residual 更新，检查的邻接/原边项数不超过原来的 $m$ 次全边扫描。这个选择只比较两种方式枚举同一数学支撑集所需的确定性项数，不读取图名、 $g$、时间、配置或证书强弱，也不改变势、residual、primal 或后续状态。
 
@@ -821,7 +821,7 @@ for size = q down to ell+1:
 
 **引理 2（基础 future 可采纳）。** $L_{\mathrm{cc}}$ 来自零权缩点后必须连接的分量数； $L_{\mathrm{far}}$ 是任一剩余组不可回避的单组距离； $L_{\mathrm{tour}}$ 来自可行树倍增、组度量 shortcut 和除以 2。三者分别不超过其声明的剩余代价，因此任意最大组合仍可采纳。
 
-**引理 3（距离—根初始化合同与有界距离安全）。** 两种 realization 返回的 $U_0$ 都来自真实 SPT 边并集或共同根连接，故是可行上界；返回的 $r$ 只改变后续状态组织。Bootstrapped-bounded 中未保存的 $d_i(v)$ 至少为构造时 cutoff。它只能作为拒绝证书；任何需要精确距离的 split、完成式或 witness 都通过 `IsExact`、`ExactValueOrInf` 或 `ForEachExact` 拒绝非精确位置。Complete-potential 的每个位置都精确。因此共同调用者只依赖这一 `GroupRow` 合同，cutoff 不会被当作一棵虚构的低成本子树。
+**引理 3（距离—根初始化合同与有界距离安全）。** 两种 realization 返回的 $U_0$ 都来自真实 SPT 边并集或共同根连接，故是可行上界；返回的 $r$ 只改变后续状态组织。Bootstrapped-bounded 中未保存的 $d_i(v)$ 至少为构造时 cutoff。它只能作为拒绝证书；任何需要精确距离的 split、完成式或 witness 都通过 `ExactValueOrInf` 或 `ForEachExact` 拒绝非精确位置。Complete-potential 的每个位置都精确。因此共同调用者只依赖这一 `GroupRow` 合同，cutoff 不会被当作一棵虚构的低成本子树。
 
 **推论（至多三组的共同闭包）。** 当 $g\le3$ 时，任意可行树的三个命中终端在树内有一个分叉点 $v$，其分支总长不小于 $\sum_i d_i(v)$；反向取任意 $v$ 到各组的最短路并集，真实去重代价不超过该距离和。因此 $\mathrm{OPT}=\min_v\sum_i d_i(v)$。Bootstrapped-bounded 若最优值低于 cutoff，则最优根的所有组距离均是精确位置，若等于 cutoff，则已有真实上界已闭合。故全部配置可共同运行这一初始化包并直接返回精确值，不需要 complete potential 或任何配置专属证书。
 
@@ -852,7 +852,7 @@ for size = q down to ell+1:
 | 证明责任 | 代码边界 | 必须成立的可检查条件 |
 |---|---|---|
 | 上界真实性 | `PrepareProblem`、`EvaluateWitnessTree`、`EvaluateCertificateSupport`、各完成式 | 每次写 `best` 的有限值都能展开为原图真实边或 rooted DP 值 |
-| bounded 距离不冒充状态 | `GroupRow::IsExact`、`ExactValueOrInf`、`ForEachExact` | 所有作为 seed 的 singleton 必须精确；cutoff 只能进入下界比较 |
+| bounded 距离不冒充状态 | `GroupRow::ExactValueOrInf`、`ForEachExact` | 所有作为 seed 的 singleton 必须精确；cutoff 只能经 `operator[]` 进入下界比较 |
 | future 可采纳 | `FutureBound`、A1 `Value`、dual `At` | 不同来源的证书只用 `max` 合并；只有 residual 收费等已经证明互不超容量的内部项才可求和 |
 | row 依赖完备 | `ready`、按 size 递增/递减循环 | 消费者只读已经完成的依赖；空 row 与未生成 row 不混淆 |
 | 规范拆分完备 | branch bit 与 pivot 规则 | 每个等价拆分类至少有一个可被高层消费的代表 |
@@ -932,10 +932,10 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 | `ready` 与空 payload 分离 | 区分“已生成空 row”和“依赖尚未生成” | 高层会错误跳过合法依赖或读取未初始化状态 |
 | 顶点递增 row | 允许双指针、较小侧驱动二分和稳定输出 | Hash 随机访问会放大常数并破坏确定性 |
 | branch bitmap | 只发布规范的不可继续同根拆分状态 | 不影响值但会产生大量重复组合；定义错误则可能丢解 |
-| `IsExact` | 阻止 bounded cutoff 冒充 DP 值 | 会构造不存在的低成本状态，直接破坏精确性 |
+| `ExactValueOrInf` 单次精确读取 | 一次定位并阻止 bounded cutoff 冒充 DP 值 | 若改用 `operator[]` 作为 seed，会构造不存在的低成本状态，直接破坏精确性 |
 | 正权 cover 快路径与触及项工作区复用 | 避免每条查询重复扫描全边、分配全图分量数组或清零未访问距离 | 大图固定预处理会掩盖主搜索优势；复用若漏重置则会跨组污染距离或边并集 |
 | $g\le3$ 共同 root-star 闭包 | 以证明过的精确恒等式跳过已经无必要的后续阶段 | 若只给某个配置启用会破坏包含关系；若推广到 $g\ge4$ 则恒等式不再成立 |
-| directed-cut potential cone | 只枚举可能具有非零截断势差的边，并在稀疏/稠密物理遍历中取较少项 | 漏掉一条跨 cone 边会少扣 residual，使势与 primal 支撑不再对应 |
+| directed-cut potential cone 与唯一正梯度回写 | 只枚举可能具有非零截断势差的边；每条无向边只标记并扣除唯一可能为正的方向 | 漏掉跨 cone 边会少扣 residual；同时回写两向虽数值等价，但会恢复被严格支配的零方向操作 |
 | dual 构造非内联冷边界 | 隔离一次性 Enhanced 预处理与 Base 热控制流的机器码布局 | IPO 可把未执行的大分支并入 `PrepareProblem`，造成与状态无关的 Base 退化 |
 | epoch/stamp 缓存 | 避免每张 row 清零 $O(n)$ 下界数组 | 大图上清零成本可能超过实际稀疏搜索 |
 | flat/staged future 与单调拒绝前沿 | Base 一次缓存完整公共证书；DirectedCut 配置复用新增 dual 的中途拒绝，并允许较小标签继续尚未计算的阶段；stage 0 只在 row 已证明复用后物化按原谓词验证的解析 cutoff | 强迫 Base 支付无 dual 收益的 stage 热分支会损害小组实验；把区间下端当作 exact、把一次拒绝永久化或让虚拟 cutoff 入堆都会破坏精确性 |

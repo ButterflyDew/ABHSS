@@ -172,18 +172,6 @@ double GroupRow::operator[](int v) const
     return value[index];
 }
 
-/** @brief 判断读取值是否为真实最短路，而不是有界表的 cutoff 证书。 */
-bool GroupRow::IsExact(int v) const
-{
-    if (!bounded)
-        return true;
-    if (dense)
-        return value[v] < cutoff;
-    const size_t word = static_cast<size_t>(v) >> 6;
-    return word < bits.size() &&
-           ((bits[word] >> (v & 63)) & std::uint64_t{1});
-}
-
 /** @brief 返回可作为真实 singleton 子树的距离；不让 cutoff 占位进入上界 DP。 */
 double GroupRow::ExactValueOrInf(int v) const
 {
@@ -514,8 +502,6 @@ GroupTable BuildGroupDistances(const Graph& graph,
             continue;
         }
 
-        std::sort(touched.begin(), touched.end());
-        touched.erase(std::unique(touched.begin(), touched.end()), touched.end());
         row.exact_count = touched.size();
         const size_t word_count = (static_cast<size_t>(graph.n + 1) + 63) / 64;
         const size_t dense_bytes = static_cast<size_t>(graph.n + 1) * sizeof(double);
@@ -532,6 +518,7 @@ GroupTable BuildGroupDistances(const Graph& graph,
             continue;
         }
 
+        std::sort(touched.begin(), touched.end());
         row.vertex = std::move(touched);
         row.value.reserve(row.vertex.size());
         row.bits.assign(word_count, 0);
@@ -789,13 +776,13 @@ RootPathUnion BuildRootPathUnion(const Graph& graph,
             while (!path.empty() && !terminal[path.back()])
             {
                 const int vertex = path.back();
+                const double current_distance = distance[group][vertex];
                 bool advanced = false;
                 while (next_edge[vertex] < static_cast<int>(graph.adj[vertex].size()))
                 {
                     const auto& edge = graph.adj[vertex][next_edge[vertex]++];
                     if (epoch[edge.to] == current_epoch ||
-                        !fp::Eq(edge.w + distance[group][edge.to],
-                                distance[group][vertex]))
+                        !fp::Eq(edge.w + distance[group][edge.to], current_distance))
                         continue;
                     epoch[edge.to] = current_epoch;
                     next_edge[edge.to] = 0;
@@ -1040,7 +1027,7 @@ double EvaluateCertificateSupport(const Problem& p)
             {
                 const int vertex = vertices[i];
                 if (size == 1)
-                    merged[i] = p.group_distance[p.bit_to_group[FirstBit(mask)]].ExactValueOrInf(vertex);
+                    merged[i] = p.group_distance[p.bit_to_group[FirstBit(mask)]].value[vertex];
                 else
                     merged[i] = p.ordinary[mask].ready ? RowValue(p.ordinary[mask], vertex) : fp::kInf;
             }
@@ -1170,7 +1157,7 @@ double BuildPrimalFacilityUpper(const Problem& p,
     {
         row[1 << group].resize(count);
         for (int i = 0; i < count; ++i)
-            row[1 << group][i] = p.group_distance[group][facility[i]];
+            row[1 << group][i] = p.group_distance[group].value[facility[i]];
     }
 
     std::vector<double> merged(count);
@@ -1271,16 +1258,6 @@ double FutureBound(const Problem& p,
     if (p.UsesDirectedCut())
         value = std::max(value, p.dual.At(vertex, original_mask));
     return value;
-}
-
-/** @brief 统一读取 D(0)=0、singleton 组距离和多组 ordinary 稀疏 row。 */
-double OrdinaryValue(const Problem& p, int mask, int vertex)
-{
-    if (!mask)
-        return 0.0;
-    if (p.popcount[mask] == 1)
-        return p.group_distance[p.bit_to_group[FirstBit(mask)]][vertex];
-    return RowValue(p.ordinary[mask], vertex);
 }
 
 /** @brief singleton 天然可用；多组状态必须显式 `ready`，空 mask 不算 ordinary。 */
@@ -1393,8 +1370,7 @@ bool PrepareProblem(Problem& p)
     for (int left = 0; left < p.g; ++left)
         for (int right = 0; right < p.g; ++right)
             for (int vertex : p.query.groups[right])
-                metric[left][right] = std::min(
-                    metric[left][right], p.group_distance[left][vertex]);
+                metric[left][right] = std::min(metric[left][right], p.group_distance[left][vertex]);
     p.tour.Build(metric);
 
     if (!p.UsesDirectedCut())

@@ -208,6 +208,26 @@ public:
     }
 
 private:
+    /** @brief 只扣除一条无向边上唯一可能为正的势梯度，省去零方向空回写。 */
+    template <class Mark>
+    static void SubtractPositiveGradient(const UndirectedEdge& edge, const std::vector<double>& potential, std::vector<double>& residual, Mark&& mark)
+    {
+        if (potential[edge.u] > potential[edge.v])
+        {
+            const double gradient = potential[edge.u] - potential[edge.v];
+            const int arc = ArcIndex(edge.id, edge.u, edge.v);
+            mark(arc);
+            residual[arc] = std::max(0.0, residual[arc] - gradient);
+        }
+        else if (potential[edge.v] > potential[edge.u])
+        {
+            const double gradient = potential[edge.v] - potential[edge.u];
+            const int arc = ArcIndex(edge.id, edge.v, edge.u);
+            mark(arc);
+            residual[arc] = std::max(0.0, residual[arc] - gradient);
+        }
+    }
+
     /** @brief closure 后把完整证书转为按顶点连续布局，并释放按组布局。 */
     void TransposePotentialsByVertex(int n)
     {
@@ -278,7 +298,8 @@ private:
                     const int from = forward ? edge.u : edge.v;
                     const int to = forward ? edge.v : edge.u;
                     const double gradient = std::max(0.0, potential_[group][from] - potential_[group][to]);
-                    residual_[arc] = std::max(0.0, residual_[arc] - gradient);
+                    if (gradient > 0.0)
+                        residual_[arc] = std::max(0.0, residual_[arc] - gradient);
                 }
             }
     }
@@ -424,20 +445,7 @@ private:
             // 选择，不读取图名、g、时间或配置，也不改变 directed-cut 证书。
             auto ApplyPotentialGradient = [&](const UndirectedEdge& edge)
             {
-                const double forward =
-                    std::max(0.0, capped[edge.u] - capped[edge.v]);
-                const double backward =
-                    std::max(0.0, capped[edge.v] - capped[edge.u]);
-                const int forward_arc = ArcIndex(edge.id, edge.u, edge.v);
-                const int backward_arc = ArcIndex(edge.id, edge.v, edge.u);
-                if (forward > 0.0)
-                    MarkChangedArc(forward_arc);
-                if (backward > 0.0)
-                    MarkChangedArc(backward_arc);
-                residual_[forward_arc] =
-                    std::max(0.0, residual_[forward_arc] - forward);
-                residual_[backward_arc] =
-                    std::max(0.0, residual_[backward_arc] - backward);
+                SubtractPositiveGradient(edge, capped, residual_, MarkChangedArc);
             };
             if (cone_degree < graph.edges.size())
             {
@@ -561,16 +569,7 @@ private:
             {
                 if (capped[edge.u] == cap && capped[edge.v] == cap)
                     continue;
-                const double forward = std::max(0.0, capped[edge.u] - capped[edge.v]);
-                const double backward = std::max(0.0, capped[edge.v] - capped[edge.u]);
-                const int forward_arc = ArcIndex(edge.id, edge.u, edge.v);
-                const int backward_arc = ArcIndex(edge.id, edge.v, edge.u);
-                if (forward > 0.0)
-                    MarkChangedArc(forward_arc);
-                if (backward > 0.0)
-                    MarkChangedArc(backward_arc);
-                residual_[forward_arc] = std::max(0.0, residual_[forward_arc] - forward);
-                residual_[backward_arc] = std::max(0.0, residual_[backward_arc] - backward);
+                SubtractPositiveGradient(edge, capped, residual_, MarkChangedArc);
             }
         }
     }
@@ -581,6 +580,7 @@ private:
      *
      * Dijkstra 仍按原边权计价，并把选中路径写入调用者持有的 edge bitmap，
      * 因此结果是可独立复核的 primal 见证，而不是只依赖对偶值的上界数字。
+     * @param work 可选的隔离探针原语计数器；论文运行传空，不参与任何证书或分支。
      */
     static double RecoverPrimal(
         const Graph& graph,

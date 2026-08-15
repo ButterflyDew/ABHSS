@@ -43,8 +43,9 @@ void ForEachAnchoredSum(const Problem& p,
             // lambda：bounded 模式下仅在锚组距离精确时提交隐式 A(0) 合并。
             ForEachOrdinaryBranch(p, ordinary_side, [&](int vertex, double value)
             {
-                if (anchor.IsExact(vertex))
-                    use(vertex, value + anchor[vertex]);
+                const double anchor_distance = anchor.ExactValueOrInf(vertex);
+                if (anchor_distance < fp::kInf)
+                    use(vertex, value + anchor_distance);
             });
         }
         return;
@@ -66,8 +67,9 @@ void ForEachAnchoredSum(const Problem& p,
             // lambda：bounded 模式下仅在 singleton 距离精确时提交锚定合并。
             ForEachValue(anchored[anchor_side], [&](int vertex, double value)
             {
-                if (singleton.IsExact(vertex))
-                    use(vertex, value + singleton[vertex]);
+                const double singleton_distance = singleton.ExactValueOrInf(vertex);
+                if (singleton_distance < fp::kInf)
+                    use(vertex, value + singleton_distance);
             });
         }
         return;
@@ -134,17 +136,6 @@ void CompleteAnchoredRow(Problem& p,
                     const double b = right ? OrdinaryValue(p, right, vertex) : 0.0;
                     if (a >= fp::kInf || b >= fp::kInf)
                         return;
-                    if (p.UsesBoundedGroupDistances())
-                    {
-                        if (left && p.popcount[left] == 1 &&
-                            !p.group_distance[
-                                 p.bit_to_group[FirstBit(left)]].IsExact(vertex))
-                            return;
-                        if (right && p.popcount[right] == 1 &&
-                            !p.group_distance[
-                                 p.bit_to_group[FirstBit(right)]].IsExact(vertex))
-                            return;
-                    }
                     p.best = std::min(p.best, anchored_distance[vertex] + a + b);
                 };
                 if (driver)
@@ -229,18 +220,6 @@ std::vector<Row> BuildForwardAnchoredRows(
                 }
                 return value + bound_cache[vertex] < p.best;
             };
-            // lambda：无候选代价时按需取得并缓存当前顶点的完整 future。
-            auto Bound = [&](int vertex)
-            {
-                if (bound_stamp[vertex] != stamp)
-                {
-                    bound_stamp[vertex] = stamp;
-                    bound_cache[vertex] =
-                        FutureBound(p, vertex, remaining_original);
-                }
-                return bound_cache[vertex];
-            };
-
             // 提前调度的公共 A1 在证书 cone 内已经完成精确图闭包。这里只按
             // 更新后的 incumbent 重滤，并调用相同的完成结算；不是第二套 A1。
             const bool reuses_singleton_row = anchored[mask].ready;
@@ -293,7 +272,7 @@ std::vector<Row> BuildForwardAnchoredRows(
                                     std::vector<QueueNode>,
                                     std::greater<QueueNode>> queue;
                 for (int vertex : touched)
-                    queue.push({distance[vertex] + Bound(vertex),
+                    queue.push({distance[vertex] + bound_cache[vertex],
                                 distance[vertex],
                                 vertex});
                 while (!queue.empty())
@@ -318,7 +297,7 @@ std::vector<Row> BuildForwardAnchoredRows(
                         if (distance[edge.to] >= fp::kInf)
                             touched.push_back(edge.to);
                         distance[edge.to] = next;
-                        queue.push({next + Bound(edge.to), next, edge.to});
+                        queue.push({next + bound_cache[edge.to], next, edge.to});
                     }
                 }
                 std::sort(settled.begin(), settled.end());
@@ -336,7 +315,7 @@ std::vector<Row> BuildForwardAnchoredRows(
             settled.erase(
                 std::remove_if(settled.begin(), settled.end(), [&](int vertex)
                 {
-                    return !(distance[vertex] + Bound(vertex) < p.best);
+                    return !(distance[vertex] + bound_cache[vertex] < p.best);
                 }),
                 settled.end());
             if (size < plan.last_size || plan.retain_last_layer)

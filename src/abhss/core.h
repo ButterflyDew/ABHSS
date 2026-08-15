@@ -271,9 +271,7 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
         ForEachOrdinaryValue(p, left, [&](int vertex, double a)
         {
             const double b = OrdinaryValue(p, right, vertex);
-            if (b < fp::kInf &&
-                (p.popcount[right] != 1 ||
-                 p.group_distance[p.bit_to_group[FirstBit(right)]].IsExact(vertex)))
+            if (b < fp::kInf)
                 use(vertex, a, b);
         });
     }
@@ -283,9 +281,7 @@ void ForEachCommonValue(const Problem& p, int left, int right, Use&& use)
         ForEachOrdinaryValue(p, right, [&](int vertex, double b)
         {
             const double a = OrdinaryValue(p, left, vertex);
-            if (a < fp::kInf &&
-                (p.popcount[left] != 1 ||
-                 p.group_distance[p.bit_to_group[FirstBit(left)]].IsExact(vertex)))
+            if (a < fp::kInf)
                 use(vertex, a, b);
         });
     }
@@ -306,8 +302,9 @@ void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use
         // lambda：用 accumulator 驱动并读取 singleton branch 的精确组距离。
         ForEachOrdinaryValue(p, accumulator, [&](int vertex, double value)
         {
-            if (p.group_distance[group].IsExact(vertex))
-                use(vertex, value, p.group_distance[group][vertex]);
+            const double singleton = p.group_distance[group].ExactValueOrInf(vertex);
+            if (singleton < fp::kInf)
+                use(vertex, value, singleton);
         });
         return;
     }
@@ -317,8 +314,9 @@ void ForEachPivotBranch(const Problem& p, int accumulator, int branch, Use&& use
         // lambda：由多组规范 branch 驱动并读取 singleton accumulator 的精确组距离。
         ForEachBranch(p.ordinary[branch], [&](int vertex, double value)
         {
-            if (p.group_distance[group].IsExact(vertex))
-                use(vertex, p.group_distance[group][vertex], value);
+            const double singleton = p.group_distance[group].ExactValueOrInf(vertex);
+            if (singleton < fp::kInf)
+                use(vertex, singleton, value);
         });
         return;
     }

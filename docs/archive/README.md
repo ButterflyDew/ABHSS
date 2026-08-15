@@ -8,6 +8,7 @@
 - `GPU4GST_DATA.md`：GPU4GST 作者文件、转换器和跨 `g` 查询生成细节。
 - `THIRD_PARTY.md`：Basic+、SCIP-Jack、Boost 等 correctness-only 依赖的恢复方法。
 - `*_GATE_*.md`：已接入候选的正确性、时间与空间门禁；当前三元上界和 Orkut 高组证据分别见 `TRIPLE_SEEDED_P1_FULL_GATE_20260811.md` 与 `STRUCTURAL_OMITTED_HALF_ORKUT_G15_GATE_20260812.md`。
+- `DOMINATED_OPERATION_REDUCTION_AUDIT_20260815.md`：当前源码的全链路严格支配审计，记录接受减空、物理回归候选和最终 P1/Orkut 硬门状态。
 - `*_NEGATIVE_*.md` 及名称含 `NEGATIVE` 的文档：被拒绝候选的反例与清理依据；不得据此描述当前生产算法。
 - `communication/`：算法候选筛选、跨图结构统计和 YouTube/P1/P2 探针记录；只作决策证据，不替代正式实验结果。
 

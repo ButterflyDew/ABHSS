@@ -351,13 +351,14 @@ void CheckDistanceRootInitializationContract()
                 "ABHSS distance-root realization exposed the wrong oracle layout.");
         for (int vertex = 1; vertex <= graph.n; ++vertex)
         {
-            if (short_row.IsExact(vertex))
+            const double short_exact = short_row.ExactValueOrInf(vertex);
+            if (short_exact < gst::fp::kInf)
             {
-                if (std::fabs(short_row[vertex] - full_row[vertex]) > 1e-12 || std::fabs(short_row.ExactValueOrInf(vertex) - full_row[vertex]) > 1e-12)
+                if (std::fabs(short_row[vertex] - full_row[vertex]) > 1e-12 || std::fabs(short_exact - full_row[vertex]) > 1e-12)
                     throw std::runtime_error(
                         "ABHSS bounded and complete exact distances disagree.");
             }
-            else if (short_row[vertex] > full_row[vertex] || short_row.ExactValueOrInf(vertex) < gst::fp::kInf)
+            else if (short_row[vertex] > full_row[vertex])
             {
                 throw std::runtime_error(
                     "ABHSS bounded cutoff is not a safe lower placeholder or entered an exact consumer.");
