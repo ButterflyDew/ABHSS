@@ -1,6 +1,6 @@
 # 省略两层 ordinary 与无条件三块终端：被否决的 Orkut 探针（2026-08-12）
 
-> 最终正确的一层省略方案与五条 `g=15` 门禁见 [结构性省略半格的 Orkut `g=15` 门禁](STRUCTURAL_OMITTED_HALF_ORKUT_G15_GATE_20260812.md)。
+> 本文否决“连最高逻辑层 $D(q)$ 也省略”的反例仍然有效；但链接文档中曾称为最终正确的一层方案后来也被辅助半层固定反例否决。当前修复见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)。
 
 ## 1. 研究问题
 
@@ -47,19 +47,19 @@ pair-union 因子化已经由独立单元测试证明与直接三元枚举给出
 r=\max\left\{q,\left\lceil\frac{k-(\ell+1)}{2}\right\rceil\right\}.
 ```
 
-当前平衡域内第一项占优，因此 Enhanced 与 Base 对所有 $|S|\le q$ 调用同一个 ordinary 构造器；Enhanced 只省略更高的半格 $h$，由 separator terminal 与 H 接管。第三块也不按 `r<h` 无条件运行。两个容量为 $r$ 的箱最小装不下的组件总量为：
+当前方案仍采纳这项负面结论：Enhanced 与 Base 对所有 $|S|\le q$ 调用同一个 ordinary 构造器，不能用目标驱动标量替代完整 $D(q)$。不同之处是，更高的半格 $D(h)$ 现在先由辅助 $H(h)$ 的同递推转置精确恢复，再递减 H；旧 separator 装箱与第三块 terminal 已从生产实现删除。下述容量分析只解释当时失败候选，不再定义当前算法。
 
 ```math
 \tau(r)=\left\lfloor\frac{3r}{2}\right\rfloor+2.
 ```
 
-只有转置定义域允许外侧总量至少达到 $\tau(r)$ 时，层计划才设置 `requires_three_block_terminal`。这个判断来自两箱容量反例，不读取图名、经验组数、row 密度、incumbent、时间或内存。Orkut `g=15` 的外侧上界为 10，而 $\tau(6)=11$，因此单块/双块已经完备，生产版本不分配 `pair_best`、不建立组合数表、不扫描最大 entry 大小，也不进入三块热循环。
+旧候选曾在转置定义域允许外侧总量至少达到 $\tau(r)$ 时设置 `requires_three_block_terminal`。当前生产版本不再含该字段、`pair_best` 或三块热循环；它只在辅助半层缺少直接 D 时枚举 ordinary 双块 split。
 
 固定成本移除前后，第 3 条权值和 31,051,638 个状态完全一致，时间从 390.156139 秒降到 298.400088 秒，下降 23.52%。第 4 条最终为 357.558646 秒、权值 28、15,061,435 个状态。长查询的最终五条门禁另行记录；本文件只负责否决错误边界和解释最终结构选择。
 
 ## 5. 清理决定
 
 - 生产代码不保留 `ordinary_last_layer=q-1`、目标驱动最高 ordinary、延迟边界 evaluator 或对应配置字段。
-- 三块 pair-union 代码只在两箱容量条件为真时存在于执行路径；条件为假时不支付专用准备成本。
+- 当前源码完全删除三块 pair-union；本文保留其负面成本数字，防止以后把相同失败方向重新包装成优化。
 - 被否决二进制和原始运行目录只位于 `/tmp`，不属于可复现实验 artifact；本文件保存必要数字后可以删除。
 - 正式方法只描述“完整保留最高逻辑 ordinary 层、只替换半格 terminal 和高层 A”，不把失败候选包装成消融贡献。

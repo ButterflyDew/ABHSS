@@ -183,16 +183,16 @@ constexpr ConfigurationProfile DescribeConfiguration(SolveOptions options)
  *
  * `highest_layer` 是必须覆盖的最大锚定 mask 大小；正层定义域恰为
  * `1..highest_layer`。`forward_last_layer` 是公共前向 A 实际负责的前缀，
- * 非空后缀由 adjoint H 负责。该结构不包含按图或经验组数阈值的字段。
+ * `adjoint_last_layer` 还包含用于精确转置被省略半格 D 的辅助 H 层。
  */
 struct AnchoredCompletionSchedule
 {
     int highest_layer = 0;
     int forward_last_layer = 0;
-    /** @brief ordinary D 完整物化的最高层；省略的半格后缀由 H terminal 的固定分解补全。 */
+    /** @brief ordinary D 完整物化的最高层。 */
     int ordinary_last_layer = 0;
-    /** @brief 两个容量为 ordinary_last_layer 的块不能覆盖全部分隔组件时为 true。 */
-    bool requires_three_block_terminal = false;
+    /** @brief adjoint H 物化的最高层；可比最高逻辑 A 层多一个辅助半格层。 */
+    int adjoint_last_layer = 0;
     bool uses_adjoint = false;
 
     /** @brief 判断给定正层是否属于精确完成递推的逻辑定义域。 */
@@ -207,10 +207,10 @@ struct AnchoredCompletionSchedule
         return ContainsLogicalLayer(size) && size <= forward_last_layer;
     }
 
-    /** @brief 判断逻辑层是否由 adjoint H realization 负责。 */
+    /** @brief 判断给定层是否由 adjoint H 物化；包含辅助半格层。 */
     constexpr bool UsesAdjointH(int size) const
     {
-        return ContainsLogicalLayer(size) && size > forward_last_layer;
+        return uses_adjoint && size > forward_last_layer && size <= adjoint_last_layer;
     }
 };
 
@@ -219,8 +219,8 @@ struct AnchoredCompletionSchedule
  *
  * 这里的整数除法来自平衡分解：`floor(g/2)-1` 是完整锚定格的最高层，
  * adjoint 再对该区间做固定的 meet-in-the-middle 切分；只要区间非空，公共 A1 必属于前向前缀。
- * ordinary 边界直接覆盖 H successor、非空 A 边界和空前缀边界，并把转置外侧限制为至多三个容量 r 的
- * separator 块；第三块只由两箱容量反例启用。函数不读取图、
+ * 存在 H 后缀时 ordinary 保留到最高逻辑层，辅助 H 半格以同一 ordinary 递推的转置取代被省略的 D 半格。
+ * 函数不读取图、
  * 查询内容、row 密度、incumbent、耗时或内存，也不比较 g 与经验常数。
  */
 constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
@@ -231,6 +231,7 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     const int half = group_count / 2;
     schedule.highest_layer = half > 0 ? half - 1 : 0;
     schedule.ordinary_last_layer = half;
+    schedule.adjoint_last_layer = schedule.highest_layer;
     schedule.uses_adjoint =
         profile.high_layer == HighLayerRealization::AdjointH;
     schedule.forward_last_layer = schedule.uses_adjoint
@@ -242,11 +243,8 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
                                       : schedule.highest_layer;
     if (schedule.uses_adjoint && schedule.forward_last_layer < schedule.highest_layer)
     {
-        const int first_high_layer = schedule.forward_last_layer + 1;
-        const int terminal_side = group_count - 1 - first_high_layer;
-        schedule.ordinary_last_layer = std::max(schedule.highest_layer, (terminal_side + 1) / 2);
-        const int minimum_three_bin_cover = 3 * schedule.ordinary_last_layer / 2 + 2;
-        schedule.requires_three_block_terminal = schedule.ordinary_last_layer < half && terminal_side >= minimum_three_bin_cover;
+        schedule.ordinary_last_layer = schedule.highest_layer;
+        schedule.adjoint_last_layer = half;
     }
     return schedule;
 }

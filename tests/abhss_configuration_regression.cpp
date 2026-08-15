@@ -509,142 +509,49 @@ void CheckDirectedCutResidualAccounting()
     if (dual.ResidualClosureBuyWork(graph) != 0)
         throw std::runtime_error("ABHSS residual closure remained purchasable after completion.");
 }
-/** @brief 尝试把降序组件大小装入指定数量的同容量箱子。 */
-bool CanPackComponents(const std::vector<int>& component, int index, int capacity, int bin_count, std::array<int, 3>& load)
+/** @brief 锁定辅助 H 半格对被省略 D 半格的精确转置职责。 */
+void CheckAuxiliaryHalfAdjointRegression()
 {
-    if (index == static_cast<int>(component.size()))
-        return true;
-    for (int bin = 0; bin < bin_count; ++bin)
-    {
-        bool symmetric = false;
-        for (int previous = 0; previous < bin; ++previous)
-            symmetric = symmetric || load[previous] == load[bin];
-        if (symmetric || load[bin] + component[index] > capacity)
-            continue;
-        load[bin] += component[index];
-        if (CanPackComponents(component, index + 1, capacity, bin_count, load))
-            return true;
-        load[bin] -= component[index];
-    }
-    return false;
-}
+    gst::Graph graph;
+    graph.n = 12;
+    graph.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    graph.adj.assign(13, {});
+    AddEdge(graph, 1, 2, 2.5);
+    AddEdge(graph, 2, 3, 3.75);
+    AddEdge(graph, 3, 4, 4.25);
+    AddEdge(graph, 2, 5, 0.5);
+    AddEdge(graph, 2, 6, 4.25);
+    AddEdge(graph, 3, 7, 0.0);
+    AddEdge(graph, 2, 8, 5.0);
+    AddEdge(graph, 5, 9, 0.75);
+    AddEdge(graph, 8, 10, 4.0);
+    AddEdge(graph, 3, 11, 2.25);
+    AddEdge(graph, 2, 12, 0.0);
+    AddEdge(graph, 1, 4, 0.0);
+    AddEdge(graph, 1, 11, 3.5);
+    AddEdge(graph, 1, 12, 3.25);
+    AddEdge(graph, 2, 7, 1.5);
+    AddEdge(graph, 2, 10, 3.0);
+    AddEdge(graph, 3, 5, 4.25);
+    AddEdge(graph, 4, 8, 1.5);
+    AddEdge(graph, 4, 12, 2.0);
+    AddEdge(graph, 5, 6, 2.5);
+    AddEdge(graph, 5, 7, 3.25);
+    AddEdge(graph, 5, 8, 1.25);
+    AddEdge(graph, 5, 12, 1.5);
+    AddEdge(graph, 6, 11, 3.5);
+    AddEdge(graph, 9, 10, 1.5);
+    AddEdge(graph, 9, 11, 2.5);
+    AddEdge(graph, 9, 12, 0.25);
+    AddEdge(graph, 10, 12, 0.5);
 
-/** @brief 穷举一个总组数的全部整数分拆并记录两箱/三箱反例。 */
-void EnumerateCapacityPartitions(int remaining, int maximum_part, int capacity, std::vector<int>& component, bool& two_bin_failure, bool& three_bin_failure)
-{
-    if (!remaining)
-    {
-        std::array<int, 3> load{};
-        two_bin_failure = two_bin_failure || !CanPackComponents(component, 0, capacity, 2, load);
-        load.fill(0);
-        three_bin_failure = three_bin_failure || !CanPackComponents(component, 0, capacity, 3, load);
-        return;
-    }
-    for (int part = std::min({remaining, maximum_part, capacity}); part >= 1; --part)
-    {
-        component.push_back(part);
-        EnumerateCapacityPartitions(remaining - part, part, capacity, component, two_bin_failure, three_bin_failure);
-        component.pop_back();
-    }
-}
-
-/**
- * @brief 穷举核验触发第三块的两箱容量边界。
- *
- * 层计划保证外侧总组数不超过 2r，separator 组件也不超过 r。所有总量
- * 小于 floor(3r/2)+2 的整数分拆都能装入两个容量 r 的块；达到该边界时
- * 才首次可能需要第三块，而整个定义域始终可装入三块。
- */
-void CheckThreeBlockCapacityBoundary()
-{
-    for (int capacity = 1; capacity <= 8; ++capacity)
-    {
-        const int threshold = 3 * capacity / 2 + 2;
-        bool threshold_witnessed = false;
-        for (int total = 1; total <= 2 * capacity; ++total)
-        {
-            std::vector<int> component;
-            bool two_bin_failure = false, three_bin_failure = false;
-            EnumerateCapacityPartitions(total, capacity, capacity, component, two_bin_failure, three_bin_failure);
-            if (total < threshold && two_bin_failure)
-                throw std::runtime_error("ABHSS enabled a third terminal block below the first two-bin obstruction.");
-            if (total == threshold)
-                threshold_witnessed = two_bin_failure;
-            if (three_bin_failure)
-                throw std::runtime_error("ABHSS three-block terminal cannot cover a valid separator partition.");
-        }
-        if (threshold <= 2 * capacity && !threshold_witnessed)
-            throw std::runtime_error("ABHSS two-bin obstruction threshold has no integer-partition witness.");
-    }
-}
-
-/** @brief 独立核验三块 terminal 的 pair-union 最小值因子化不改变预算内候选。 */
-void CheckThreeBlockPairUnionFactorization()
-{
-    std::mt19937 random(0x3B10C5u);
-    constexpr double kInf = std::numeric_limits<double>::infinity();
-    for (int bits = 3; bits <= 10; ++bits)
-    {
-        const int subset_count = 1 << bits;
-        std::vector<int> masks(subset_count - 1);
-        std::iota(masks.begin(), masks.end(), 1);
-        for (int instance = 0; instance < 64; ++instance)
-        {
-            std::shuffle(masks.begin(), masks.end(), random);
-            const int entry_count = std::min(24, subset_count - 1);
-            std::vector<int> entry(masks.begin(), masks.begin() + entry_count);
-            std::vector<double> value(subset_count, kInf);
-            for (int mask : entry)
-                value[mask] = 0.125 * static_cast<double>(1 + random() % 80);
-            const double budget = 2.0 + 0.125 * static_cast<double>(random() % 120);
-            const double minimum_value = *std::min_element(value.begin() + 1, value.end());
-            std::vector<double> direct(subset_count, kInf), factorized(subset_count, kInf), pair_best(subset_count, kInf);
-
-            // 直接枚举互斥三元组，作为与生产实现独立的小组维度 oracle。
-            for (int first = 0; first < entry_count; ++first)
-                for (int second = first + 1; second < entry_count; ++second)
-                {
-                    if (entry[first] & entry[second])
-                        continue;
-                    for (int third = second + 1; third < entry_count; ++third)
-                    {
-                        if ((entry[first] | entry[second]) & entry[third])
-                            continue;
-                        const double candidate = value[entry[first]] + value[entry[second]] + value[entry[third]];
-                        if (candidate <= budget)
-                            direct[entry[first] | entry[second] | entry[third]] = std::min(direct[entry[first] | entry[second] | entry[third]], candidate);
-                    }
-                }
-
-            // 对固定 pair-union 只保留最小两块和，再与任一互斥第三块结合。
-            const double pair_limit = budget - minimum_value;
-            for (int first = 0; first < entry_count; ++first)
-                for (int second = first + 1; second < entry_count; ++second)
-                {
-                    if (entry[first] & entry[second])
-                        continue;
-                    const double candidate = value[entry[first]] + value[entry[second]];
-                    if (candidate <= pair_limit)
-                        pair_best[entry[first] | entry[second]] = std::min(pair_best[entry[first] | entry[second]], candidate);
-                }
-            for (int pair_union = 1; pair_union < subset_count; ++pair_union)
-            {
-                if (!std::isfinite(pair_best[pair_union]))
-                    continue;
-                for (int third : entry)
-                {
-                    if (pair_union & third)
-                        continue;
-                    const double candidate = pair_best[pair_union] + value[third];
-                    if (candidate <= budget)
-                        factorized[pair_union | third] = std::min(factorized[pair_union | third], candidate);
-                }
-            }
-            for (int mask = 1; mask < subset_count; ++mask)
-                if (std::isfinite(direct[mask]) != std::isfinite(factorized[mask]) || (std::isfinite(direct[mask]) && std::fabs(direct[mask] - factorized[mask]) > 1e-12))
-                    throw std::runtime_error("ABHSS pair-union factorization changed a three-block terminal minimum.");
-        }
-    }
+    gst::Query query;
+    query.groups = {{3, 4, 6, 7}, {6}, {5}, {3, 5, 7, 8}, {2, 7}, {3, 11}, {4, 11}};
+    const double expected = ExactSubsetDp(graph, query);
+    if (std::fabs(expected - 5.75) > 1e-12)
+        throw std::runtime_error("auxiliary-half fixture oracle changed");
+    const auto answer = gst::methods::abhss::SolveOneQuery(graph, query, gst::methods::abhss::SolveOptions::Enhanced());
+    Check("ABHSS auxiliary-half adjoint", answer, expected, 0);
 }
 
 }  // namespace
@@ -652,8 +559,7 @@ void CheckThreeBlockPairUnionFactorization()
 /** @brief 运行入口契约、层计划不变量及 g=2..10 的确定性随机精确性实例。 */
 int main()
 {
-    CheckThreeBlockCapacityBoundary();
-    CheckThreeBlockPairUnionFactorization();
+    CheckAuxiliaryHalfAdjointRegression();
 
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
     // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
@@ -762,22 +668,18 @@ int main()
         const auto enhanced_schedule =
             gst::methods::abhss::MakeAnchoredCompletionSchedule(
                 group_count, enhanced_profile);
-        int expected_enhanced_ordinary = half;
-        bool expected_three_block_terminal = false;
-        if (enhanced_schedule.forward_last_layer < expected_highest)
-        {
-            const int first_high_layer = enhanced_schedule.forward_last_layer + 1;
-            const int terminal_side = group_count - 1 - first_high_layer;
-            expected_enhanced_ordinary = std::max(expected_highest, (terminal_side + 1) / 2);
-            expected_three_block_terminal = expected_enhanced_ordinary < half && terminal_side >= 3 * expected_enhanced_ordinary / 2 + 2;
-        }
+        const bool has_adjoint_suffix = enhanced_schedule.forward_last_layer < expected_highest;
+        const int expected_enhanced_ordinary = has_adjoint_suffix ? expected_highest : half;
+        const int expected_enhanced_adjoint = has_adjoint_suffix ? half : expected_highest;
         if (base_schedule.highest_layer != expected_highest ||
             base_schedule.forward_last_layer != expected_highest ||
             base_schedule.ordinary_last_layer != half ||
+            base_schedule.adjoint_last_layer != expected_highest ||
             base_schedule.uses_adjoint ||
             directed_schedule.highest_layer != expected_highest ||
             directed_schedule.forward_last_layer != expected_highest ||
             directed_schedule.ordinary_last_layer != half ||
+            directed_schedule.adjoint_last_layer != expected_highest ||
             directed_schedule.uses_adjoint ||
             enhanced_schedule.highest_layer != expected_highest ||
             enhanced_schedule.forward_last_layer !=
@@ -785,8 +687,7 @@ int main()
                      ? std::max(1, expected_highest / 2)
                      : 0) ||
             enhanced_schedule.ordinary_last_layer != expected_enhanced_ordinary ||
-            enhanced_schedule.requires_three_block_terminal != expected_three_block_terminal ||
-            half - enhanced_schedule.ordinary_last_layer > 1 ||
+            enhanced_schedule.adjoint_last_layer != expected_enhanced_adjoint ||
             !enhanced_schedule.uses_adjoint ||
             (expected_highest > 0 &&
              (!base_schedule.UsesForwardA(1) ||
@@ -798,15 +699,17 @@ int main()
         for (int layer = 1; layer <= expected_highest + 1; ++layer)
         {
             const bool required = layer <= expected_highest;
+            const bool expected_enhanced_forward = required && layer <= enhanced_schedule.forward_last_layer;
+            const bool expected_enhanced_h = has_adjoint_suffix && layer > enhanced_schedule.forward_last_layer && layer <= half;
             if (base_schedule.ContainsLogicalLayer(layer) != required ||
                 base_schedule.UsesForwardA(layer) != required ||
                 base_schedule.UsesAdjointH(layer) ||
                 directed_schedule.UsesForwardA(layer) != required ||
                 directed_schedule.UsesAdjointH(layer) ||
-                (enhanced_schedule.UsesForwardA(layer) &&
-                 enhanced_schedule.UsesAdjointH(layer)) ||
-                (enhanced_schedule.UsesForwardA(layer) ||
-                 enhanced_schedule.UsesAdjointH(layer)) != required)
+                enhanced_schedule.ContainsLogicalLayer(layer) != required ||
+                enhanced_schedule.UsesForwardA(layer) != expected_enhanced_forward ||
+                enhanced_schedule.UsesAdjointH(layer) != expected_enhanced_h ||
+                (required && expected_enhanced_forward == expected_enhanced_h))
                 throw std::runtime_error(
                     "ABHSS anchored layer has missing or duplicate realization.");
         }

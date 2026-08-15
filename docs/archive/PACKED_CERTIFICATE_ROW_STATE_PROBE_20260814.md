@@ -1,5 +1,7 @@
 # ordinary 证书行状态合并探针（2026-08-14）
 
+> **证据边界。** packed metadata 是仍保留的局部布局优化；本文 Enhanced 长测所用二进制则继承了缺失辅助 $H(h)$ 的精确性错误。因此固定窗口与 Youtube 时间只可说明 packed 相对同状态域对照的物理方向，不能作为当前 P1 答案或 Orkut 门禁。当前修复与待复跑项见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)。
+
 ## 1. 动机与候选
 
 Enhanced 的 ordinary 热路径按 `(mask, vertex)` 复用 staged future。原实现为每个顶点并行维护 32-bit row stamp 与 8-bit stage；诊断构建还另有 32-bit exact-dual stamp。Orkut g=15 q10 的 1,200 秒诊断窗口中，前 163 张共同 ordinary row 已发生 2,855,058,390 次证书入口调用，其中 2,600,519,242 次直接被缓存证书拒绝。这里的主要物理成本不是重新计算数学下界，而是反复随机读取多个并行元数据数组。

@@ -1018,7 +1018,7 @@
     ]
   },
   "endpoint_floor_a1_gate_20260802": {
-    "status": "CURRENT",
+    "status": "ACTIVE LOCAL PREREQUISITE; whole-binary current evidence is experiments/correctness_audit.json#auxiliary_half_adjoint_gate",
     "result": "PASS",
     "extends": "distance_root_initialization_gate_20260725; all earlier common-operation and replacement contracts remain active",
     "contract": "Every legal configuration uses the same A1 continuation max(farthest, endpoint-floor), the same cone and the same positive fallback; the builder has no configuration, graph-name or empirical group-count branch.",
@@ -1028,7 +1028,7 @@
       "internal_h": "361fb31ee728f556ff71431ad532cbd893694e89db03fd498dea495a9c108e31",
       "preprocess_cpp": "722904a0ac8310e317e8042289296b6781e29a262f970eca6faf2adde5ce9309"
     },
-    "release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+    "historical_release_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
     "correctness": {
       "ctest": "5/5 PASS",
       "independent_random_exact_dp": "144 deterministic connected instances, all three legal configurations, g=2..10",

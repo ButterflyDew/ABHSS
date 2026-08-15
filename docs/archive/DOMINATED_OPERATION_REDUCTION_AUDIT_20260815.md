@@ -2,12 +2,14 @@
 
 本文记录当前 ABHSS 源码的一次全链路“减成空”审计。目标不是追求源码行数最少，而是在不改变精确语义、论文主线和物理性能的前提下，删除被其他操作严格覆盖的重复工作。正式方法口径仍以 `../METHOD.md` 和 `../CODE_GUIDE.md` 为准；本文保存接受与拒绝候选的证明、实测和最终硬门状态。
 
+> **当前勘误。** 本文最初记录的候选 E 及之后的单调证书优化本身没有引入伴随层错误，但它们继承了“从最高逻辑层直接启动 H”的不精确实现。旧 P1 Enhanced 与 Orkut g15 q1--q10 结果因此全部降级为历史性能探针。当前源码已加入辅助 $H(h)$ 并删除被其严格支配的低层直接 terminal；事故、反例和证明见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)。当前 P1 与 Orkut 硬门必须重新运行。
+
 ## 1. 审计状态
 
-- 当前接受源码为候选 E；回滚验证构建 K 的 `abhss` 与 E 的 SHA-256 均为 `3d02cd2ec7ea8bd45db8acee5d2fc29e0232b39548e0539eaf7782bd7e46adad`。
-- 5 个 CTest 在该源码上全部通过：图读取、查询读取、零权 witness、配置精确性和状态计数。
-- 本轮接受项 A--E 均不读取图名、查询编号、运行时间、状态数、row 密度或经验阈值，不压缩 `double` 精度，也不假设边权为整数。
-- 历史最终候选的 Orkut `g=15` q1--q10 均在 10,000 秒内结束；最紧的 q10 为 9,934.603 秒。由于 q10 只剩 65.397 秒余量，文档与源码完全冻结后仍须复跑。
+- A--E 的局部减空仍保留；其历史回滚构建 SHA-256 `3d02cd2ec7ea8bd45db8acee5d2fc29e0232b39548e0539eaf7782bd7e46adad` 只证明这些局部改动的当时物理对照，不再标识当前源码。
+- 当前修复版的最终 CTest、二进制 SHA-256 与仓库一致性结果在本轮本地提交前重新生成；不得沿用旧值。
+- 接受项 A--E 与新增辅助半层减空均不读取图名、查询编号、运行时间、状态数、row 密度或经验阈值，不压缩 `double` 精度，也不假设边权为整数。
+- 旧错误二进制的 Orkut `g=15` q1--q10 曾全部在 10,000 秒内结束，最紧 q10 为 9,934.603 秒；该数字只用于评估当前复跑风险，不是当前门禁结果。
 - 完整 P1 与最终 Orkut 硬门尚未执行，因此本文不提前宣称最终门禁通过。
 
 ## 2. “被支配”的判定标准
@@ -33,7 +35,7 @@
 | 公共 A1 | seed、farthest、endpoint-floor cone、正 fallback、图闭包、owner 移交 | Base 与 Enhanced 完全相同，不能由 dual 或 H 替换 |
 | ordinary D | 规范 split 聚合、统一 future、图闭包、branch 标准化 | 都参与精确状态生成；只删除重复 accessor 和不可能有作用的容器操作 |
 | future 链 | dual、farthest、A1、tour 与 staged cache | 后段可能更强，但前段能更早拒绝，故按时序保留 |
-| forward A / adjoint H | 公共低层 A、补集 terminal、递减 H、必要时三块 terminal | 两种 realization 覆盖不同的平衡半格职责，不能把物理循环写成额外方法 |
+| forward A / adjoint H | 公共低层 A、辅助半层 terminal、递减 H | 辅助 $H(h)$ 精确转置被省略的 $D(h)$；逻辑 H 后缀替换高层 A，不能省略半层闭包 |
 | DirectedCut | potential、cone、changed arc、residual、exact fallback、primal 恢复 | 只删除零梯度方向回写；其余操作维持对偶可行性与可行上界 |
 | witness rent-or-buy | 两边各自 witness、统一零起点 rent、同一 buy 公式、同一树 DP | witness 不同，但调度合同和树 DP 共同；不能恢复无条件树 DP |
 | 状态容器 | epoch、bitmap padding guard、ready、branch bitmap、settled 排序 | 部分检查逻辑上由上游不变量蕴含，但删后物理回归，按实测保留 |
@@ -87,6 +89,12 @@
 |---|---:|---:|---:|
 | YouTube Enhanced 前 30 条 | 205.910918 | 203.704031 | -1.07% |
 | Orkut g15 q3 | 288.672101 | 285.567882 | -1.08% |
+
+### 4.6 F：辅助半层只保留必要 terminal
+
+正确的 H 不能从最高逻辑层 $q=h-1$ 直接启动；它必须先在辅助层 $H(h)$ 完成被省略 ordinary 半层的精确转置。偶数 $g$ 时，辅助目标的补集已有完整 $D(q)$，该单张 D 逐值支配所有同目标 pair；奇数 $g$ 时才用双块 split seed 重建 $D(h)$ 并执行图闭包。此后每张较低 H row 都由 successor 加规范 ordinary branch 及同一图闭包归纳得到，因此其旧式直接 terminal 是重复 realization，可减成空。
+
+该操作修复的是精确职责，不是针对 Orkut 的性能开关。它只读取由递推域决定的层号和 ordinary ready 状态，不读取实际 $g$ 常数分段、图名、查询特征或运行统计。12 点固定反例从旧错误值 6.25 恢复为 5.75，九条已知生产差异全部恢复；完整证据见辅助半层事故审计。进一步把奇数情形 pair 限制为某一规范 branch 的候选虽仍精确，但交换绑核实测略慢且显著增加 review 复杂度，因此拒绝。
 
 ## 5. 已证明逻辑可删、但因物理回归而拒绝
 
@@ -150,13 +158,14 @@ H 同时删除 bitmap padding guard、`GroupRow` 边界、`RecoverPrimal` 可选
 2. 已有上包络证明无贡献时不求精确 tour；
 3. 利用 Dijkstra 首次触及唯一性，不做空去重；
 4. singleton membership 与读取合并为一个有类型含义的接口；
-5. 势梯度只回写真正非零的方向。
+5. 势梯度只回写真正非零的方向；
+6. 辅助 H 半层建立精确基例后，不再重复播种较低 terminal；已有完整 D 时不再枚举被其支配的 pair。
 
 它们没有引入第三种方法、图特化、经验分派或近似数值语义。Base 与 Enhanced 的论文关系仍是：共同执行精确主干；Enhanced 在相同 A1 和 ordinary 基础上增加 DirectedCut，并用结构同职责的 H realization 替换高层 A realization。接受项不会让 Base 获得 Enhanced 不包含的算法职责。
 
 ## 9. 最终硬门
 
-历史冻结结果如下；这里只作为风险估计，不替代最终源码复跑：
+旧错误二进制的历史冻结结果如下；这里只作为运行时间风险估计，不证明当前答案、状态或门禁：
 
 | Orkut g15 查询 | 时间 / 秒 |
 |---:|---:|
@@ -175,7 +184,7 @@ H 同时删除 bitmap padding guard、`GroupRow` 边界、`RecoverPrimal` 可选
 
 1. 最终源码的完整 P1 按图聚合后，13 图中每图的最快 ABHSS 配置不劣于 PrunedDP++；
 2. 最终源码的 Orkut `g=15` q1--q10 每条都在 10,000 秒内精确完成；
-3. q10 权值仍为 54，状态数仍为 1,654,690,262，且不存在超时后复用旧结果；
+3. q10 权值仍为 54，状态数按当前辅助半层状态域重新如实记录，且不存在超时后复用旧结果；旧状态数 1,654,690,262 不再是相等门；
 4. CTest、Markdown 渲染检查、环境清单和源码—文档矛盾检查全部通过。
 
 在这四项取得当前文件和当前二进制的直接证据前，总目标保持未完成。

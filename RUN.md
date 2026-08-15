@@ -63,7 +63,7 @@ Linux：
 
 Windows Visual Studio 构建将上述路径换为 `build/Release/abhss.exe`。中间 correctness/ablation 配置是 `--enhancements=directed-cut`，不是第三条正式性能曲线。`--adjoint-completion=on` 且 `--directed-cut=off` 是非法配置，会在加载图之前报错。
 
-五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、5,000 个 $2\le g\le10$ 的确定性随机实例、500 个正权互异单终端压力实例、160 个 $g=7,\ldots,16$ 的 omitted-half transpose 实例、容量边界与入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
+五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、5,000 个 $2\le g\le10$ 的确定性随机实例、500 个正权互异单终端压力实例、160 个 $g=7,\ldots,16$ 的 omitted-half transpose 实例、真值 5.75 的 12 点辅助半层固定反例、入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
 
 ## 2. 恢复与转换精确输入
 

@@ -99,7 +99,7 @@ void CompleteWithAdjoint(Problem& problem,
                          std::vector<Row> initial_rows,
                          const char* probe_method)
 {
-    const int high_last = schedule.highest_layer;
+    const int high_last = schedule.adjoint_last_layer;
     const int low_last = schedule.forward_last_layer;
 
     ForwardAnchoredPlan plan;
@@ -123,7 +123,6 @@ void CompleteWithAdjoint(Problem& problem,
         anchored,
         low_last,
         high_last,
-        schedule.requires_three_block_terminal,
         probe_method);
     EmitAbhssProbe(
         probe_method, "adjoint_end", problem, timer.Seconds());

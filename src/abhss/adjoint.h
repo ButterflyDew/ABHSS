@@ -11,20 +11,18 @@ namespace gst::methods::abhss::internal
  *        DirectedCut 和 AdjointCompletion。
  * @param anchored 已物化到 `low_last` 的前向 A row。
  * @param low_last 前向保留的最高非锚组数。
- * @param high_last 完整前向格原本需要达到的最高非锚组数。
- * @param build_three_block_terminals 两箱容量不足时是否构造三块转置 terminal。
+ * @param high_last H 物化的最高层；包含精确转置被省略 D 半格的辅助层。
  * @param probe_method 稳定配置名，仅在诊断编译中写入 phase 记录。
  *
  * 函数从 high_last 递减到 low_last+1 生成 H，并在每张 row 完成后与低层 A、ordinary branch
- * 做边界结算。ordinary 已完整保留到最高逻辑层；转置只实现更高的半格 terminal，并仅在
- * 两箱容量反例存在时补充第三块。它与 H 共同替换完整前向高层；关闭 AdjointCompletion 时
+ * 做边界结算。ordinary 已完整保留到最高逻辑层；辅助 H 半格先实现被省略 D 半格的同一递推，
+ * 再由递减 H 替换完整前向高层。关闭 AdjointCompletion 时
  * 统一入口恢复完整前向 A。
  */
 void SolveHighAdjoint(Problem& problem,
                       const std::vector<Row>& anchored,
                       int low_last,
                       int high_last,
-                      bool build_three_block_terminals,
                       const char* probe_method);
 
 }  // namespace gst::methods::abhss::internal

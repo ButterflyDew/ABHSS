@@ -60,44 +60,35 @@ struct TerminalEntry
 };
 
 /**
- * @brief 按顶点转置 ordinary 状态，一次生成全部高层 adjoint 终端。
+ * @brief 按顶点转置 ordinary 状态，只生成精确辅助半层的 adjoint 终端。
  *
- * 函数先按 64 个顶点为块聚合可用 D(S,v)，再根据补集关系、低/高层边界
- * 和 directed-cut 势筛选终端。输出按目标 mask 分组且顶点递增，后续 H
- * 闭包可直接线性装载。所有剪枝都只使用可采纳下界，不改变精确答案。
+ * 较低 H 层由辅助 H 与 successor 递推完整生成，直接 terminal 被该递推严格支配。
+ * 若补集大小的 ordinary 层已经 ready，单张 D 又逐值支配同目标的双块 split；
+ * 否则按 64 个顶点为块枚举恰好覆盖补集的双块 seed。所有筛选只使用可采纳下界。
  */
 void BuildTransposedTerminals(Problem& p,
-                              int low_last,
                               int high_last,
-                              bool build_three_block_terminals,
                               std::vector<std::vector<int>>& terminal_vertex,
                               std::vector<std::vector<double>>& terminal_value)
 {
     terminal_vertex.assign(p.subset_count, {});
     terminal_value.assign(p.subset_count, {});
+    const int terminal_cover = p.nonanchor_count - high_last;
+    bool direct_layer_available = true;
+    for (int mask = 1; mask < p.subset_count; ++mask)
+        if (p.popcount[mask] == terminal_cover)
+            direct_layer_available = direct_layer_available && OrdinaryAvailable(p, mask);
     std::array<std::vector<TerminalEntry>, 64> values_by_offset;
     std::vector<size_t> cursor(p.subset_count);
     std::vector<double> subset_potential(p.subset_count);
     std::vector<int> subset_stamp(p.subset_count);
-    std::vector<double> value_at_mask(p.subset_count);
-    std::vector<double> reduced_at_mask(p.subset_count);
-    std::vector<int> value_stamp(p.subset_count);
-    std::vector<double> pair_best(build_three_block_terminals ? p.subset_count : 0, fp::kInf);
-    std::vector<int> touched_pair_unions;
+    std::vector<double> value_at_mask(direct_layer_available ? 0 : p.subset_count);
+    std::vector<double> reduced_at_mask(direct_layer_available ? 0 : p.subset_count);
+    std::vector<int> value_stamp(direct_layer_available ? 0 : p.subset_count);
     std::vector<double> terminal_best(p.subset_count, fp::kInf);
     std::vector<int> touched_targets;
     int potential_epoch = 0;
     int value_epoch = 0;
-    std::array<std::array<int, 17>, 17> choose{};
-    if (build_three_block_terminals)
-        for (int n = 0; n <= 16; ++n)
-        {
-            choose[n][0] = choose[n][n] = 1;
-            for (int k = 1; k < n; ++k)
-                choose[n][k] = choose[n - 1][k - 1] + choose[n - 1][k];
-        }
-    const int minimum_terminal_cover = p.nonanchor_count - high_last;
-    const int maximum_terminal_cover = p.nonanchor_count - low_last - 1;
     const size_t word_count = (static_cast<size_t>(p.graph.n + 1) + 63) / 64;
 
     for (size_t word = 0; word < word_count; ++word)
@@ -109,7 +100,8 @@ void BuildTransposedTerminals(Problem& p,
             std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
         for (int mask = 1; mask < p.subset_count; ++mask)
         {
-            if (p.popcount[mask] > p.half || !OrdinaryAvailable(p, mask))
+            const int size = p.popcount[mask];
+            if (!OrdinaryAvailable(p, mask) || (direct_layer_available ? size != terminal_cover : size >= terminal_cover))
                 continue;
             if (p.popcount[mask] == 1)
             {
@@ -158,171 +150,83 @@ void BuildTransposedTerminals(Problem& p,
                 continue;
             for (auto& entry : values)
                 entry.reduced = entry.value - Potential(Potential, entry.mask);
-            std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
-            {
-                return a.reduced != b.reduced ? a.reduced < b.reduced
-                                              : a.mask < b.mask;
-            });
-
-            ++value_epoch;
-            long long submask_work = 0;
-            for (const auto& entry : values)
-            {
-                value_stamp[entry.mask] = value_epoch;
-                value_at_mask[entry.mask] = entry.value;
-                reduced_at_mask[entry.mask] = entry.reduced;
-                submask_work +=
-                    (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
-            }
-            int maximum_entry_size = 0;
-            if (build_three_block_terminals)
-                for (const auto& entry : values)
-                    maximum_entry_size = std::max(maximum_entry_size, p.popcount[entry.mask]);
-            const bool build_three = build_three_block_terminals && values.size() >= 3 && 3 * maximum_entry_size >= minimum_terminal_cover;
-            const double triple_pair_limit = build_three ? budget - values.front().reduced : budget;
-            const double pair_enumeration_limit = build_three ? std::max(budget, triple_pair_limit) : budget;
-
-            long long pair_work = 0;
-            size_t right_limit = values.size();
-            for (size_t left = 0; left + 1 < values.size(); ++left)
-            {
-                while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > pair_enumeration_limit)
-                    --right_limit;
-                if (right_limit <= left + 1)
-                    break;
-                pair_work += static_cast<long long>(right_limit - left - 1);
-            }
+            if (!direct_layer_available)
+                std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
+                {
+                    return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask;
+                });
 
             touched_targets.clear();
-            touched_pair_unions.clear();
-            // lambda：登记某个 H 目标在当前顶点的最小外侧代价。
+            // lambda：登记辅助 H 目标在当前顶点的最小外侧代价。
             auto Update = [&](int target, double value)
             {
-                const int size = p.popcount[target];
-                if (size <= low_last || size > high_last)
+                if (p.popcount[target] != high_last)
                     return;
                 if (terminal_best[target] >= fp::kInf)
                     touched_targets.push_back(target);
                 terminal_best[target] = std::min(terminal_best[target], value);
             };
-            // lambda：按并集聚合两块最小同根和；固定并集后只需保留这一项与第三块结合。
-            auto UpdatePair = [&](int pair_union, double value, double reduced)
+            if (direct_layer_available)
             {
-                if (!build_three || reduced > triple_pair_limit)
-                    return;
-                if (pair_best[pair_union] >= fp::kInf)
-                    touched_pair_unions.push_back(pair_union);
-                pair_best[pair_union] = std::min(pair_best[pair_union], value);
-            };
-            for (const auto& entry : values)
-            {
-                if (entry.reduced > budget)
-                    break;
-                Update(p.full_mask ^ entry.mask, entry.value);
-            }
-            if (pair_work <= submask_work)
-            {
-                for (size_t left = 0; left < values.size(); ++left)
-                {
-                    if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > pair_enumeration_limit)
-                        break;
-                    for (size_t right = left + 1; right < values.size(); ++right)
-                    {
-                        const double pair_reduced = values[left].reduced + values[right].reduced;
-                        if (pair_reduced > pair_enumeration_limit)
-                            break;
-                        if (values[left].mask & values[right].mask)
-                            continue;
-                        const int pair_union = values[left].mask | values[right].mask;
-                        const double pair_value = values[left].value + values[right].value;
-                        if (build_three)
-                            UpdatePair(pair_union, pair_value, pair_reduced);
-                        if (pair_reduced <= budget)
-                            Update(p.full_mask ^ pair_union, pair_value);
-                    }
-                }
+                for (const auto& entry : values)
+                    if (entry.reduced <= budget)
+                        Update(p.full_mask ^ entry.mask, entry.value);
             }
             else
             {
-                for (const auto& left : values)
+                ++value_epoch;
+                long long submask_work = 0;
+                for (const auto& entry : values)
                 {
-                    const int complement = p.full_mask ^ left.mask;
-                    for (int right = complement; right; right = (right - 1) & complement)
-                    {
-                        if (right <= left.mask || value_stamp[right] != value_epoch)
-                            continue;
-                        const double pair_reduced = left.reduced + reduced_at_mask[right];
-                        if (pair_reduced > pair_enumeration_limit)
-                            continue;
-                        const int pair_union = left.mask | right;
-                        const double pair_value = left.value + value_at_mask[right];
-                        if (build_three)
-                            UpdatePair(pair_union, pair_value, pair_reduced);
-                        if (pair_reduced <= budget)
-                            Update(p.full_mask ^ pair_union, pair_value);
-                    }
+                    value_stamp[entry.mask] = value_epoch;
+                    value_at_mask[entry.mask] = entry.value;
+                    reduced_at_mask[entry.mask] = entry.reduced;
+                    submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
                 }
-            }
-
-            // 三块的前两块先按并集做 min-plus 聚合；再与第三块结合即可保留
-            // 每个三块并集的精确最小值，并把稠密组维度从四路指派降为两次三路指派。
-            if (build_three)
-            {
-                for (int pair_union : touched_pair_unions)
+                long long pair_work = 0;
+                size_t right_limit = values.size();
+                for (size_t left = 0; left + 1 < values.size(); ++left)
                 {
-                    const int pair_size = p.popcount[pair_union];
-                    const int minimum_third_size = std::max(1, minimum_terminal_cover - pair_size);
-                    const int maximum_third_size = std::min(maximum_entry_size, maximum_terminal_cover - pair_size);
-                    if (minimum_third_size > maximum_third_size)
-                        continue;
-                    const int complement = p.full_mask ^ pair_union;
-                    const int complement_size = p.popcount[complement];
-                    if (minimum_third_size > complement_size)
-                        continue;
-                    int submask_candidates = 0;
-                    for (int third_size = minimum_third_size; third_size <= maximum_third_size && third_size <= complement_size; ++third_size)
-                        submask_candidates += choose[complement_size][third_size];
-                    const double pair_reduced = pair_best[pair_union] - Potential(Potential, pair_union);
-                    // lambda：用同一 reduced budget 接纳与 pair-union 互斥的第三块。
-                    auto TryThird = [&](int third)
+                    while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
+                        --right_limit;
+                    if (right_limit <= left + 1)
+                        break;
+                    pair_work += static_cast<long long>(right_limit - left - 1);
+                }
+                if (pair_work <= submask_work)
+                {
+                    for (size_t left = 0; left < values.size(); ++left)
                     {
-                        if (value_stamp[third] != value_epoch)
-                            return;
-                        const int third_size = p.popcount[third];
-                        if (third_size < minimum_third_size || third_size > maximum_third_size || pair_reduced + reduced_at_mask[third] > budget)
-                            return;
-                        Update(p.full_mask ^ (pair_union | third), pair_best[pair_union] + value_at_mask[third]);
-                    };
-                    if (submask_candidates <= static_cast<int>(values.size()))
-                    {
-                        std::array<int, 16> bit_value{};
-                        int bit_count = 0;
-                        for (int bits = complement; bits; bits &= bits - 1)
-                            bit_value[bit_count++] = bits & -bits;
-                        const unsigned limit = 1U << bit_count;
-                        for (int third_size = minimum_third_size; third_size <= maximum_third_size && third_size <= bit_count; ++third_size)
+                        if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
+                            break;
+                        for (size_t right = left + 1; right < values.size(); ++right)
                         {
-                            unsigned combination = (1U << third_size) - 1;
-                            while (combination < limit)
-                            {
-                                int third = 0;
-                                for (unsigned bits = combination; bits; bits &= bits - 1)
-                                    third |= bit_value[__builtin_ctz(bits)];
-                                TryThird(third);
-                                const unsigned low = combination & -combination;
-                                const unsigned next = combination + low;
-                                combination = (((next ^ combination) >> 2) / low) | next;
-                            }
+                            const double pair_reduced = values[left].reduced + values[right].reduced;
+                            if (pair_reduced > budget)
+                                break;
+                            if (values[left].mask & values[right].mask)
+                                continue;
+                            const int pair_union = values[left].mask | values[right].mask;
+                            if (p.popcount[pair_union] != terminal_cover)
+                                continue;
+                            Update(p.full_mask ^ pair_union, values[left].value + values[right].value);
                         }
                     }
-                    else
+                }
+                else
+                {
+                    for (const auto& left : values)
                     {
-                        for (const auto& third_entry : values)
+                        const int complement = p.full_mask ^ left.mask;
+                        for (int right = complement; right; right = (right - 1) & complement)
                         {
-                            if (pair_reduced + third_entry.reduced > budget)
-                                break;
-                            if (!(third_entry.mask & pair_union))
-                                TryThird(third_entry.mask);
+                            if (right <= left.mask || value_stamp[right] != value_epoch || p.popcount[left.mask] + p.popcount[right] != terminal_cover)
+                                continue;
+                            const int pair_union = left.mask | right;
+                            const double pair_reduced = left.reduced + reduced_at_mask[right];
+                            if (pair_reduced > budget)
+                                continue;
+                            Update(p.full_mask ^ pair_union, left.value + value_at_mask[right]);
                         }
                     }
                 }
@@ -342,8 +246,6 @@ void BuildTransposedTerminals(Problem& p,
                 }
                 terminal_best[target] = fp::kInf;
             }
-            for (int pair_union : touched_pair_unions)
-                pair_best[pair_union] = fp::kInf;
         }
     }
 }
@@ -354,14 +256,12 @@ void SolveHighAdjoint(Problem& p,
                        const std::vector<Row>& anchored,
                        int low_last,
                        int high_last,
-                       bool build_three_block_terminals,
                        const char* probe_method)
 {
     std::vector<std::vector<int>> terminal_vertex;
     std::vector<std::vector<double>> terminal_value;
     ProbeTimer transpose_timer;
-    BuildTransposedTerminals(
-        p, low_last, high_last, build_three_block_terminals, terminal_vertex, terminal_value);
+    BuildTransposedTerminals(p, high_last, terminal_vertex, terminal_value);
     EmitAbhssProbe(probe_method, "adjoint_transpose", p, transpose_timer.Seconds());
 
     std::vector<Row> backward(p.subset_count);
