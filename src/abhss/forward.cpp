@@ -254,7 +254,8 @@ std::vector<Row> BuildForwardAnchoredRows(
                 {
                     const int anchor_side = mask ^ ordinary_side;
                     // ordinary_side 不大于当前 A 层且 D 阶段已完成；anchor_side
-                    // 是当前 mask 的真子集并已由前向层序发布，故两项无需重复 ready 检查。
+                    // 是当前 mask 的真子集并已由前向层序处理。若其从未产生标签，
+                    // 空 payload 的直接读取仍精确返回无穷，故无需补写或重复检查 ready。
                     ForEachAnchoredSum(p, anchored, anchor_side, ordinary_side, Set);
                 }
                 if (touched.empty())

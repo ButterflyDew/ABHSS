@@ -39,7 +39,7 @@
 | forward A / adjoint H | 公共低层 A、辅助半层 terminal、递减 H | 辅助 $H(h)$ 精确转置被省略的 $D(h)$；逻辑 H 后缀替换高层 A，不能省略半层闭包 |
 | DirectedCut | potential、cone、changed arc、residual、exact fallback、primal 恢复 | 只删除零梯度方向回写；其余操作维持对偶可行性与可行上界 |
 | witness rent-or-buy | 两边各自 witness、统一零起点 rent、同一 buy 公式、同一树 DP | witness 不同，但调度合同和树 DP 共同；不能恢复无条件树 DP |
-| 状态容器 | epoch、bitmap padding guard、ready、branch bitmap、settled 排序 | 部分检查逻辑上由上游不变量蕴含，但删后物理回归，按实测保留 |
+| 状态容器 | epoch、bitmap padding guard、ready、branch bitmap、settled 排序 | A1 完整发布屏障后的 singleton `ready` 检查已严格减空；其他生命周期检查或由实测要求保留，不能推广删除 |
 
 ## 4. 接受的严格减空
 
@@ -103,14 +103,28 @@
 
 1. **证书升级后的 ordinary 稳定重滤原地压紧。** 旧实现为每张 row 重新分配 branch bitmap、重算全部 branch 数和最小值。新实现保持顶点顺序，用 read/write 游标原地搬移仍存活项；branch 位随项搬移，branch 数只减去被删项。只有被删值与旧最小值精确相等时才重扫剩余 payload，否则旧最小值仍由未删除项实现。若一项未删，row 完全不写。删除谓词、剩余 payload 和 padding 位逐项相同。
 2. **D/A/H 初始标签统一线性建堆。** `touched` 中每个顶点只出现一次，且 key、distance、vertex 三元组已经确定。`BuildInitialQueue` 把完全相同的节点交给标准线性 heapify；`QueueNode` 以 vertex 作末级比较，形成全序，所以与逐项 `push` 的 pop 轨迹一致，只删除建堆的重复对数调整。
-3. **只在层序已证明处删除 ready 检查。** ordinary split 的两侧都是真子集，已经由较低层发布；平衡补集只在更低层或同层更小编号时消费；forward A 的锚定侧是真子集或隐式空侧，ordinary 侧在整个 A 阶段前已经完成；H successor 严格位于已完成的更高层。外部入口、owner 交接和可能为空但尚未发布的边界仍保留 `ready`，没有把“空 row”与“未生成”混写。
+3. **只在层序已证明处删除 ready 检查。** ordinary split 的两侧都是真子集，已经由较低层发布；平衡补集只在更低层或同层更小编号时消费；forward A 的锚定侧是真子集或隐式空侧，ordinary 侧在整个 A 阶段前已经完成；H successor 严格位于已完成的更高层。普通 forward A 若从未产生标签，会省去 ready 写入，但严格 size 层序已证明该 mask 被处理，后继只把空 payload 读作无穷。ordinary、提前 A1 owner 交接、H 和其他跨阶段边界仍显式保留 `ready`，没有把普通 row 的“已发布空”与“未生成”混写。
 4. **转置不变量移出 64 顶点块。** ordinary 按完整层发布，因此一个规范 representative 的 availability 等价于整层 availability；可转置 mask 在进入顶点块前按原数值升序筛一次。direct terminal 的补集大小固定，pair union 也显式检查为同一 cover，故 `Update` 内重复的目标 popcount 检查恒真。pair 与 submask 两种等价枚举的工作量选择中，一旦累计 pair work 已严格超过 submask work，后续非负增量不可能改变选择，立即停止计数。
 5. **H 边界只生成 successor 子掩码。** 旧循环扫描整个子集格，再用 `mask & ~successor` 拒绝绝大多数 mask。新循环按相同数值升序生成 successor 的全部子掩码，并保留相同的低层域条件；所有被省略 mask 都必定在旧谓词处失败。H seed 中的 successor 由当前 mask 加非空 outside block 得到，严格位于已完成高层，因而删除第二次生命周期读取。
 6. **二分工作量用位宽直接计算。** 非空长度的旧循环结果严格等于其二进制位宽，空表仍定义为 1。编译器位扫描只替换计数循环，不改变交集算法选择式。
 
 普通 probe 现在只保留稀疏阶段事件；逐候选证书计数需要显式 `GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS`。这项拆分只消除探针构建的观测开销，不属于论文算法步骤。共同 A1 的 lazy/顺序物化则是相同精确视图的物理调度，不是严格删状态；其证明、直接分支覆盖和小门见 [A1 top-two 自适应物化门禁](ADAPTIVE_A1_TOP_TWO_MATERIALIZATION_GATE_20260816.md)。
 
-当前生产源码的门禁为：5/5 CTest；5000 个随机、500 个正权唯一终端和 160 个辅助半格实例匹配独立真值；Base/Enhanced 各 11/11 SteinLib 值序列仍为 361、237、497、250、422、208、179、798、290、405、1190。Musae g7 Base 全 300 条在两种启动顺序下均未退化，Orkut g15 q3 状态与权值不变。完整 P1 和 q10 小于 10000 秒尚未由当前二进制证明。
+### 4.8 A1 tail 的精确物理候选（不计入严格支配）
+
+1. **精确 mask-rent 因子化。** top-two 购买后，同一 remaining mask 的逐 bit 租金只重复相加由 row 长度决定的整数。子集递推表逐项等于原和式，不改变累计 rent 或排名购买点；tail 查询足够多时，它把重复加法换成表读取。但若购买后几乎没有 tail 查询，预构造 $2^k$ 项可能净增工作，所以它不是所有输入上的严格支配，只能按物理缓存接受并经过 P1 门禁。
+2. **一次性物化的冷机器码边界。** `MaterializeAllTopTwo` 与 `MaterializeRankedTail` 每条查询各至多执行一次；非内联边界只阻止 IPO 把冷购买代码并入逐状态 `Future`。它不是新开关，也不删除数学操作；两轮 Musae 小门分别为候选/对照 0.990564 和 0.979960。
+
+完整 byte 排名、租金表和冷边界都是同一精确 A1 视图的物理 representation，不是严格删状态或新的算法证书；是否最终保留必须由完整 P1 与 Orkut 硬门共同决定。无条件和购买后 staged second-rank ceiling 均已实测回退。证明、复杂度、P1/q10 窗口和负结果见 [A1 完整排名、精确租金因子化与 ceiling 负向门禁](A1_COMPLETE_RANKING_AND_STAGED_CEILING_GATE_20260817.md)。
+
+保留实现此前通过 5/5 CTest、5000 个随机、500 个正权唯一终端和 160 个辅助半格实例，并保持 Base/Enhanced 各 11/11 SteinLib 真值。最新源码又增加全部 mask 的租金表直接断言，并完成两种构建各 5/5 CTest。冷边界 pre-reduction 版本的 Orkut g15 q10 已在 10000 秒硬门超时；后续两项严格减空已通过独立交换轮，但 combined 二进制与完整 P1 尚未完成最终硬门。
+
+### 4.9 A1 发布屏障后的恒真检查
+
+1. **singleton ready。** A1 重启循环只有在全部 singleton row（含空 payload）写入 `ready` 后才初始化只读 future；发布屏障之后的重复检查不再承担合法性、fallback、购买或 owner 职责。删除后 Musae 两轮几何比为 1.000479，Orkut q10 900 秒两轮均把对照事件序列严格延长 2 个事件，内存不增。
+2. **ranked buy 正性。** A1 域推出 $g\ge4$、 $k\ge3$、 $n\ge1$，故 `ranked_buy_work` 严格为正。热路径只比较 rent 是否达到 buy。Musae 两轮几何比为 0.998610；Orkut q10 两轮分别延长 5 和 8 个事件，内存不增。
+
+两项的代码、证明、SHA 与完整交换轮见 [A1 发布屏障与恒真检查减空门禁](A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md)。它们删除共同 A1 realization 的重复检查，不是新证书或可调开关。
 
 ## 5. 已证明逻辑可删、但因物理回归而拒绝
 
@@ -140,6 +154,22 @@ H 同时删除 bitmap padding guard、`GroupRow` 边界、`RecoverPrimal` 可选
 
 因此“渐近工作更少”不足以进入当前论文二进制。若未来要重试，必须隔离翻译单元并重新跑完整 P1，而不能直接恢复 L。
 
+### 5.3 N--Q：D/H pop cutoff 与 forward 空行 ready 补写
+
+ordinary D 和 adjoint H 在单张 row 的队列闭包内不更新 `best`，所以出堆时的第二次 `key < best` 在逻辑上由入队证书蕴含；forward A 与提前 A1 会在队列内收紧 incumbent，不能使用这一结论。普通 forward A 的零标签行也可由严格层序与空 payload 直接表示，无需显式补写 ready。候选全部保持权值与状态，但删除 D/H pop cutoff 的组合在 Musae 回归 0.68%，删除 H cutoff 并补 ready 在 Orkut q3 回归 0.67%；单独逐行和批量补 ready 在 Musae 分别回归 1.50% 与 1.41%。当前源码已经全部恢复，详细交换绑核证据见 [Queue pop 与 forward 空行发布负向探针](QUEUE_POP_AND_EMPTY_READY_NEGATIVE_PROBE_20260816.md)。
+
+### 5.4 R--S：staged cache 延迟发布与冻结配置分派
+
+新 epoch 的临时 cache 零写会被首次 dual 结果覆盖，查询内 frozen config 判断也可由入口模板分派一次；两者在源码语义上均可减空。前者在 Musae 两轮均值回归 0.66%，Orkut q3 回归 0.42%；后者虽把 Base 的证书 lambda 从 0x862 缩到 0x1f2 字节，Musae 仍回归 1.01%。全部权值与状态一致，源码已恢复。详细证据见 [Staged certificate cache 物理减写与冻结分派负向探针](STAGED_CACHE_PHYSICAL_REDUCTION_NEGATIVE_PROBE_20260816.md)。
+
+### 5.5 T--U：公共 A1 必然存在与 ordinary size-1 扫描
+
+共同精确基例已经闭包全部 $g\le3$ 查询，因此进入指数递推的查询必含 A1，ordinary 也不需要 size-1 row。删除 nullable A1 分支并跳过 size-1 扫描的合并候选虽减少 305 字节 text，Musae 全 300 条两轮均值仍回归 1.58%；单独跳过扫描在 Musae 持平，但 Orkut g15 q3 两轮均值回归 0.72%。全部正确性、权值和状态证据一致，源码已恢复。详细证明与交换绑核结果见 [公共 A1 必然存在与 ordinary size-1 扫描负向探针](MANDATORY_A1_AND_SIZE1_SCAN_NEGATIVE_PROBE_20260816.md)。
+
+### 5.6 A1 top-two 哨兵与 Future 入口域检查
+
+两个候选都能由当前调用链证明恒真/恒假，但删后发生稳定物理回归：top-two `>=0` / `!=255` 守卫的 Musae 两轮几何回归 0.9028%；`Future` 入口 `first.empty() || !remaining` 的两轮几何回归 1.6241%。权值与状态逐项一致，说明回归来自机器码布局而非算法差异。两项均已恢复；没有使用 NOP、强制对齐或按编译器特调来掩盖回归。
+
 ## 6. 其他拒绝项与原因
 
 | 候选 | 逻辑判断 | 实测或证明结论 |
@@ -152,6 +182,10 @@ H 同时删除 bitmap padding guard、`GroupRow` 边界、`RecoverPrimal` 可选
 | ordinary endpoint 预筛 | 可提前拒绝部分顶点 | 样本约慢 0.67%；拒绝 |
 | fixed endpoint-pair tree bound | 是可采纳下界 | 已被同消费点的 directed cut 逐值支配，且实测无新增拒绝；不保留 |
 | 固定 top-k second-farthest | 可能增强 farthest | 缺少与剩余集合容量对应的理论边界，属于无意义超参数；禁止 |
+| 无条件或购买后 second-rank ceiling | 已有下界可能逐值支配 A1 tail | 无条件版本阻断排名 rent 且 P1 回归；staged 版本的 q10 归一化进度弱于无 ceiling 完整排名；全部回退 |
+| `StrengthenLower` 合并 API | 数学上等价于调用点取 max | 扩大热代码后 Musae 几何回归约 1.31%；恢复精确 `Future` API |
+| ranked-tail locator | 可把购买后的最后一次二分也减空 | q10 归一化进度更差且增加约 273 MiB；只保留 byte bit 次序 |
+| farthest 已有下界 ceiling | 已有下界达到全局最大组距离时可跳过扫描 | 无新增剪枝，且削弱同轮 A1-only 归一化进度；恢复精确 farthest 接口 |
 | `sort+unique(settled)` 去重删除 | 很多路径看似不会重复 settle | 在全部启发式与浮点并列下未证明唯一；排序又是 row 契约，保留 |
 
 ## 7. 不能误判为支配的有效操作
@@ -177,7 +211,7 @@ H 同时删除 bitmap padding guard、`GroupRow` 边界、`RecoverPrimal` 可选
 5. 势梯度只回写真正非零的方向；
 6. 辅助 H 半层建立精确基例后，不再重复播种较低 terminal；已有完整 D 时不再枚举被其支配的 pair。
 
-它们没有引入第三种方法、图特化、经验分派或近似数值语义。Base 与 Enhanced 的论文关系仍是：共同执行精确主干；Enhanced 在相同 A1 和 ordinary 基础上增加 DirectedCut，并用结构同职责的 H realization 替换高层 A realization。接受项不会让 Base 获得 Enhanced 不包含的算法职责。
+它们没有引入第三种方法、图特化、经验分派或近似数值语义。A1 完整排名、租金表和非内联边界只属于经过实测选择的物理布局，不进入上述严格支配清单，也不应写成独立算法贡献。Base 与 Enhanced 的论文关系仍是：共同执行精确主干；Enhanced 在相同 A1 和 ordinary 基础上增加 DirectedCut，并用结构同职责的 H realization 替换高层 A realization。接受项不会让 Base 获得 Enhanced 不包含的算法职责。
 
 ## 9. 最终硬门
 

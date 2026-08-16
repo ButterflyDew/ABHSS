@@ -56,7 +56,7 @@ SolveOneQuery(G, K, options)
                  或 h                       (存在 H 后缀，含辅助半格 H(h))
   5  scheduler <- WitnessUpperScheduler(witness), rent <- 0
   6  若层 1 属于 [1,q]，所有合法配置均:
-       生成标准 A1 row；建立只读 top-two future 视图
+       生成标准 A1 row；建立 top-two 加完整 byte tail 的分级只读 future 视图
        A1 的 queue-pop/edge-relax 向共同 scheduler 支付 rent
        若条件式树 DP 收紧 best，则以新 cutoff 整轮重启 A1
   7  BuildOrdinaryRows:
@@ -86,9 +86,9 @@ SolveOneQuery(G, K, options)
 |---|---|---|---|
 | 逻辑状态 | $D(S,v)$、 $A(S,v)$、 $H(S,v)$ | 是；它们组成精确递推或其等价反向实现 | 由状态层计划决定 |
 | 上下界证书 | `best`、farthest、tour、A1 cone、dual potential | 只能安全保留或拒绝逻辑状态，不能冒充 DP 值 | 可随更紧上界失效并重算 |
-| 物理加速缓存 | epoch 数组、top-two bit/locator、64 顶点临时桶 | 否；删除它们只应改变常数 | 阶段结束立即释放或复用 |
+| 物理加速缓存 | epoch 数组、A1 top-two bit/locator 与完整 byte tail、64 顶点临时桶 | 否；删除它们只应改变常数 | 阶段结束立即释放或复用 |
 
-特别地，A1 row 属于第一层；围绕它建立的 top-two locator 属于第三层。 $H$ 属于第一层，因为它是高层前向依赖的等价反向状态；64 顶点桶只属于第三层。后文的正确性证明只依赖逻辑值与证书不变量，不依赖缓存宽度、容器容量或内存地址。
+特别地，A1 row 属于第一层；围绕它建立的 top-two locator 与完整 byte 排名都属于第三层。后者不保存近似值，只决定下一次精确读取哪个 singleton row。 $H$ 属于第一层，因为它是高层前向依赖的等价反向状态；64 顶点桶只属于第三层。后文的正确性证明只依赖逻辑值与证书不变量，不依赖缓存宽度、容器容量或内存地址。
 
 ## 3. 单一算法与冻结配置链
 
@@ -137,7 +137,7 @@ Enhanced {DirectedCut, AdjointCompletion}
 | witness realization | root-path tree | primal upper + dual-primal tree | 都构造原图真实 witness；预处理均不无条件运行树 DP，随后把各自树大小代入同一 `buy` 公式，并从 `rent=0` 调用同一调度器和树 DP；共同 root-star/root-path-union 不属于差异，facility 上界另归安全新增 |
 | 高层锚定完成 | 完整 ordinary 半格依赖加前向高层 $A$ | ordinary 保留到最高逻辑层 $q$；辅助 $H(h)$ 精确转置实现省略的 $D(h)$，再以低层 $A$ 加递减 $H$ 完成 | $H(h)$ 与 $D(h)$ 是同一递推职责的正反 realization；逻辑 $H(\ell+1,\ldots,q)$ 再替换高层 $A$ |
 
-A1 不在替换表中，因为它现在是三个合法配置的逐项共同操作。只要正层域非空，Base、DirectedCutOnly 与 Enhanced 都在 ordinary 前运行同一个 `BuildReusableAnchoredSingletonLayer`，使用相同 seed、farthest + endpoint-floor cone、正 fallback、标准 `Row`、top-two 视图和所有权交接。该函数不读取 `UsesDirectedCut()`、`UsesAdjointCompletion()` 或 `ConfigurationProfile`。开启 `DirectedCut` 只在 A1 之外新增证书：ordinary 的统一 future 栈额外取 $L_{\mathrm{cut}}$，adjoint 继续使用其 reduced/prefix 证书；它不改变 A1 搜索域或 A1 值。
+A1 不在替换表中，因为它现在是三个合法配置的逐项共同操作。只要正层域非空，Base、DirectedCutOnly 与 Enhanced 都在 ordinary 前运行同一个 `BuildReusableAnchoredSingletonLayer`，使用相同 seed、farthest + endpoint-floor cone、正 fallback、标准 `Row`、分级精确 future 视图和所有权交接。该视图先构造 top-two bit/locator，并精确因子化各 remaining mask 的 tail 租金；必要时再购买 top-two 之后的完整 byte 排名。两级表示都不保存近似 double。该函数不读取 `UsesDirectedCut()`、`UsesAdjointCompletion()` 或 `ConfigurationProfile`。开启 `DirectedCut` 只在 A1 之外新增证书：ordinary 的统一 future 栈额外取 $L_{\mathrm{cut}}$，adjoint 继续使用其 reduced/prefix 证书；它不改变 A1 搜索域或 A1 值。
 
 因此，不能把流程写成“Base-only early-A1 阶段”，也不能再写成“A1 future 被 dual 替换”或“A1 完成层被 H 替换”。A1 是完整锚定格的一层标准 `Row`，所有配置都提前求它，使同一 row 兼任 ordinary future，之后把所有权直接交给公共前向内核。真正的状态层替换只发生在 A1 之后的高层前向 $A$ 与 adjoint $H$ 之间。
 
@@ -221,13 +221,13 @@ Enhanced
 - $A(S,v)$：覆盖永久锚组 $K_a$、 $S$ 并以 $v$ 为根的最小树代价。
 - $H(S,v)$：adjoint 阶段的“外侧已付代价”；它覆盖 $[k]\setminus S$，等待与覆盖锚组及 $S$ 的前缀在 $v$ 处相接。
 
-`D/A/H` 共用一种 `Row`：递增的顶点数组、对齐的值数组、ordinary 专用 branch bitmap、`branch_count` 和显式 `ready`。`ready` 区分“已经生成但为空”和“尚未生成”。不存在 Base/Enhanced 各一套 row，也不存在运行中在 dense/hash/bitmap DP 状态之间切换。
+`D/A/H` 共用一种 `Row`：递增的顶点数组、对齐的值数组、ordinary 专用 branch bitmap、`branch_count` 和显式 `ready`。对需要跨阶段判断可用性的 ordinary、提前 A1 与 $H$ row，`ready` 区分“已经发布但为空”和“尚未生成”。普通 forward $A$ 的构造内核有一个局部省写规则：严格层序已经处理、且从未产生有限标签的空 row 可以同时保持空 payload 与 `ready=false`；同一次前向构造及后续 adjoint 只按 payload 读取它，结果恒为无穷，不把该位当作生命周期判据。不存在 Base/Enhanced 各一套 row，也不存在运行中在 dense/hash/bitmap DP 状态之间切换。
 
 单组到全图的距离  $d_i(v)=\min_{t\in K_i}\mathrm{dist}(v,t)$ 存在 `GroupRow`，它不是 DP row。Base 可保存有界精确锥体；开启 `DirectedCut` 后保存完整 dense 距离。两种布局通过 `operator[]`、`ExactValueOrInf` 和 `ForEachExact` 暴露同一语义。
 
 ### 5.1 `Row` 的逻辑值与物理 payload
 
-一张 DP row 的逻辑键是 `(mask, vertex)`。物理上只存有限、仍可能改善 incumbent 的顶点：`vertex[j]` 严格递增，`value[j]` 是同一下标的精确 DP 值。读取不存在的顶点返回无穷。`ready=false` 表示依赖还没有计算；`ready=true` 且数组为空表示该 row 已被完整计算，但安全锥体为空。二者若混淆，高层会把“无候选”误认为“依赖缺失”，或者反过来读取尚未产生的值。
+一张 DP row 的逻辑键是 `(mask, vertex)`。物理上只存有限、仍可能改善 incumbent 的顶点：`vertex[j]` 严格递增，`value[j]` 是同一下标的精确 DP 值。读取不存在的顶点返回无穷。凡是消费者需要询问生命周期，`ready=false` 表示依赖还没有发布，`ready=true` 且数组为空表示该 row 已被完整计算但安全锥体为空；二者不能混淆。唯一不以 `ready` 暴露生命周期的是普通 forward $A$ 内部的零标签行：严格 size 层序已经证明它被处理，空 payload 又逐点等价于无穷，因此省去一次布尔写入不会让任何消费者误判依赖。
 
 ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-bit branch bitmap。第 $j$ 个 payload 是否为规范 branch，由 `branch_bits[j >> 6]` 的第 `j & 63` 位给出。 $A$ 与 $H$ 沿用完全相同的有序 `vertex/value/ready` 布局，只是不解释 branch 位。这样，三种状态可以共用二分读取、双指针交集、诊断统计和所有权移动。
 
@@ -261,12 +261,14 @@ ordinary row 额外带一张按 payload 下标而非原顶点编号排列的 64-
 
 ### 5.4 `Row` 的生命周期与所有权
 
-一张 row 依次经历四种物理状态，但逻辑状态只计算一次：
+一张需要显式发布的 row 依次经历四种物理状态，但逻辑状态只计算一次：
 
 1. `ready=false`：依赖尚未完成，任何消费者都必须跳过；
 2. 构造中：局部 `distance/touched/settled` 保存候选，尚未对其他 mask 可见；
 3. `ready=true`：`vertex/value` 已排序、对齐并只读，可为空；
 4. 被消费或移动：末层可以只用于答案结算而不长期保留；提前 A1 则把同一个 `Row` 的所有权移动到前向容器。
+
+普通 forward $A$ 的零标签行采用更窄的构造内协议。对固定 size，mask 按确定次序逐一处理；后继 $A(S)$ 只读取真子集 $A(S\setminus T)$，所以读取发生时该真子集的构造已经结束。若该真子集的 `touched` 为空，它没有任何有限 `(mask,v)` 值，`RowValue` 对空 payload 在所有顶点都返回无穷。实现因此直接进入下一个 mask，不写 `ready=true`；同一前向内核和 adjoint 边界都直接读取 payload，而不会把这一位提交给 `OrdinaryAvailable`、A1 owner 交接或跨阶段调度。这个省写不适用于 ordinary、提前 A1 或 $H$：这些 row 的外部消费者确实使用 `ready`，即使为空也必须显式发布。
 
 `touched` 记录一张 row 内从无穷第一次变为有限候选的顶点，`settled` 记录真正从优先队列以当前最优值取出的顶点，最终 payload 还会按最新 `best` 再过滤。故三者大小可以不同。`mask_vertex_states` 对每张 row 累计 `touched` 的不同顶点数：状态族属于实际键，因此 D/A/H 中数值相同的 `(mask,v)` 是不同状态项。它描述实际进入主状态工作区的数量，不等于结束时 payload，也不等于队列弹出或松弛次数。A1 移交时不再次累计，这一所有权规则由状态计数回归测试约束。
 
@@ -520,7 +522,7 @@ A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\mathrm{dist}(u,v)\}.
 
 式中 $d_a(u)+d_i(u)$ 是锚组与组 $i$ 在共同根 $u$ 合并的 seed，外层最短路闭包把根移动到 $v$。所以 A1 不是辅助启发式，而是完整前向 $A$ 递推的第一张真实逻辑 row。只要逻辑正层域非空，三个合法配置都在 ordinary 前调用同一个 `BuildReusableAnchoredSingletonLayer`；ordinary 结束后又把同一批 `Row` 移交给 `BuildForwardAnchoredRows`。前向阶段只按更新后的 incumbent 重滤并完成结算，不再次运行闭包。
 
-共同操作具体包括：同一组 seed、同一 `distance`/stamp 工作区、同一 farthest + endpoint-floor queue key、同一 `Row` 布局、同一 top-two future 视图、同一所有权移交和同一“不重复计数”规则。Enhanced 没有另一张 A1，也不会把 A1 交给 $H$。
+共同操作具体包括：同一组 seed、同一 `distance`/stamp 工作区、同一 farthest + endpoint-floor queue key、同一 `Row` 布局、同一 top-two/完整 tail 分级 future 视图、同一精确 mask-rent 表、同一所有权移交和同一“不重复计数”规则。Enhanced 没有另一张 A1，也不会把 A1 交给 $H$。
 
 “操作相同”不要求不同配置最终保存的 payload 逐字节相同。Base 与 Enhanced 在进入 A1 前可以通过第 3.1 节允许的组距离/上界 realization 得到不同但都合法的 `best`，所以严格 cone 的实际边界和状态数可以不同；bounded 与 complete `GroupRow` 的物理枚举范围也不同。但任何被接受的 seed 都由相同精确距离定义，后续执行同一闭包与 fallback 公式，且代码没有根据配置选择第二套 A1 规则。论文应把这种差异写成“共同 A1 内核作用于各配置已证明等价的预处理接口”，不能误称为两种 A1 算法，也不能反过来声称三者状态数必然相等。
 
@@ -576,9 +578,9 @@ row 内返回精确 $A(\{i\},v)$，row 外返回该下界。cone 与 fallback �
 
 调度只读取第 3.2 节的逻辑层域 $\mathcal L_A=\{1,\ldots,q\}$。域为空时，所有配置直接用隐式 $A(\varnothing)$ 完成；域非空时，A1 正是第一个成员，所有配置都在 ordinary 前生成它。Enhanced 的前向边界定义为 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 永远属于共同前向前缀，只有层 $2,\ldots,q$ 中的高层后缀才可能由 $H$ 替换。不存在“组数较小时延后、组数较大时提前”或任何等价隐藏阈值。
 
-每个顶点第一次查询 A1 future 时，lazy 路径扫描所有 A1 singleton，缓存最大和次大的组 bit，以及对应精确值在 `row.value` 中的 32-bit 下标。若该值来自 cone 外，locator 的最高位统一记录上一节的正 fallback。两个 locator 压在一个 64-bit 项中；后续若最大 bit 仍未覆盖就 O(1) 读取，否则优先读取次大值，只有两者都已覆盖时才扫描剩余 bit。
+每个顶点第一次查询 A1 future 时，lazy 路径扫描所有 A1 singleton，缓存最大和次大的组 bit，以及对应精确值在 `row.value` 中的 32-bit 下标。若该值来自 cone 外，locator 的最高位统一记录上一节的正 fallback。两个 locator 压在一个 64-bit 项中；后续若最大 bit 仍未覆盖就常数时间读取，否则优先读取次大值，只有两者都已覆盖时才进入 tail。
 
-纯 lazy 路径在 future 只触及少量顶点时最省工作与物理页面，但在大图密集 A1 row 上，每个新顶点都对每张稀疏 row 做二分会形成明显的随机访问。代码因此允许同一 top-two 视图在达到结构性购买点后改用一次顺序物化。设第 $i$ 张已发布 singleton row 的 payload 顶点集合为 $Z_i$，令 $b_i$ 是在长度 $|Z_i|$ 的递增数组中二分一次的保守比较数。实现使用以下静态工作估计：
+纯 lazy 路径在 future 只触及少量顶点时最省工作与物理页面，但在大图密集 A1 row 上，每个新顶点都对每张稀疏 row 做二分会形成明显的随机访问。代码因此先对 top-two 使用一次结构性 rent-or-buy。设第 $i$ 张已发布 singleton row 的 payload 顶点集合为 $Z_i$，令 $b_i$ 是在长度 $|Z_i|$ 的递增数组中二分一次的保守比较数。第一层购买式为：
 
 ```math
 B_{\mathrm{scan}}=\sum_i\left(2n+(n-|Z_i|)(k+2)\right).
@@ -589,17 +591,46 @@ R_{\mathrm{lazy}}=\sum_i(b_i+1),\qquad
 \tau=\left\lceil\frac{B_{\mathrm{scan}}}{R_{\mathrm{lazy}}}\right\rceil.
 ```
 
-$B_{\mathrm{scan}}$ 覆盖逐 row 顺序推进及缺项 continuation 的结构工作， $R_{\mathrm{lazy}}$ 是每个首次触及顶点必付的逐 row 二分工作；fallback 的额外成本没有计入 rent，因此购买不会因把可选 fallback 成本虚增为既付租金而提前。前 $\tau-1$ 个新顶点走 lazy 路径，第 $\tau$ 个新顶点完成后，代码按顶点编号和 singleton bit 同时递增扫描全部 row，并在已经分配的 `first/second/cached_locator_pair` 中填入同一结果。该规则只读取 $n,k,|Z_i|$，不读取数据集名、查询编号、运行计时、配置位或经验组数阈值；它是相同精确视图的物理实现调度，不是新的下界或算法配置。
+$B_{\mathrm{scan}}$ 覆盖逐 row 顺序推进及缺项 continuation 的结构工作， $R_{\mathrm{lazy}}$ 是每个首次触及顶点必付的逐 row 二分工作；fallback 的额外成本不计入 rent，因此购买不会因把可选成本虚增为既付租金而提前。前 $\tau-1$ 个新顶点走 lazy 路径，第 $\tau$ 个新顶点完成后，代码按顶点编号和 singleton bit 同时递增扫描全部 row，并在已有的 `first/second/cached_locator_pair` 中填入同一结果。
 
-顺序物化对 row 命中直接复制原 double 与下标，对缺项调用与 lazy 路径完全相同的 `FallbackValue`；最大/次大更新仍按 bit 升序并使用严格 `>`。因此购买前后每个顶点的 bit、locator 和返回值逐项一致，也不会改变状态、队列次序或最优值。若查询不足 $\tau$ 个不同顶点，购买永不发生。ordinary 结束后立即释放 bit/locator 查找缓存，只保留需要移交的 A1 row。
+top-two 已经物化后，若两者都不属于当前 remaining mask，旧路径仍需逐个剩余 bit 二分。令 $t=\max\{0,k-2\}$。实现从此时才累计真实支付的 tail 查找工作；一次 tail 查询的租金为：
 
-### 9.5 缓存正确性、生命周期与状态计数
+```math
+R_{\mathrm{tail}}(R)=\sum_{i\in R}(b_i+1).
+```
 
-`BuildReusableAnchoredSingletonLayer` 为每个非锚 bit 建立一张 `ready` 的标准 row；即使安全 cone 为空，`ready=true` 也表示“该层已经处理完毕”，而不是缺失依赖。构造时固定的 $U_0$ 只定义本轮安全搜索域。若条件式树 DP 在本轮中把 `best` 降低，函数按第 8.4 节丢弃尚未发布的部分轮并用新 $U_0$ 重启；最终发布的一整轮只含一个 cutoff。A1 完成后 `best` 再下降，只会让更多已保存位置在移交时被重新过滤，不会使旧下界失效。
+这里每个 $b_i$ 只由已经发布的 row 长度决定，与顶点和运行历史无关。top-two 购买时，代码一次性构造整数表 $C$：
 
-对固定顶点，设全部 singleton future 按值降序为 $x_1,x_2,\ldots$。查询剩余 mask 时：若 $x_1$ 的 bit 仍在 mask 中，答案必为 $x_1$；否则若 $x_2$ 仍在，答案必为 $x_2$；只有两者都不在时才需扫描 mask。故缓存最大和次大足以覆盖所有 O(1) 情形。并列值按稳定 bit 顺序选择不影响最大值。locator 只保存精确 `row.value` 下标或 fallback 标志，不保存舍入后的近似值。lazy 与顺序物化只是构造该视图的两种等价枚举顺序，后者没有额外的数值近似、精度压缩或候选删减。
+```math
+C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
+\quad j=\mathrm{lsb}(M).
+```
 
-ordinary 完成后，`first/second/locator` 立即释放。随后 `std::move(singleton_future.row)` 把 row 容器交给 `RunForwardAnchoredStage`。前向内核看到 size 1 已 `ready` 时不会重新执行合并或图闭包，只按最新上界重滤、运行正常完整解结算，并跳过第二次状态累计。因此“提前供 future 使用”和“属于公共 A 格”是同一物理对象的两个生命周期阶段。A1 的 tentative 顶点在首次进入工作区时计入 `mask_vertex_states`；移交不重复计数。Directed-cut 势只在后续 ordinary/adjoint 证书中读取，其读取本身也不计为 DP 状态。
+对子集大小归纳立即得到 $C[M]=\sum_{i\in M}(b_i+1)$，所以后续一次表读取与原来的逐 bit 租金累加严格相等，第二级购买发生在完全相同的调用之后。该因子化支付 $O(2^k)$ 的一次性整数时间和空间，不改变 A1 值、浮点轨迹或 rent-or-buy 公式。
+
+
+第二层购买成本为：
+
+```math
+B_{\mathrm{rank}}=B_{\mathrm{scan}}+
+n\left(\frac{t(t-1)}{2}+t\right).
+```
+
+其中第一项保守覆盖再次顺扫 singleton row 与缺项 fallback，第二项覆盖每个顶点对 $t$ 个 tail bit 的稳定插入排序比较及 byte 写入。累计 tail rent 达到 $B_{\mathrm{rank}}$ 后，`MaterializeRankedTail` 为每个顶点保存 top-two 之外全部 bit 的完整非增次序。它不是固定深度 top-k：所有 $t$ 个 bit 都存在，每项只占一个 byte。查询按 byte 次序找到第一个仍在 remaining mask 中的 bit，再通过原 `Value` 路径读取一次精确 double；排名本身不保存、量化或替换数值。
+
+A1 只在正层域包含第一层时构造；由 $\lfloor g/2\rfloor-1\ge1$ 可得 $g\ge4$、 $k=g-1\ge3$，而可行图有 $n\ge1$。因此 $B_{\mathrm{scan}}>0$，进而 $B_{\mathrm{rank}}>0$。第二级热路径只需比较累计 rent 是否达到 buy，不重复检查 buy 是否为正；这删除的是由逻辑域和购买式共同保证的恒真条件，不改变购买调用点。
+
+两个购买式只读取 $n,k,|Z_i|$ 和实际已经执行的二分工作，不读取数据集名、查询编号、运行时间、配置位、状态数或经验组数阈值。第二层也不会在第一层尚未购买时记租：否则无法触发的计数只会给小查询增加热路径成本。两级调度都只是同一精确视图的物理 realization，不是新的下界或算法配置。两个全图物化函数在一条查询中各至多执行一次；实现把它们保留为非内联冷边界，避免 IPO 将一次性购买代码复制进逐状态调用的 `Future`。这只约束机器码布局，不是第三层购买条件或数据相关开关。
+
+### 9.5 缓存正确性、精确因子化与生命周期
+
+`BuildReusableAnchoredSingletonLayer` 为每个非锚 bit 建立一张 `ready` 的标准 row；即使安全 cone 为空，`ready=true` 也表示“该层已经处理完毕”，而不是缺失依赖。构造时固定的 $U_0$ 只定义本轮安全搜索域。若条件式树 DP 在本轮中把 `best` 降低，函数按第 8.4 节丢弃尚未发布的部分轮并用新 $U_0$ 重启；只有内层完整遍历全部 singleton bit 后，外层才会退出并初始化 future 视图。因此该初始化点本身就是发布屏障：所有 row（包括空 payload）均已 `ready`。只读 future 在屏障之后直接遍历完整 bit 域，不再对每次读取重复检查 `ready`；ordinary、H、forward 所有权交接等仍可能区分“未生成”与“已发布空”的生命周期不受影响。最终发布的一整轮只含一个 cutoff。A1 完成后 `best` 再下降，只会让更多已保存位置在移交时被重新过滤，不会使旧下界失效。
+
+对固定顶点，设全部 singleton future 按值非增排列为 $x_1,x_2,\ldots,x_k$。若 $x_1$ 的 bit 仍在 remaining mask 中，答案为 $x_1$；否则若 $x_2$ 的 bit 仍在，答案为 $x_2$。两者都不在时，完整 tail 排名中的第一个 surviving bit 恰好实现剩余集合的最大值。lazy、top-two 顺序物化和完整 tail 三条路径读取同一 row 内 double 或同一正 fallback；并列值只影响选中哪个等值 bit，不影响返回值。
+
+精确租金表也不改变上述视图：由递推归纳，任意 mask 的表项恰等于旧路径按相同 bit 顺序累计的整数工作量，因此 `ranked_rent_work`、购买调用点和购买后的完整次序逐项不变。`Future` 在所有生命周期都返回真实的 A1 最大值，不依赖调用点传入另一个下界。
+
+ordinary 完成后，`first/second/cached_locator_pair/ranked_tail` 一并释放。随后 `std::move(singleton_future.row)` 把 row 容器交给 `RunForwardAnchoredStage`。前向内核看到 size 1 已 `ready` 时不会重新执行合并或图闭包，只按最新上界重滤、运行正常完整解结算，并跳过第二次状态累计。因此“提前供 future 使用”和“属于公共 A 格”是同一物理对象的两个生命周期阶段。A1 的 tentative 顶点在首次进入工作区时计入 `mask_vertex_states`；移交不重复计数。Directed-cut 势只在后续 ordinary/adjoint 证书中读取，其读取本身也不计为 DP 状态。
 
 ## 10. 前向锚定状态 $A$
 
@@ -614,7 +645,7 @@ A(S\setminus T,u)+D(T,u)+\mathrm{dist}(u,v)
 \right\},
 ```
 
-其中 $A(\varnothing,v)=d_a(v)$ 为隐式 row，不为全图单独物化。对固定 $S$，内层枚举一个非空 ordinary 块 $T$，要求 $D(T)$ 已 ready，且 $A(S\setminus T)$ 已 ready 或为空 mask。合并只在同一根 $u$ 发生，随后从所有有限 seed 做一次多源 Dijkstra 闭包。和 ordinary 一样，只有 `value + future < best` 的候选进入队列。
+其中 $A(\varnothing,v)=d_a(v)$ 为隐式 row，不为全图单独物化。对固定 $S$，内层枚举一个非空 ordinary 块 $T$，要求 $D(T)$ 已 ready； $A(S\setminus T)$ 要么是隐式空 mask，要么是严格较低 size、因而已经由同一前向层序处理。若较低 A row 没有有限标签，其空 payload 直接使交集为空。合并只在同一根 $u$ 发生，随后从所有有限 seed 做一次多源 Dijkstra 闭包。和 ordinary 一样，只有 `value + future < best` 的候选进入队列。
 
 `ForEachAnchoredSum` 对 singleton 使用 `GroupRow` 的精确 membership；对多组 ordinary 块只消费规范 branch；对锚定侧读取完整值。这样，A 的每个同根合并都能展开为一个合法 ordinary 分块，同时沿用第 7.3 节的规范化完备性。seed 合并、图闭包、future 剪枝和稀疏 row 写回都由 `forward.cpp` 的一份实现完成。
 
@@ -878,7 +909,7 @@ for size = h down to ell+1:
 | 上界真实性 | `PrepareProblem`、`EvaluateWitnessTree`、`EvaluateCertificateSupport`、各完成式 | 每次写 `best` 的有限值都能展开为原图真实边或 rooted DP 值 |
 | bounded 距离不冒充状态 | `GroupRow::ExactValueOrInf`、`ForEachExact` | 所有作为 seed 的 singleton 必须精确；cutoff 只能经 `operator[]` 进入下界比较 |
 | future 可采纳 | `FutureBound`、A1 `Value`、dual `At` | 不同来源的证书只用 `max` 合并；只有 residual 收费等已经证明互不超容量的内部项才可求和 |
-| row 依赖完备 | `ready`、按 size 递增/递减循环 | 消费者只读已经完成的依赖；空 row 与未生成 row 不混淆 |
+| row 依赖完备 | `ready`、按 size 递增/递减循环 | 跨阶段消费者只读显式 ready 的依赖；普通 forward 内部由严格层序证明已处理的零标签行只读空 payload |
 | 规范拆分完备 | branch bit 与 pivot 规则 | 每个等价拆分类至少有一个可被高层消费的代表 |
 | 证书升级后重滤 | `RefilterOrdinaryAfterCertificateUpgrade` | 只删除 `value + admissible future >= feasible best` 的项；保留项的 branch 位按原下标同步压紧 |
 | A/H 与 ordinary 消费边界完备 | `AnchoredCompletionSchedule` | $1..q$ 的每个锚定职责由前向 A 或逻辑 H 恰好覆盖；ordinary 完整物化到 $q$；辅助 $H(h)$ 与递减 successor 精确转置被省略的 $D(h)$ |
@@ -892,7 +923,7 @@ for size = h down to ell+1:
 - **零权边。** Dijkstra 仍适用，但 witness 父指针只在严格距离下降时改写，防止等距重挂形成环。DP 的严格上界剪枝针对完整成本，不要求边权严格为正。
 - **重边与自环。** 邻接表保留各自 `edge_id`；真实路径并集按边 ID 去重。非负自环不能改善最短路，因而不会影响最优值。
 - **非连通图。** 只有当某个连通分量与每个组相交时查询才可行；一旦选定共同分量，任何跨分量状态都不可能进入一棵可行树。
-- **空 row。** `ready=true` 且 payload 为空表示在当前严格上界锥体中没有可改善状态；这不同于数学值处处无穷，也不同于依赖未计算。证明只需要“不遗漏低于 best 的推导”。
+- **空 row。** 对显式发布的 ordinary、提前 A1 与 $H$，`ready=true` 且 payload 为空表示在当前严格上界锥体中没有可改善状态；这不同于依赖未计算。普通 forward 内部零标签行虽省去 ready 写入，但严格层序证明它已经处理，且所有内部读取只见空 payload。两种物理形式的证明都只要求“不遗漏低于 best 的推导”。
 - **浮点输入。** 数学证明在实数算术模型下成立。实现用 IEEE 754 `double` 做确定性比较；容差只用于跨程序报告以及恢复一条数值等式路径，恢复后仍按真实边权计价，核心闭合不用 epsilon。当前 artifact 没有用任意精度或区间算术逐次认证舍入方向，因此“精确”不得解释成与实数模型无条件逐 bit 等价。
 
 工程证据不是数学证明的替代，但用于防止实现偏离上述引理：用四个逻辑组保留的历史零权 witness 父指针反例，以及 50,000 顶点逆序零权并查集链；包含零权、重叠组和多终端的确定性随机图，三种合法配置逐例对照独立全子集 DP；显式 $g=2,3$ 非零最优实例断言三个配置都在零主状态处闭包；逐弧从全部组势独立复算 residual，断言 potential cone 没有漏减非零梯度；高 $g$ SteinLib 已知最优值；非法配置、不可行图、平凡查询、输入格式和小于 $10^{-9}$ 正 gap 的闭合回归。
@@ -923,7 +954,7 @@ O\!\left(
 | $g\le3$ 精确闭包 | 一次共同 Bootstrapped-bounded 距离—根初始化 | 不增加渐近空间 | 所有配置逐项相同；不构造 complete potential、witness、dual、tour 或指数状态表 |
 | 共同有序组三元组一步前瞻路径生长 | $O(g^4(m+n))$ | $O(m+n+F)$ 临时空间 | 全部配置调用同一函数；每个有序前两组只恢复一次种子路径并向全部第三组重放；真实边去重，既有上界只作单调安全终止 |
 | 组 tour | $O(2^g g^3)$ | $O(2^g g^2)$ | 只含组维度，不含图顶点维度 |
-| 共同 A1 | $O(k(m+n)\log(n+m)+kn)$ | row 至多 $O(kn)$，查找缓存 $O(n)$ | 层 1 属于 $\mathcal L_A$ 时所有配置执行同一 farthest + endpoint-floor cone；top-two 可由 lazy 二分切换为一次线性物化，不读取 dual 或增强位 |
+| 共同 A1 | $O(k(m+n)\log(n+m)+nk^2+2^k)$ | row 至多 $O(kn)$，分级查找缓存 $O(kn+2^k)$ | 层 1 属于 $\mathcal L_A$ 时所有配置执行同一 cone；top-two 由 lazy 切换为顺序物化并构造精确租金表，tail 达到独立结构购买点后物化完整 byte 排名；不读取 dual 或增强位 |
 | ordinary $D$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n)$ | 无 H 后缀时物化到半格 $h$；存在 H 后缀时 Enhanced 物化到 $q=h-1$，全部逻辑边界直接读取这些公共 row，省略的 $D(h)$ 由辅助 H 同递推转置 |
 | 完整前向 $A$ | 同阶保守上界 | $O(2^g n)$ | 实际只到 size $q=h-1$，末层可只消费 |
 | directed-cut | $O(gm+g(m+n)\log(n+m))$ | $O(gn+m)$ | 最坏界不变；第 $i$ 轮容量更新实际枚举 $\min\{m,\sum_{v\in C_i}\deg(v)\}$ 个原边/邻接项， $C_i$ 为截断势 cone |
@@ -931,7 +962,7 @@ O\!\left(
 | certificate-support 上界 | $O(s^3+2^g s^2+3^g s)$ | $O(s^2+2^g s)$ | 仅在 closure 购买后路径证书严格改善时登记； $s$ 是路径边与 primal 边并图的顶点数 |
 | adjoint 转置与 $H$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n+gn)$ | 只播种辅助 $H(h)$：直接 $D(Q)$ 可用时完全跳过被支配 pair，否则在 pair 与互补 submask 两种等价枚举间作确定性常数选择；较低层仅递减到 $\ell+1$ |
 
-表中的共同 A1 条件不是参数调优分支：它只是询问层 1 是否属于前向递推定义域 $\mathcal L_A$；属于时三个配置都执行同一逻辑 A1，不属于时没有这张 row。A1 top-two 使用两个初始化为 255 的 byte bit 数组，因而固定触及约 $2(n+1)$ 字节；两个 32-bit locator 再压入一个 64-bit 数组。购买前只有真正查询该顶点 future 时才写入相应 locator 页面；若达到结构购买点，一次顺序物化会触及全部既有 locator 页面，但不增加第二张 locator 或 double 数组。最坏容量约每顶点 10 字节，未购买时的物理增量约为 $2n$ 字节加已触及 locator 页面，购买后的最坏物理增量约为 $10n$ 字节。缓存均在 ordinary 后释放；locator 能无损定位精确 double，也能统一标记由共同 continuation 定义的正 fallback。复杂度按 $O(n)$ 计。若 A1 内条件式 witness 购买收紧上界，至多丢弃当前输入修订上的一个部分 pass；同修订购买保护使这一重启只增加常数因子；它与 top-two 物理表示的购买式是职责不同的两个共同调度器。
+表中的共同 A1 条件不是参数调优分支：它只是询问层 1 是否属于前向递推定义域 $\mathcal L_A$；属于时三个配置都执行同一逻辑 A1，不属于时没有这张 row。top-two 使用两个 byte bit 数组和一个压入两个 32-bit locator 的 64-bit 数组，全部购买后固定容量约为 $10(n+1)$ 字节；同时构造含 $2^k$ 个 32-bit 整数的精确租金表。完整 tail 再为每个顶点保存 $t=k-2$ 个 byte，因此两级缓存最坏容量约为 $(k+8)(n+1)+4\cdot2^k$ 字节，即 $O(kn+2^k)$；它不增加任何 double 数组。未购买时只触及约 $2n$ 字节的 bit 数组与实际查询顶点对应的 locator 页面，top-two 购买后触及约 $10n+4\cdot2^k$ 字节，tail 购买后才达到上述最坏容量。locator 无损定位原 double 或统一正 fallback，ranked tail 只保存 bit 次序。稳定插入排序及缺项 continuation 的保守最坏工作为 $O(nk^2)$，租金表构造为 $O(2^k)$，均已计入表中。所有缓存在 ordinary 后释放。若 A1 内条件式 witness 购买收紧上界，至多丢弃当前输入修订上的一个部分 pass；同修订购买保护使这一重启只增加常数因子。witness、top-two 和完整 tail 是职责互异的三个结构购买式，不能混写成按数据选择算法。
 
 ### 14.2 以实际 payload 表示的实现成本
 
@@ -941,7 +972,7 @@ O\!\left(
 O\left(M_D+M_A+M_H+(R_D+R_A+R_H)\log(n+m)\right),
 ```
 
-若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。空间分别为 Base 的 $O(Z_D+Z_A+n)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn)$。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，H 只保存从辅助半格到低层边界之间实际生成的稀疏 row。
+若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。计入分级 A1 缓存后，阶段空间分别为 Base 的 $O(Z_D+Z_A+kn+2^k)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn+kn+2^k)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn+kn+2^k)$；因 $k=g-1$，租金表与主 subset 状态同阶，A1 byte 缓存不改变后二者的 $O(gn)$ 线性项，但都必须在实际 RSS 中报告。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，H 只保存从辅助半格到低层边界之间实际生成的稀疏 row。
 
 实现为每条查询额外报告 `mask_vertex_states`。其口径是累计的“首次发现状态项数”，不是结束时 payload、队列弹出数或峰值空间：状态族属于实际键，对每张完整物化的 $D$、 $A$、 $H$ 逻辑 row，顶点第一次从无穷变为有限候选时计一次；同一 row 内后续改进不重复，D/A/H 中数值相同的 `(mask,v)` 分别计数。所有配置提前生成的共同 A1 在生成时计入，所有权转交给公共 $A$ 内核后不再计。最后只消费而不保留的 $A$ 层仍计入，因为这些状态已经实际生成。组距离、tour、directed-cut 势读取、转置前终端候选、完整解结算及队列过期项均排除。记该累计数为 $C_{\mathrm{ABHSS}}$，则它可用于解释搜索工作量，但通常 $C_{\mathrm{ABHSS}}\ge Z_D+Z_A(+Z_H)$，不能替代峰值内存指标。
 
@@ -953,7 +984,7 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 
 | 实现细节 | 作用 | 若删除或写错的风险 |
 |---|---|---|
-| `ready` 与空 payload 分离 | 区分“已生成空 row”和“依赖尚未生成” | 高层会错误跳过合法依赖或读取未初始化状态 |
+| 对跨阶段 row 分离 `ready` 与空 payload | 区分“已发布空 row”和“依赖尚未生成”；forward 内部零标签行由层序单独证明 | 外部调度会错误跳过合法依赖或读取未初始化状态 |
 | 顶点递增 row | 允许双指针、较小侧驱动二分和稳定输出 | Hash 随机访问会放大常数并破坏确定性 |
 | branch bitmap | 只发布规范的不可继续同根拆分状态 | 不影响值但会产生大量重复组合；定义错误则可能丢解 |
 | `ExactValueOrInf` 单次精确读取 | 一次定位并阻止 bounded cutoff 冒充 DP 值 | 若改用 `operator[]` 作为 seed，会构造不存在的低成本状态，直接破坏精确性 |
@@ -964,7 +995,7 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 | epoch/stamp 缓存 | 避免每张 row 清零 $O(n)$ 下界数组 | 大图上清零成本可能超过实际稀疏搜索 |
 | flat/staged future 与单调拒绝前沿 | Base 一次缓存完整公共证书；DirectedCut 配置复用新增 dual 的中途拒绝，并允许较小标签继续尚未计算的阶段；stage 0 只在 row 已证明复用后物化按原谓词验证的解析 cutoff | 强迫 Base 支付无 dual 收益的 stage 热分支会损害小组实验；把区间下端当作 exact、把一次拒绝永久化或让虚拟 cutoff 入堆都会破坏精确性 |
 | 逐顶点 split 聚合与线性 heapify | 先得到精确 $B(S,v)$，再对每个顶点求一次 candidate-independent future，并以同一全序批量建初始堆 | 逐拆分求 future 会重复工作；若聚合跨越图闭包或改变全序则会破坏精确 row/branch 语义 |
-| A1 top-two bit/locator 缓存与结构购买 | 跨 ordinary row O(1) 复用最大两个 singleton future；少量顶点 lazy 二分，大量顶点在同一缓存中顺序物化，始终保持原 double 值 | 只缓存 bit 会反复二分稀疏 A1；无条件顺序物化会让小查询支付全图工作与 locator 页面；缓存两个 double 则会放大大图 RSS |
+| A1 分级 bit/locator/ranked-tail 缓存与结构购买 | 先复用最大两个 singleton future；top-two 购买时用精确子集递推因子化 tail 租金，累计实际二分成本达到购买式后再用完整 byte 排名把多次二分化为一次精确读取；两个购买函数保持一次性冷代码边界 | 无条件全图物化会让小查询支付固定成本；固定 top-k 缺少理论边界；保存 double 排名会放大 RSS；若租金表不与逐 bit 和严格相等会改变购买时机 |
 | A1 内核不读取增强位或 dual | 保证 Base/Enhanced 的 seed、cone、fallback 与交接逐项相同；dual 留在 ordinary/adjoint 证书栈 | 在 A1 内接 dual 会产生不同缺项原因和 fallback；强制 Base 也建 dual 又会消解可关闭增强 |
 | 单一零起点 witness scheduler | 两边只代入各自树大小；A1 与 D 连续支付 rent，达到共同 buy 才调用同一树 DP | Base 无条件预买会形成 Base-only 操作；A1 中直接改变 cutoff 而不重启会混合两套 cone 证明 |
 | 辅助 H 半格与 top-only terminal | 用单/双 ordinary split seed 加同一图闭包精确实现被省略的 $D(h)$，再向下递减 H；较低直接 terminal 和已有 $D(Q)$ 时的 pair 被严格支配并减空 | 若直接从逻辑层 $q$ 启动，会漏掉 $D(h)$ 闭包并返回过大的值；若恢复较低 terminal 或已被直接 D 支配的 pair，则只增加重复候选和固定成本 |

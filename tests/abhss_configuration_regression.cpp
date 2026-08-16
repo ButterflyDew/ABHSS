@@ -554,7 +554,7 @@ void CheckAuxiliaryHalfAdjointRegression()
     Check("ABHSS auxiliary-half adjoint", answer, expected, 0);
 }
 
-/** @brief 逐项证明 A1 lazy 查找与顺序物化返回同一精确 top-two 视图。 */
+/** @brief 逐项证明 A1 lazy、top-two 与完整排名购买返回同一精确视图。 */
 void CheckAnchoredSingletonMaterializationEquivalence()
 {
     constexpr int kVertices = 64;
@@ -597,10 +597,25 @@ void CheckAnchoredSingletonMaterializationEquivalence()
         }
         const double actual = future.Future(problem, remaining, vertex);
         if (actual != expected)
-            throw std::runtime_error("A1 lazy/materialized top-two view changed an exact future value.");
+            throw std::runtime_error("A1 lazy/materialized view changed an exact future value.");
     }
     if (!future.lookup_materialized)
         throw std::runtime_error("A1 materialization equivalence regression did not exercise the purchased path.");
+    if (future.ranked_rent_by_mask.empty())
+        throw std::runtime_error("A1 tail-rent subset factorization was not materialized with top-two.");
+    for (int remaining = 0; remaining < problem.subset_count; ++remaining)
+    {
+        int expected_rent = 0;
+        for (int bits = remaining; bits; bits &= bits - 1)
+        {
+            const int bit = bits & -bits;
+            expected_rent += static_cast<int>(gst::methods::abhss::internal::BinarySearchCost(future.row[bit].vertex.size()) + 1);
+        }
+        if (future.ranked_rent_by_mask[remaining] != expected_rent)
+            throw std::runtime_error("A1 tail-rent subset factorization changed the exact paid work.");
+    }
+    if (future.ranked_tail.empty())
+        throw std::runtime_error("A1 materialization equivalence regression did not exercise the ranked-tail purchase.");
 }
 
 }  // namespace

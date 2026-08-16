@@ -88,7 +88,7 @@ main
             buy = the same formula applied to this profile's witness size
        -> common A1 row                  [only when the logical grid contains A1]
             all configurations: same seed, farthest + endpoint-floor cone, positive fallback,
-                                 adaptive lazy/linear top-two view and forward-A ownership transfer
+                                 hierarchical exact A1 view: lazy/linear top-two, complete byte-ranked tail, and forward-A ownership transfer
             the A1 builder does not read enhancement flags or dual potentials
             queue/edge work pays rent; a tighter tree-DP buy restarts the A1 pass
        -> BuildOrdinaryWithProbe
@@ -114,6 +114,8 @@ main
 
 `MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。 $g\le3$ 查询在进入层计划前已经由全部配置共同的精确恒等式闭包。对其余查询，域为空时完成式直接使用隐式 $A(\varnothing)$；域非空时 A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
 
+A1 的重启循环只有在全部 singleton bit 都写入 `ready` 后才初始化 `AnchoredSingletonFuture` 的查找计划；空 payload 也属于已发布 row。因此 future 只读阶段把该初始化点当作发布屏障，直接遍历完整 bit 域，不在每次读取时重复检查 `ready`。同理，A1 域推出 $g\ge4$、 $k\ge3$，两级购买工作严格为正；ranked-tail 热路径只比较 rent 与 buy。上述两项是共同生命周期不变量的减空，不是按组数启用的算法开关。其他仍可能观察未生成 row 的模块继续使用 `ready`。
+
 令 $k=g-1$， $h=\lfloor g/2\rfloor$， $q=h-1$。没有 H 后缀时，ordinary 与完整前向配置一样物化到半格 $h$。存在 H 后缀时，Enhanced 与 Base 仍用同一 `BuildOrdinaryRows` 完整生成 $D(1),\ldots,D(q)$；Enhanced 不物化更高的 $D(h)$，而把 adjoint 的物理区间扩为：
 
 ```math
@@ -130,7 +132,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 
 | 逻辑职责 | Base realization | Enhanced realization | 关系 |
 |---|---|---|---|
-| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest + endpoint-floor cone 与正 fallback；top-two 先按顶点 lazy 查询，达到由 row 形状计算的共同购买点后在原缓存中顺序物化，随后移交前向 A | 逐项执行同一 seed、cone、fallback、lazy/顺序物化 top-two 与移交；A1 内不读取 dual | 严格共同操作；不是替换，也没有增强专属分支；购买式不读取配置、图名、计时或经验组数阈值 |
+| A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest + endpoint-floor cone 与正 fallback；先按结构购买 top-two，并用精确子集递推因子化 tail rent，再按已付 tail 查找工作购买完整 byte 排名 | 逐项执行同一 seed、cone、fallback、两级购买、精确租金表与移交；A1 内不读取 dual | 严格共同操作；完整排名不是固定 top-k，不改变原 double；购买式不读取配置、图名、计时或经验组数阈值 |
 | $g>3$ 的距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段；低组基例在此之前共同闭包 |
 | ordinary 的其他 future | flat realization：farthest、公共 A1、tour 的完整值首次存活后缓存 | staged realization：先增加 directed-cut，再依次复用 farthest、公共 A1、tour 的已算前缀 | 证书集合是安全新增；求值 realization 的共同输入、输出和严格拒绝职责相同，选择只由 DirectedCut 位决定 |
 | witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 对未被共同闭包的查询，树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
@@ -146,11 +148,11 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `src/abhss/abhss.h` | 公开 `SolveOptions`、增强位、`ConfigurationProfile`、`AnchoredCompletionSchedule` 和 `SolveResult` | 开关链只表达安全新增/同职责替换；层计划只表达平衡递推域及 A/H realization |
 | `src/abhss/solver.cpp` | 单一 solver 入口与配置调度 | 只在这里选择完整前向或 adjoint 完成；不存在按查询 oracle |
 | `src/abhss/pipeline.{h,cpp}` | 平凡/无解前置、预处理和 ordinary 的公共 probe 边界 | 诊断包装不改变算法语义 |
-| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、 $A$、 $H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；`ready` 与空 payload 不能混淆；bounded `GroupRow` 的随机精确读取必须走 `ExactValueOrInf`，不得把 cutoff 当 singleton |
+| `src/abhss/internal.h` | `Problem`、`Row`、`GroupRow`、witness、状态计数和热路枚举器的共同定义 | $D$、 $A$、 $H$ 共用一个有序稀疏 `Row`；每张 row 按首次进入工作区的顶点批量计数；ordinary、提前 A1 与 H 的构建期 `ready` 不能和空 payload 混淆，A1 future 只在完整发布屏障后省略重复读取；普通 forward 内部的零标签行则由严格层序证明已处理并省写 ready；bounded `GroupRow` 的随机精确读取必须走 `ExactValueOrInf`，不得把 cutoff 当 singleton |
 | `src/abhss/preprocess.cpp` | 正权 cover 快路径、零权 cover、组距离、 $g\le3$ 闭包、多种真实上界、tour、witness、统一 future | cutoff 不得当作精确状态；数学闭包必须对全部配置相同；`best` 只由真实可行子图收紧；tour 上包络只能跳过必被当前下界支配的求值，不能冒充新的下界 |
 | `src/abhss/path_growth_upper.{h,cpp}` | 全部配置共同的有序组三元组一步前瞻真实路径生长上界 | 只恢复 `ExactValueOrInf` 有限位置的 tight paths；边 ID 去重；cutoff 只能作非负费用的单调安全终止 |
-| `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、逐顶点 split 聚合、flat/staged future realization、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；`InitializeLookupPlan` 只按最终 singleton row 形状确定 lazy/顺序物化购买点，`MaterializeAllTopTwo` 复用同一 bit/locator 缓存且保持稳定 bit 顺序；ordinary 的阶段缓存不能把候选专属拒绝永久化；Base 不支付无 dual 收益的 stage 热分支；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
-| `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常生成 row 都走同一完成函数 |
+| `src/abhss/core.{h,cpp}` | A1 的 ordinary 前调度视图、ordinary $D$、逐顶点 split 聚合、flat/staged future realization、row 交集、规范 branch、共同 witness rent-or-buy | A1 构造不读取增强位或 dual；完整 singleton pass 是 future 的发布屏障，屏障后不重复检查 row `ready`；`InitializeLookupPlan` 只按 singleton row 形状确定严格为正的两级购买式，`MaterializeAllTopTwo` 保持稳定 bit/locator 并构造精确 mask-rent 表，`MaterializeRankedTail` 只保存 top-two 之后的完整 byte 次序；两个一次性物化函数保持冷机器码边界，逐状态 `Future` 始终返回精确 A1 最大值；ordinary 阶段缓存不能把候选专属拒绝永久化；Base 不支付无 dual 收益的 stage 热分支；树 DP 收紧上界时允许丢弃未完成的 A1 尝试并整轮重启，但最终只发布、移交和计数一份标准 `Row` |
+| `src/abhss/forward.{h,cpp}` | 公共前向锚定 $A$ 递推与完整解结算 | 隐式 $A(0)$、提前 A1 的所有权交接和正常非空 row 都走同一完成函数；从未产生标签的普通 A row 由严格层序证明已处理，保留空 payload 且不额外写 ready |
 | `src/abhss/dual_cut.h` | `DirectedCut` 的 changed-arc 势、截断 potential cone、residual、exact fallback 与 primal 边恢复 | cone 只能跳过两端势都等于根 cap 的零梯度边；certified interval 不能冒充 exact；一次性构造保持非内联冷边界，避免 IPO 污染 Base 热布局；势只作下界，上界必须由原图真实边计价 |
 | `src/abhss/adjoint.{h,cpp}` | top-only ordinary 单/双块转置、辅助 $H(h)$、高层 $H$ 递减与低层 $A$ 边界结算 | 只给辅助层播种；直接 D 存在时不枚举 pair；较低层只消费 successor；各组集合始终不交且并为全集 |
 | `src/abhss/diagnostics.h` | 编译期可关闭的稀疏 phase 诊断；详细宏自动包含普通 probe 宏 | 正式构建不因诊断改变状态或配置；逐候选计数只在 `GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS` 中存在 |
@@ -181,7 +183,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | `fast_graph_io_structure` | 零/小数/科学计数边权、原边和邻接顺序、自环双邻接项、连通分量、错误 token | 快速读取改变图语义或静默接受损坏输入 |
 | `query_io_validation` | 合法多查询，以及负查询/组计数、空组、截断 payload 和声明查询后的多余 token | 批处理文件错位或静默截断 |
 | `abhss_zero_weight_witness` | 用四个逻辑组保留历史零权父指针环反例的真实 witness 路径；另含 50,000 顶点逆序零权并查集链 | 低组闭包意外绕过 witness 回归，或递归 Find 在深链上爆栈 |
-| `abhss_configuration_exactness` | 5,000 个 $2\le g\le10$ 确定性随机连通小图、500 个 $6\le g\le10$ 正权互异单终端实例和 160 个 $g=7..16$ omitted-half transpose 压力实例，逐例对照独立全子集 DP；另含真值 5.75、旧错误值 6.25 的 12 点辅助半层固定反例，并覆盖 $g=2,3$ 共同闭包、逐弧势梯度与 residual、距离—根合同、精确 singleton 读取、非连通 fallback、配置合同、共同 witness `buy`、零起点调度、非法开关及 A/H/ordinary 层计划 | 配置重构或省略 $D(h)$ 的高层转置丢解、错误推广/配置化低组闭包、potential cone 漏边、重新暴露 Base-only SPT 调度、恢复 Base 预买、经验参数分派、“新增/替换”契约漂移、非法配置、零权错误或 epsilon 误闭合 |
+| `abhss_configuration_exactness` | 5,000 个 $2\le g\le10$ 确定性随机连通小图、500 个 $6\le g\le10$ 正权互异单终端实例和 160 个 $g=7..16$ omitted-half transpose 压力实例，逐例对照独立全子集 DP；另含真值 5.75、旧错误值 6.25 的 12 点辅助半层固定反例，并覆盖 A1 lazy/top-two/ranked-tail 三种精确视图、全部 remaining mask 的租金表等价性、 $g=2,3$ 共同闭包、逐弧势梯度与 residual、距离—根合同、精确 singleton 读取、非连通 fallback、配置合同、共同 witness `buy`、零起点调度、非法开关及 A/H/ordinary 层计划 | A1 物化或租金因子化改变最大值/购买点、配置重构或省略 $D(h)$ 的高层转置丢解、错误推广/配置化低组闭包、potential cone 漏边、重新暴露 Base-only SPT 调度、恢复 Base 预买、经验参数分派、“新增/替换”契约漂移、非法配置、零权错误或 epsilon 误闭合 |
 | `mask_vertex_state_accounting` | 七点路径上 ABHSS Base/Enhanced 重复计数，以及 PrunedDP++ Hash/Dense 计数一致性和平凡查询零计数 | 状态数不稳定、A1 所有权交接后重复计数、误把 Dense 容量或辅助预处理当实际状态 |
 
 本地 CTest 是每次改码必跑的快速门禁，不替代 `S1_steinlib_exactness_gate`。后者在 $11\le g\le16$ 的已知最优实例上同时比对 ABHSS、PrunedDP++-Safe、DPBF 以及已恢复的外部 correctness 方法。

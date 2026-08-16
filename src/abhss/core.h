@@ -16,10 +16,11 @@ namespace gst::methods::abhss::internal
  * 是否存在 A1 完全由锚定状态格的最高逻辑层决定，不使用经验性的 g 阈值。
  * 所有配置的 cone 外位置都用构造时 cutoff 与同一个连续 continuation 恢复
  * 安全下界；DirectedCut 不进入 A1 构造，只在 ordinary 的其他 future 中
- * 作为独立证书。每个顶点缓存最大的两个 singleton bit，并把两个 32-bit
- * payload locator 压入
- * 一个按需触页的 64-bit 项，避免跨 D row 重复二分稀疏 A1；cone 外 locator
- * 直接重算已证明安全的公式。ordinary 结束后立即释放这些只读查找缓存。
+ * 作为独立证书。每个顶点先缓存最大的两个 singleton bit，并把两个 32-bit
+ * payload locator 压入一个按需触页的 64-bit 项；top-two 购买时还用精确子集递推
+ * 因子化各 remaining mask 的 row 形状租金。若 tail 二分工作达到第二级结构购买点，
+ * 再用 byte 保存 top-two 之后的完整 bit 次序。排名不保存 double，cone 外 locator
+ * 仍重算同一安全公式。ordinary 结束后释放全部只读查找缓存。
  */
 struct AnchoredSingletonFuture
 {
@@ -27,9 +28,13 @@ struct AnchoredSingletonFuture
     std::vector<Row> row;
     std::vector<unsigned char> first;
     std::vector<unsigned char> second;
+    std::vector<unsigned char> ranked_tail;
+    std::vector<int> ranked_rent_by_mask;
     std::unique_ptr<std::uint64_t[]> cached_locator_pair;
     long long lookup_buy_work = 0;
     long long lookup_touch_remaining = 0;
+    long long ranked_buy_work = 0;
+    long long ranked_rent_work = 0;
     bool lookup_materialized = false;
 
     /** @brief 读取公共 A1；cone 外返回由共同 continuation 定义的统一 fallback。 */
@@ -46,21 +51,27 @@ struct AnchoredSingletonFuture
                         int bit,
                         int vertex,
                         std::uint32_t locator) const;
-    /** @brief 返回未覆盖 singleton 的最大 anchor-aware future，并维护同一份 top-two 视图。 */
+    /** @brief 返回 remaining 中最大的精确 A1 singleton future。 */
     double Future(const Problem& problem, int remaining, int vertex);
-    /** @brief 由 lazy 查找与一次顺序物化的结构工作量初始化无参数购买式。 */
+    /** @brief 在全部 singleton row 发布后，由其形状初始化两级无参数购买式。 */
     void InitializeLookupPlan(const Problem& problem);
-    /** @brief 按顶点与 singleton 递增顺序物化与 lazy 路径完全相同的 top-two。 */
+    /** @brief 物化与 lazy 路径相同的 top-two，并精确因子化各 mask 的 tail rent。 */
     void MaterializeAllTopTwo(const Problem& problem);
+    /** @brief 稳定物化 top-two 之后的完整 A1 排名，用一次精确读取替代逐 bit 二分。 */
+    void MaterializeRankedTail(const Problem& problem);
 
-    /** @brief ordinary 结束后释放 lazy/顺序物化共用的 top-two 缓存，仅保留待移交的标准 A1 row。 */
+    /** @brief ordinary 结束后释放 top-two、locator 和完整 ranked tail，仅保留待移交的标准 A1 row。 */
     void ReleaseLookupCache()
     {
         std::vector<unsigned char>().swap(first);
         std::vector<unsigned char>().swap(second);
+        std::vector<unsigned char>().swap(ranked_tail);
+        std::vector<int>().swap(ranked_rent_by_mask);
         cached_locator_pair.reset();
         lookup_buy_work = 0;
         lookup_touch_remaining = 0;
+        ranked_buy_work = 0;
+        ranked_rent_work = 0;
         lookup_materialized = false;
     }
 };

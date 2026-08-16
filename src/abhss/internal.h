@@ -46,8 +46,10 @@ inline int FirstBit(int mask)
  * @brief D/A/H 共用的唯一稀疏 row 物理格式。
  *
  * `vertex` 严格递增并与 `value` 对齐；`branch_bits` 仅对 ordinary D 有效，
- * 标记该值是否可作为不可继续同根拆分的规范分支。`ready` 区分“已生成但
- * 为空”和“尚未生成”，避免用 payload 大小猜测状态生命周期。
+ * 标记该值是否可作为不可继续同根拆分的规范分支。对 ordinary、提前 A1
+ * 所有权交接和 H 等会查询生命周期的 row，`ready` 区分“已发布但为空”与
+ * “尚未生成”。普通 forward A 内核另有一个严格局部例外：层序已处理且从未
+ * 产生标签的空 row 可以不写 `ready`，后继只按空 payload 读取无穷。
  */
 struct Row
 {
@@ -394,7 +396,7 @@ double BuildPrimalFacilityUpper(const Problem& problem,
 bool PrepareProblem(Problem& problem);
 /** @brief 已购买增强证书刷新时，尝试登记四元路径与 primal 的真实支持图。 */
 bool RefreshPurchasedPathGrowthCertificate(Problem& problem);
-/** @brief 返回剩余组中的最远组距离下界；命中顶点缓存时为 O(1)。 */
+/** @brief 返回剩余组中的最远组距离下界；命中顶点最大组缓存时为 O(1)。 */
 double FarthestRemaining(const Problem& problem, int vertex, int original_mask);
 /** @brief 计算统一 future 下界；开启 DirectedCut 时再并入对偶势。 */
 double FutureBound(const Problem& problem, int vertex, int original_mask);

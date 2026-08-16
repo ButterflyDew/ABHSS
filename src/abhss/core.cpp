@@ -1,8 +1,20 @@
 ﻿#include "core.h"
 
+#include <array>
 #include <cmath>
 #include <numeric>
 #include "diagnostics.h"
+
+// 两个物化函数在一条查询中都至多执行一次，属于 rent-or-buy 的冷购买路径。
+// 显式阻止 IPO 把它们并入逐状态调用的 Future，避免未购买查询也扩大热循环；
+// 这只约束机器码布局，不改变购买条件、执行次数或任何数学值。
+#if defined(_MSC_VER)
+#define ABHSS_A1_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define ABHSS_A1_NOINLINE __attribute__((noinline))
+#else
+#define ABHSS_A1_NOINLINE
+#endif
 
 namespace gst::methods::abhss::internal
 {
@@ -307,25 +319,33 @@ void AnchoredSingletonFuture::InitializeLookupPlan(const Problem& p)
 {
     lookup_buy_work = 0;
     lookup_touch_remaining = 0;
+    ranked_buy_work = 0;
+    ranked_rent_work = 0;
+    ranked_tail.clear();
+    ranked_rent_by_mask.clear();
     lookup_materialized = false;
     const long long vertices = p.graph.n;
     long long rent_per_vertex = 0;
-    // 只由已发布 row 的静态形状计算一次购买点。buy 估计逐 row 顺序扫描
-    // 全图与缺项 fallback 的结构工作；rent 是首次查询一个顶点时逐 row
-    // 二分的保守比较数。二者不读取图名、g 阈值、计时或历史查询结果。
+    // 第一层 buy 估计逐 row 顺扫全图与缺项 fallback；rent 是首次查询
+    // 一个顶点时逐 row 二分的保守比较数。两级购买都不读取图名、g 阈值、
+    // 计时或历史查询结果，只读取已发布 row 的静态形状与实际已付工作。
     for (int bit = 1; bit < p.subset_count; bit <<= 1)
     {
-        if (!row[bit].ready)
-            continue;
         const long long missing = vertices - static_cast<long long>(row[bit].vertex.size());
         lookup_buy_work += 2 * vertices + missing * (p.nonanchor_count + 2LL);
         rent_per_vertex += BinarySearchCost(row[bit].vertex.size()) + 1;
     }
     if (rent_per_vertex)
         lookup_touch_remaining = lookup_buy_work / rent_per_vertex + (lookup_buy_work % rent_per_vertex != 0);
+    const long long tail_size = std::max(0, p.nonanchor_count - 2);
+    // 第二层重新支付一次顺扫/fallback 的结构成本，并覆盖每顶点稳定插入
+    // 排序的最坏比较数与全部 byte 写入；rent 只在第一层购买后累计。
+    const long long ranking_work = tail_size * (tail_size - 1) / 2;
+    const long long tail_write_work = tail_size;
+    ranked_buy_work = lookup_buy_work + vertices * (ranking_work + tail_write_work);
 }
 
-void AnchoredSingletonFuture::MaterializeAllTopTwo(const Problem& p)
+ABHSS_A1_NOINLINE void AnchoredSingletonFuture::MaterializeAllTopTwo(const Problem& p)
 {
     ProbeTimer timer;
     // 每张递增稀疏 row 只维持一个游标；顶点与 bit 均按 lazy 路径的稳定
@@ -342,8 +362,6 @@ void AnchoredSingletonFuture::MaterializeAllTopTwo(const Problem& p)
         int row_index = 0;
         for (int bit = 1; bit < p.subset_count; bit <<= 1)
         {
-            if (!row[bit].ready)
-                continue;
             const Row& values = row[bit];
             size_t& position = cursor[row_index++];
             std::uint32_t locator = kA1FallbackLocator;
@@ -377,9 +395,69 @@ void AnchoredSingletonFuture::MaterializeAllTopTwo(const Problem& p)
             second[vertex] = static_cast<unsigned char>(second_bit);
         cached_locator_pair[vertex] = static_cast<std::uint64_t>(first_locator) | (static_cast<std::uint64_t>(second_locator) << 32);
     }
+    // tail 查询对同一 remaining mask 反复累加完全相同的 row 形状成本。
+    // top-two 购买时用一次子集递推精确因子化，后续查询只读一个整数。
+    // g<=16 且 row 长度不超过 INT_MAX，单表项至多 15*(31+1)=480，int 无溢出。
+    ranked_rent_by_mask.assign(p.subset_count, 0);
+    for (int mask = 1; mask < p.subset_count; ++mask)
+    {
+        const int bit = mask & -mask;
+        ranked_rent_by_mask[mask] = ranked_rent_by_mask[mask ^ bit];
+        ranked_rent_by_mask[mask] += static_cast<int>(BinarySearchCost(row[bit].vertex.size()) + 1);
+    }
     lookup_materialized = true;
     EmitAbhssProbe(ProbeFamilyMethod(p), "a1_top_two_materialize", p, timer.Seconds(), &row, -1, lookup_buy_work);
 }
+
+ABHSS_A1_NOINLINE void AnchoredSingletonFuture::MaterializeRankedTail(const Problem& p)
+{
+    ProbeTimer timer;
+    // 第二级购买只在 top-two 已完整物化后发生；每个顶点恰有 k-2 个 tail bit。
+    const int tail_size = p.nonanchor_count - 2;
+    ranked_tail.resize((static_cast<size_t>(p.graph.n) + 1) * tail_size);
+    // 与 top-two 顺扫相同，每张稀疏 row 保留一个递增游标，避免重新二分。
+    std::vector<size_t> cursor(p.nonanchor_count);
+    for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+    {
+        const int first_bit = first[vertex];
+        const int second_bit = second[vertex];
+        // 只在当前顶点的栈数组中比较原 double；持久缓存最终只写 bit 次序。
+        std::array<double, 16> ordered_value;
+        std::array<unsigned char, 16> ordered_bit;
+        int count = 0;
+        int row_index = 0;
+        for (int bit = 1; bit < p.subset_count; bit <<= 1)
+        {
+            const Row& values = row[bit];
+            size_t& position = cursor[row_index++];
+            const bool present = position < values.vertex.size() && values.vertex[position] == vertex;
+            const int bit_index = FirstBit(bit);
+            if (bit_index == first_bit || bit_index == second_bit)
+            {
+                position += present;
+                continue;
+            }
+            const double value = present ? values.value[position++] : FallbackValue(p, bit, vertex);
+            int insertion = count;
+            while (insertion > 0 && value > ordered_value[insertion - 1])
+            {
+                ordered_value[insertion] = ordered_value[insertion - 1];
+                ordered_bit[insertion] = ordered_bit[insertion - 1];
+                --insertion;
+            }
+            ordered_value[insertion] = value;
+            ordered_bit[insertion] = static_cast<unsigned char>(bit_index);
+            ++count;
+        }
+        const size_t offset = static_cast<size_t>(vertex) * tail_size;
+        // 稳定插入排序与 lazy 路径使用相同 bit 先后，并列值不改变返回值。
+        for (int rank = 0; rank < count; ++rank)
+            ranked_tail[offset + rank] = ordered_bit[rank];
+    }
+    EmitAbhssProbe(ProbeFamilyMethod(p), "a1_ranked_tail_materialize", p, timer.Seconds(), &row, -1, ranked_buy_work);
+}
+
+#undef ABHSS_A1_NOINLINE
 
 double AnchoredSingletonFuture::Future(const Problem& p,
                                        int remaining,
@@ -397,8 +475,6 @@ double AnchoredSingletonFuture::Future(const Problem& p,
         std::uint32_t second_locator = 0;
         for (int bit = 1; bit < p.subset_count; bit <<= 1)
         {
-            if (!row[bit].ready)
-                continue;
             std::uint32_t locator = 0;
             const double value =
                 ValueWithLocator(p, bit, vertex, locator);
@@ -446,13 +522,42 @@ double AnchoredSingletonFuture::Future(const Problem& p,
             vertex,
             static_cast<std::uint32_t>(cached_locator_pair[vertex] >> 32));
 
+    if (!ranked_tail.empty())
+    {
+        const int tail_size = p.nonanchor_count - 2;
+        const size_t offset = static_cast<size_t>(vertex) * tail_size;
+        for (int rank = 0; rank < tail_size; ++rank)
+        {
+            const int bit_index = ranked_tail[offset + rank];
+            if (remaining & (1 << bit_index))
+                return Value(p, 1 << bit_index, vertex);
+        }
+        return 0.0;
+    }
+
+    // 完整排名是 top-two 之后的第二级表示；前一级尚未购买时累计
+    // 后一级 rent 不可能触发购买，只会让停留在 lazy 阶段的查询付费。
+    if (!lookup_materialized)
+    {
+        double value = 0.0;
+        for (int bits = remaining; bits; bits &= bits - 1)
+        {
+            const int bit = bits & -bits;
+            value = std::max(value, Value(p, bit, vertex));
+        }
+        return value;
+    }
+
     double value = 0.0;
     for (int bits = remaining; bits; bits &= bits - 1)
     {
         const int bit = bits & -bits;
-        if (row[bit].ready)
-            value = std::max(value, Value(p, bit, vertex));
+        value = std::max(value, Value(p, bit, vertex));
     }
+    ranked_rent_work += ranked_rent_by_mask[remaining];
+    // A1 域必有 n>=1、k>=3，构造式使 ranked_buy_work 严格为正。
+    if (ranked_rent_work >= ranked_buy_work)
+        MaterializeRankedTail(p);
     return value;
 }
 
@@ -605,6 +710,9 @@ void BuildReusableAnchoredSingletonLayer(
         p.AccountMaskVertexStates(accepted_states);
         break;
     }
+    // 只有所有 singleton mask 都发布后才会退出上述重启循环；即使某张 row
+    // 的 payload 为空，它也已标记 ready。以下只读视图因此直接遍历完整 bit 域，
+    // 不在逐 future 查询的热路径重复检查这个已经由构建屏障保证的不变量。
     singleton_future.first.assign(p.graph.n + 1, 255);
     singleton_future.second.assign(p.graph.n + 1, 255);
     // lazy 阶段只写实际查询过 future 的 packed locator 页面；若结构性购买
