@@ -32,36 +32,53 @@ long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
         Row& row = p.ordinary[mask];
         if (!row.ready || row.vertex.empty())
             continue;
-        const int remaining = p.original_full_mask ^ p.original_mask[mask];
-        std::vector<std::uint64_t> branch_bits((row.vertex.size() + 63) / 64);
+        const int remaining_original = p.original_full_mask ^ p.original_mask[mask];
+        const size_t old_size = row.vertex.size();
+        const double old_minimum = p.ordinary_minimum[mask];
         size_t write = 0;
-        double minimum = fp::kInf;
-        int branch_count = 0;
-        for (size_t read = 0; read < row.vertex.size(); ++read)
+        int removed_branches = 0;
+        bool removed_minimum = false;
+        for (size_t read = 0; read < old_size; ++read)
         {
             const int vertex = row.vertex[read];
             const double value = row.value[read];
-            if (!(value + FutureBound(p, vertex, remaining) < p.best))
+            if (!(value + FutureBound(p, vertex, remaining_original) < p.best))
             {
                 ++removed;
+                if ((row.branch_bits[read >> 6] >> (read & 63)) & 1ULL)
+                    ++removed_branches;
+                if (value == old_minimum)
+                    removed_minimum = true;
                 continue;
             }
-            row.vertex[write] = vertex;
-            row.value[write] = value;
-            if ((row.branch_bits[read >> 6] >> (read & 63)) & 1ULL)
+            if (write != read)
             {
-                branch_bits[write >> 6] |= std::uint64_t{1} << (write & 63);
-                ++branch_count;
+                row.vertex[write] = vertex;
+                row.value[write] = value;
+                const bool branch = (row.branch_bits[read >> 6] >> (read & 63)) & 1ULL;
+                const std::uint64_t destination_bit = std::uint64_t{1} << (write & 63);
+                if (branch)
+                    row.branch_bits[write >> 6] |= destination_bit;
+                else
+                    row.branch_bits[write >> 6] &= ~destination_bit;
             }
-            minimum = std::min(minimum, value);
             ++write;
         }
+        if (write == old_size)
+            continue;
         row.vertex.resize(write);
         row.value.resize(write);
-        branch_bits.resize((write + 63) / 64);
-        row.branch_bits.swap(branch_bits);
-        row.branch_count = branch_count;
-        p.ordinary_minimum[mask] = minimum;
+        row.branch_bits.resize((write + 63) / 64);
+        if (!row.branch_bits.empty() && (write & 63))
+            row.branch_bits.back() &= (std::uint64_t{1} << (write & 63)) - 1;
+        row.branch_count -= removed_branches;
+        if (removed_minimum)
+        {
+            double minimum = fp::kInf;
+            for (double row_value : row.value)
+                minimum = std::min(minimum, row_value);
+            p.ordinary_minimum[mask] = minimum;
+        }
     }
     return removed;
 }
@@ -104,8 +121,7 @@ WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
         buy_);
 }
 
-bool WitnessUpperScheduler::Account(long long row_work,
-                                    bool ordinary_changed)
+bool WitnessUpperScheduler::Account(long long row_work, bool ordinary_changed)
 {
     if (!enabled_)
         return false;
@@ -125,8 +141,9 @@ bool WitnessUpperScheduler::Account(long long row_work,
     Evaluate();
     if (problem_.best < old_best && ordinary_revision_ > 0)
     {
+        ProbeTimer refilter_timer;
         const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
-        EmitAbhssProbe(ProbeFamilyMethod(problem_), "witness_refilter", problem_, -1.0, &problem_.ordinary, evaluation_count_ + 1, removed);
+        EmitAbhssProbe(ProbeFamilyMethod(problem_), "witness_refilter", problem_, refilter_timer.Seconds(), &problem_.ordinary, evaluation_count_ + 1, removed);
     }
     purchased_rent_ = paid_rent >= std::numeric_limits<long long>::max() - purchased_rent_
                            ? std::numeric_limits<long long>::max()
@@ -233,8 +250,9 @@ bool ResidualClosureScheduler::Buy()
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_facility", problem_, facility_timer.Seconds(), &problem_.ordinary, -1, paid_rent);
     problem_.dual.ReleaseResidual();
     const bool support_replaced = RefreshPurchasedPathGrowthCertificate(problem_);
+    ProbeTimer refilter_timer;
     const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
-    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_refilter", problem_, -1.0, &problem_.ordinary, -1, removed);
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_refilter", problem_, refilter_timer.Seconds(), &problem_.ordinary, -1, removed);
     purchased_ = true;
     enabled_ = false;
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_buy", problem_, timer.Seconds(), &problem_.ordinary, -1, paid_rent);
@@ -265,11 +283,13 @@ double AnchoredSingletonFuture::ValueWithLocator(
         return values.value[locator];
     }
     locator = kA1FallbackLocator;
-    const int continuation =
-        p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(
-        0.0,
-        cutoff - AnchoredSingletonContinuation(p, vertex, continuation));
+    return FallbackValue(p, bit, vertex);
+}
+
+double AnchoredSingletonFuture::FallbackValue(const Problem& p, int bit, int vertex) const
+{
+    const int continuation = p.nonanchor_original_mask ^ p.original_mask[bit];
+    return std::max(0.0, cutoff - AnchoredSingletonContinuation(p, vertex, continuation));
 }
 
 double AnchoredSingletonFuture::LocatedValue(
@@ -280,11 +300,85 @@ double AnchoredSingletonFuture::LocatedValue(
 {
     if (!(locator & kA1FallbackLocator))
         return row[bit].value[locator];
-    const int continuation =
-        p.nonanchor_original_mask ^ p.original_mask[bit];
-    return std::max(
-        0.0,
-        cutoff - AnchoredSingletonContinuation(p, vertex, continuation));
+    return FallbackValue(p, bit, vertex);
+}
+
+void AnchoredSingletonFuture::InitializeLookupPlan(const Problem& p)
+{
+    lookup_buy_work = 0;
+    lookup_touch_remaining = 0;
+    lookup_materialized = false;
+    const long long vertices = p.graph.n;
+    long long rent_per_vertex = 0;
+    // 只由已发布 row 的静态形状计算一次购买点。buy 估计逐 row 顺序扫描
+    // 全图与缺项 fallback 的结构工作；rent 是首次查询一个顶点时逐 row
+    // 二分的保守比较数。二者不读取图名、g 阈值、计时或历史查询结果。
+    for (int bit = 1; bit < p.subset_count; bit <<= 1)
+    {
+        if (!row[bit].ready)
+            continue;
+        const long long missing = vertices - static_cast<long long>(row[bit].vertex.size());
+        lookup_buy_work += 2 * vertices + missing * (p.nonanchor_count + 2LL);
+        rent_per_vertex += BinarySearchCost(row[bit].vertex.size()) + 1;
+    }
+    if (rent_per_vertex)
+        lookup_touch_remaining = lookup_buy_work / rent_per_vertex + (lookup_buy_work % rent_per_vertex != 0);
+}
+
+void AnchoredSingletonFuture::MaterializeAllTopTwo(const Problem& p)
+{
+    ProbeTimer timer;
+    // 每张递增稀疏 row 只维持一个游标；顶点与 bit 均按 lazy 路径的稳定
+    // 顺序扫描，因而并列值选择、精确 locator 与 fallback 标志逐项相同。
+    std::vector<size_t> cursor(p.nonanchor_count);
+    for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+    {
+        double first_value = -1.0;
+        double second_value = -1.0;
+        int first_bit = -1;
+        int second_bit = -1;
+        std::uint32_t first_locator = 0;
+        std::uint32_t second_locator = 0;
+        int row_index = 0;
+        for (int bit = 1; bit < p.subset_count; bit <<= 1)
+        {
+            if (!row[bit].ready)
+                continue;
+            const Row& values = row[bit];
+            size_t& position = cursor[row_index++];
+            std::uint32_t locator = kA1FallbackLocator;
+            double value = 0.0;
+            if (position < values.vertex.size() && values.vertex[position] == vertex)
+            {
+                locator = static_cast<std::uint32_t>(position);
+                value = values.value[position++];
+            }
+            else
+                value = FallbackValue(p, bit, vertex);
+            if (value > first_value)
+            {
+                second_value = first_value;
+                second_bit = first_bit;
+                second_locator = first_locator;
+                first_value = value;
+                first_bit = FirstBit(bit);
+                first_locator = locator;
+            }
+            else if (value > second_value)
+            {
+                second_value = value;
+                second_bit = FirstBit(bit);
+                second_locator = locator;
+            }
+        }
+        if (first_bit >= 0)
+            first[vertex] = static_cast<unsigned char>(first_bit);
+        if (second_bit >= 0)
+            second[vertex] = static_cast<unsigned char>(second_bit);
+        cached_locator_pair[vertex] = static_cast<std::uint64_t>(first_locator) | (static_cast<std::uint64_t>(second_locator) << 32);
+    }
+    lookup_materialized = true;
+    EmitAbhssProbe(ProbeFamilyMethod(p), "a1_top_two_materialize", p, timer.Seconds(), &row, -1, lookup_buy_work);
 }
 
 double AnchoredSingletonFuture::Future(const Problem& p,
@@ -332,6 +426,8 @@ double AnchoredSingletonFuture::Future(const Problem& p,
             cached_locator_pair[vertex] =
                 static_cast<std::uint64_t>(first_locator) |
                 (static_cast<std::uint64_t>(second_locator) << 32);
+            if (!lookup_materialized && --lookup_touch_remaining == 0)
+                MaterializeAllTopTwo(p);
         }
     }
 
@@ -511,10 +607,11 @@ void BuildReusableAnchoredSingletonLayer(
     }
     singleton_future.first.assign(p.graph.n + 1, 255);
     singleton_future.second.assign(p.graph.n + 1, 255);
-    // 每个实际查询过 future 的顶点只写一次 packed locator；未访问顶点的
-    // 虚拟页面不触发物理 RSS，也避免两个独立数组的两次随机首次写入。
+    // lazy 阶段只写实际查询过 future 的 packed locator 页面；若结构性购买
+    // 发生，顺序物化复用同一数组并触及全部页面，不另分配 dense double 表。
     singleton_future.cached_locator_pair.reset(
         new std::uint64_t[static_cast<size_t>(p.graph.n) + 1]);
+    singleton_future.InitializeLookupPlan(p);
 }
 
 namespace
@@ -600,7 +697,7 @@ void BuildOrdinaryRows(Problem& p,
     std::vector<int> bound_stamp(staged_certificate_cache ? 0 : p.graph.n + 1);
     std::vector<std::uint32_t> bound_state(staged_certificate_cache ? p.graph.n + 1 : 0);
     constexpr std::uint32_t kBoundStageMask = 7;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
     constexpr std::uint32_t kBoundExactDual = 8;
 #endif
     constexpr std::uint32_t kBoundRejectedSeen = 16;
@@ -615,7 +712,7 @@ void BuildOrdinaryRows(Problem& p,
     for (int size = 1; size <= last_layer; ++size)
     {
         long long layer_work = 0;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
         long long layer_certificate_calls = 0;
         long long layer_certificate_cache_rejections = 0;
         long long layer_dual_evaluations = 0;
@@ -644,7 +741,7 @@ void BuildOrdinaryRows(Problem& p,
             bool rejection_frontier_admitted = false;
             ++stamp;
             const std::uint32_t row_epoch = static_cast<std::uint32_t>(stamp) << 6;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
             long long certificate_cache_rejections = 0;
             long long exact_dual_cache_rejections = 0;
 #endif
@@ -653,7 +750,7 @@ void BuildOrdinaryRows(Problem& p,
             // 只有不足以拒绝时才继续计算下一阶段。
             auto CanImprove = [&](int vertex, double value)
             {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                 ++layer_certificate_calls;
 #endif
                 if (!staged_certificate_cache)
@@ -671,7 +768,7 @@ void BuildOrdinaryRows(Problem& p,
                                 return false;
                         }
                         bound_stamp[vertex] = stamp;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
                             ++layer_tour_full_evaluations;
                         else
@@ -719,7 +816,7 @@ void BuildOrdinaryRows(Problem& p,
                         else
                             bound_state[vertex] = state | kBoundRejectedSeen;
                     }
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     ++certificate_cache_rejections;
                     ++layer_certificate_cache_rejections;
                     if (state & kBoundExactDual)
@@ -732,13 +829,13 @@ void BuildOrdinaryRows(Problem& p,
                 double farthest = -1.0;
                 if ((state & kBoundStageMask) == 0)
                 {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     ++layer_dual_evaluations;
 #endif
                     bool exact_dual = false;
                     const bool dual_can_improve = p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower, exact_dual);
                     bound_cache[vertex] = lower;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     if (exact_dual)
                     {
                         ++layer_dual_exact;
@@ -747,7 +844,7 @@ void BuildOrdinaryRows(Problem& p,
 #endif
                     if (!dual_can_improve)
                     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         ++layer_dual_rejections;
 #endif
                         // interval 下端只能拒绝当前标签；只有 exact fallback 已算出时，
@@ -764,7 +861,7 @@ void BuildOrdinaryRows(Problem& p,
                 }
                 if ((state & kBoundStageMask) == 1)
                 {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     ++layer_farthest_evaluations;
 #endif
                     farthest = FarthestRemaining(p, vertex, remaining_original);
@@ -774,7 +871,7 @@ void BuildOrdinaryRows(Problem& p,
                     bound_state[vertex] = state;
                     if (!(value + lower < p.best))
                     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         ++layer_farthest_rejections;
 #endif
                         return false;
@@ -784,7 +881,7 @@ void BuildOrdinaryRows(Problem& p,
                 {
                     if (singleton_future)
                     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         ++layer_a1_evaluations;
 #endif
                         lower = std::max(lower, singleton_future->Future(p, remaining_nonanchor, vertex));
@@ -794,7 +891,7 @@ void BuildOrdinaryRows(Problem& p,
                     bound_state[vertex] = state;
                     if (!(value + lower < p.best))
                     {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         ++layer_a1_rejections;
 #endif
                         return false;
@@ -802,12 +899,12 @@ void BuildOrdinaryRows(Problem& p,
                 }
                 if ((state & kBoundStageMask) == 3)
                 {
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     ++layer_tour_evaluations;
 #endif
                     if (farthest < 0.0)
                         farthest = FarthestRemaining(p, vertex, remaining_original);
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
                         ++layer_tour_full_evaluations;
                     else
@@ -820,7 +917,7 @@ void BuildOrdinaryRows(Problem& p,
                     bound_state[vertex] = state;
                 }
                 const bool can_improve = value + lower < p.best;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                 if (can_improve)
                     ++layer_certificate_passes;
                 else if ((state & kBoundStageMask) == 4)
@@ -872,10 +969,8 @@ void BuildOrdinaryRows(Problem& p,
                 for (int branch = domain; branch; branch = (branch - 1) & domain)
                 {
                     const int accumulator = mask ^ branch;
-                    if (!OrdinaryAvailable(p, accumulator) ||
-                        !OrdinaryAvailable(p, branch))
-                        continue;
-                    // lambda：把 accumulator 与规范 branch 的同根和登记为 ordinary seed。
+                    // accumulator 与 branch 都是真子集，已由较低层发布；空 row
+                    // 同样是 ready 的精确空集，不需要在每个规范拆分重复检查。
                     ForEachPivotBranch(p, accumulator, branch, [&](int vertex, double a, double b)
                     {
                         Gather(vertex, a + b);
@@ -899,14 +994,8 @@ void BuildOrdinaryRows(Problem& p,
                 }
                 touched.resize(accepted);
             }
-            std::vector<QueueNode> initial_queue;
-            initial_queue.reserve(touched.size());
-            for (int vertex : touched)
-            {
-                // Set/CanImprove 只有在完整 future 已缓存后才接纳标签。
-                initial_queue.push_back({distance[vertex] + bound_cache[vertex], distance[vertex], vertex});
-            }
-            std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>> queue(std::greater<QueueNode>{}, std::move(initial_queue));
+            // Set/CanImprove 只有在完整 future 已缓存后才接纳标签；统一线性建堆。
+            SearchQueue queue = BuildInitialQueue(touched, distance, bound_cache);
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();
@@ -950,7 +1039,7 @@ void BuildOrdinaryRows(Problem& p,
             }
             row.ready = true;
             p.ordinary_minimum[mask] = minimum;
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
             EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_branch", p, -1.0, nullptr, size, static_cast<long long>(row.branch_count));
             EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache", p, -1.0, nullptr, size, certificate_cache_rejections);
             EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_exact_dual_cache", p, -1.0, nullptr, size, exact_dual_cache_rejections);
@@ -983,9 +1072,9 @@ void BuildOrdinaryRows(Problem& p,
             if (size == p.half)
             {
                 const int complement = p.full_mask ^ mask;
-                if (OrdinaryAvailable(p, complement) &&
-                    (p.popcount[complement] < size ||
-                     (p.popcount[complement] == size && complement < mask)))
+                // 补集若层更低已在前层发布；若同层则只在编号更小时结算，因而也已发布。
+                if (p.popcount[complement] < size ||
+                    (p.popcount[complement] == size && complement < mask))
                 {
                     // lambda：在平衡半格把互补 ordinary 状态与锚组距离结算为完整上界。
                     ForEachCommonValue(p, mask, complement, [&](int vertex, double a, double b)
@@ -1035,7 +1124,7 @@ void BuildOrdinaryRows(Problem& p,
                        &p.ordinary,
                        size,
                        layer_work);
-#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_calls_layer", p, -1.0, nullptr, size, layer_certificate_calls);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache_rejections_layer", p, -1.0, nullptr, size, layer_certificate_cache_rejections);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_evaluations_layer", p, -1.0, nullptr, size, layer_dual_evaluations);

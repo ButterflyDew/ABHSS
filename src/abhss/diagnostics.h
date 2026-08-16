@@ -1,6 +1,12 @@
 #ifndef ABHSS_DIAGNOSTICS_H
 #define ABHSS_DIAGNOSTICS_H
 
+// 逐候选详细统计是稀疏阶段诊断的严格超集；允许诊断构建只定义一个宏，
+// 同时保证正式构建在两个宏都未定义时仍把全部观测路径编译为空。
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS) && !defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+#define GST_ENABLE_PROBE_DIAGNOSTICS 1
+#endif
+
 #include "internal.h"
 #include "../common/probe_diagnostics.h"
 

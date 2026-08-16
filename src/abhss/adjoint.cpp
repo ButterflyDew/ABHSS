@@ -74,10 +74,18 @@ void BuildTransposedTerminals(Problem& p,
     terminal_vertex.assign(p.subset_count, {});
     terminal_value.assign(p.subset_count, {});
     const int terminal_cover = p.nonanchor_count - high_last;
-    bool direct_layer_available = true;
+    // ordinary 按完整层发布，规范 mask 的 ready 即代表整个 terminal_cover 层；
+    // singleton 由隐式组距离提供。该层不存在时才用较低层双块重建辅助终端。
+    const int representative = terminal_cover ? (1 << terminal_cover) - 1 : 0;
+    const bool direct_layer_available = terminal_cover == 0 || OrdinaryAvailable(p, representative);
+    // 可转置 mask 只取决于当前已完成 ordinary 层，与 64 顶点块无关；按原升序只筛一次。
+    std::vector<int> transposed_masks;
     for (int mask = 1; mask < p.subset_count; ++mask)
-        if (p.popcount[mask] == terminal_cover)
-            direct_layer_available = direct_layer_available && OrdinaryAvailable(p, mask);
+    {
+        const int size = p.popcount[mask];
+        if (direct_layer_available ? size == terminal_cover : size < terminal_cover)
+            transposed_masks.push_back(mask);
+    }
     std::array<std::vector<TerminalEntry>, 64> values_by_offset;
     std::vector<size_t> cursor(p.subset_count);
     std::vector<double> subset_potential(p.subset_count);
@@ -98,12 +106,10 @@ void BuildTransposedTerminals(Problem& p,
         const int first_vertex = std::max(1, static_cast<int>(word << 6));
         const int end_vertex =
             std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
-        for (int mask = 1; mask < p.subset_count; ++mask)
+        for (int mask : transposed_masks)
         {
             const int size = p.popcount[mask];
-            if (!OrdinaryAvailable(p, mask) || (direct_layer_available ? size != terminal_cover : size >= terminal_cover))
-                continue;
-            if (p.popcount[mask] == 1)
+            if (size == 1)
             {
                 const auto& row =
                     p.group_distance[p.bit_to_group[FirstBit(mask)]];
@@ -160,8 +166,6 @@ void BuildTransposedTerminals(Problem& p,
             // lambda：登记辅助 H 目标在当前顶点的最小外侧代价。
             auto Update = [&](int target, double value)
             {
-                if (p.popcount[target] != high_last)
-                    return;
                 if (terminal_best[target] >= fp::kInf)
                     touched_targets.push_back(target);
                 terminal_best[target] = std::min(terminal_best[target], value);
@@ -192,6 +196,9 @@ void BuildTransposedTerminals(Problem& p,
                     if (right_limit <= left + 1)
                         break;
                     pair_work += static_cast<long long>(right_limit - left - 1);
+                    // 后续增量非负；超过 submask_work 后分支选择已不可逆，无需继续计数。
+                    if (pair_work > submask_work)
+                        break;
                 }
                 if (pair_work <= submask_work)
                 {
@@ -275,22 +282,25 @@ void SolveHighAdjoint(Problem& p,
     // lambda：把一张 H successor 与全部合法低层 A/ordinary 边界同根结算。
     auto EvaluateBoundary = [&](int successor)
     {
-        for (int mask = 0; mask < p.subset_count; ++mask)
+        // 旧循环扫描整个子集格后用 `(mask & ~successor)` 拒绝；这里按相同
+        // 数值升序只生成 successor 的子掩码，减空全部必定失败的迭代。
+        for (int mask = 0;; mask = (mask - successor) & successor)
         {
-            if (p.popcount[mask] > low_last || (mask & ~successor) ||
-                (mask && !anchored[mask].ready))
-                continue;
-            const int block = successor ^ mask;
-            if (!block)
-                continue;
-            // lambda：读取边界锚定值并用同根和更新完整可行上界。
-            ForEachBackwardBranchSum(
-                p, block, backward[successor], [&](int vertex, double value)
+            // 所有不高于 low_last 的 A row 已按前向层序发布；successor 更高，
+            // 所以 block 必非空。只保留定义域条件，不重复检查生命周期。
+            if (p.popcount[mask] <= low_last)
             {
-                const double anchor = AnchoredValue(p, anchored, mask, vertex);
-                if (anchor < fp::kInf)
-                    p.best = std::min(p.best, anchor + value);
-            });
+                const int block = successor ^ mask;
+                // lambda：读取边界锚定值并用同根和更新完整可行上界。
+                ForEachBackwardBranchSum(p, block, backward[successor], [&](int vertex, double value)
+                {
+                    const double anchor = AnchoredValue(p, anchored, mask, vertex);
+                    if (anchor < fp::kInf)
+                        p.best = std::min(p.best, anchor + value);
+                });
+            }
+            if (mask == successor)
+                break;
         }
     };
 
@@ -332,8 +342,9 @@ void SolveHighAdjoint(Problem& p,
             for (int block = outside; block; block = (block - 1) & outside)
             {
                 const int successor = mask | block;
-                if (p.popcount[successor] > high_last || !backward[successor].ready)
+                if (p.popcount[successor] > high_last)
                     continue;
+                // 合法 successor 位于已完成的更高 H 层，生命周期检查恒真。
                 // lambda：把 successor 与被移除 ordinary 块的同根和作为当前 H seed。
                 ForEachBackwardBranchSum(
                     p, block, backward[successor], [&](int vertex, double value)
@@ -342,13 +353,8 @@ void SolveHighAdjoint(Problem& p,
                 });
             }
 
-            std::priority_queue<QueueNode,
-                                std::vector<QueueNode>,
-                                std::greater<QueueNode>> queue;
-            for (int vertex : touched)
-                queue.push({distance[vertex] + prefix_cache[vertex],
-                            distance[vertex],
-                            vertex});
+            // 所有初始 H 标签均已缓存 prefix；统一线性建堆保持确定性出堆次序。
+            SearchQueue queue = BuildInitialQueue(touched, distance, prefix_cache);
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();

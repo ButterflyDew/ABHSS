@@ -6,12 +6,6 @@ namespace gst::methods::abhss::internal
 {
 namespace
 {
-/** @brief 判断锚定 mask 是否为隐式 A(0) 或已经完成物化。 */
-bool AnchoredAvailable(const std::vector<Row>& anchored, int mask)
-{
-    return !mask || anchored[mask].ready;
-}
-
 /**
  * @brief 枚举 A(anchor_side,v)+D(ordinary_side,v) 的合法同根种子。
  *
@@ -259,22 +253,15 @@ std::vector<Row> BuildForwardAnchoredRows(
                      ordinary_side = (ordinary_side - 1) & mask)
                 {
                     const int anchor_side = mask ^ ordinary_side;
-                    if (!OrdinaryAvailable(p, ordinary_side) ||
-                        !AnchoredAvailable(anchored, anchor_side))
-                        continue;
-                    ForEachAnchoredSum(
-                        p, anchored, anchor_side, ordinary_side, Set);
+                    // ordinary_side 不大于当前 A 层且 D 阶段已完成；anchor_side
+                    // 是当前 mask 的真子集并已由前向层序发布，故两项无需重复 ready 检查。
+                    ForEachAnchoredSum(p, anchored, anchor_side, ordinary_side, Set);
                 }
                 if (touched.empty())
                     continue;
 
-                std::priority_queue<QueueNode,
-                                    std::vector<QueueNode>,
-                                    std::greater<QueueNode>> queue;
-                for (int vertex : touched)
-                    queue.push({distance[vertex] + bound_cache[vertex],
-                                distance[vertex],
-                                vertex});
+                // 所有初始 A 标签已通过同一 future；统一线性建堆不改变出堆全序。
+                SearchQueue queue = BuildInitialQueue(touched, distance, bound_cache);
                 while (!queue.empty())
                 {
                     const QueueNode node = queue.top();

@@ -330,6 +330,24 @@ struct QueueNode
     }
 };
 
+using SearchQueue = std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<QueueNode>>;
+
+/**
+ * @brief 把一组互异顶点的已接纳初始标签一次性线性建成确定性最小堆。
+ *
+ * `touched` 中每个顶点只出现一次，且对应 lower 已由调用者缓存。与逐项
+ * `push` 相比，二者包含完全相同的 QueueNode；QueueNode 的 vertex 末级
+ * 比较使顺序为全序，因此后续 pop 轨迹不变，只减去 O(t log t) 建堆工作。
+ */
+inline SearchQueue BuildInitialQueue(const std::vector<int>& touched, const std::vector<double>& distance, const std::vector<double>& lower)
+{
+    std::vector<QueueNode> storage;
+    storage.reserve(touched.size());
+    for (int vertex : touched)
+        storage.push_back({distance[vertex] + lower[vertex], distance[vertex], vertex});
+    return SearchQueue(std::greater<QueueNode>{}, std::move(storage));
+}
+
 /** @brief 用零权连通分量计算覆盖数下界，并返回可用的代表根。 */
 ComponentCover ComputeComponentCover(const Graph& graph, const Query& query);
 /**

@@ -576,13 +576,28 @@ row 内返回精确 $A(\{i\},v)$，row 外返回该下界。cone 与 fallback �
 
 调度只读取第 3.2 节的逻辑层域 $\mathcal L_A=\{1,\ldots,q\}$。域为空时，所有配置直接用隐式 $A(\varnothing)$ 完成；域非空时，A1 正是第一个成员，所有配置都在 ordinary 前生成它。Enhanced 的前向边界定义为 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 永远属于共同前向前缀，只有层 $2,\ldots,q$ 中的高层后缀才可能由 $H$ 替换。不存在“组数较小时延后、组数较大时提前”或任何等价隐藏阈值。
 
-每个顶点第一次查询 A1 future 时，代码扫描所有 A1 singleton，缓存最大和次大的组 bit，以及对应精确值在 `row.value` 中的 32-bit 下标。若该值来自 cone 外，locator 的最高位统一记录上一节的正 fallback。两个 locator 压在一个 64-bit 项中，只在该顶点第一次真正查询 future 时写入；后续若最大 bit 仍未覆盖就 O(1) 读取，否则优先读取次大值，只有两者都已覆盖时才扫描剩余 bit。ordinary 结束后立即释放 bit/locator 查找缓存，只保留需要移交的 A1 row。
+每个顶点第一次查询 A1 future 时，lazy 路径扫描所有 A1 singleton，缓存最大和次大的组 bit，以及对应精确值在 `row.value` 中的 32-bit 下标。若该值来自 cone 外，locator 的最高位统一记录上一节的正 fallback。两个 locator 压在一个 64-bit 项中；后续若最大 bit 仍未覆盖就 O(1) 读取，否则优先读取次大值，只有两者都已覆盖时才扫描剩余 bit。
+
+纯 lazy 路径在 future 只触及少量顶点时最省工作与物理页面，但在大图密集 A1 row 上，每个新顶点都对每张稀疏 row 做二分会形成明显的随机访问。代码因此允许同一 top-two 视图在达到结构性购买点后改用一次顺序物化。设第 $i$ 张已发布 singleton row 的 payload 顶点集合为 $Z_i$，令 $b_i$ 是在长度 $|Z_i|$ 的递增数组中二分一次的保守比较数。实现使用以下静态工作估计：
+
+```math
+B_{\mathrm{scan}}=\sum_i\left(2n+(n-|Z_i|)(k+2)\right).
+```
+
+```math
+R_{\mathrm{lazy}}=\sum_i(b_i+1),\qquad
+\tau=\left\lceil\frac{B_{\mathrm{scan}}}{R_{\mathrm{lazy}}}\right\rceil.
+```
+
+$B_{\mathrm{scan}}$ 覆盖逐 row 顺序推进及缺项 continuation 的结构工作， $R_{\mathrm{lazy}}$ 是每个首次触及顶点必付的逐 row 二分工作；fallback 的额外成本没有计入 rent，因此购买不会因把可选 fallback 成本虚增为既付租金而提前。前 $\tau-1$ 个新顶点走 lazy 路径，第 $\tau$ 个新顶点完成后，代码按顶点编号和 singleton bit 同时递增扫描全部 row，并在已经分配的 `first/second/cached_locator_pair` 中填入同一结果。该规则只读取 $n,k,|Z_i|$，不读取数据集名、查询编号、运行计时、配置位或经验组数阈值；它是相同精确视图的物理实现调度，不是新的下界或算法配置。
+
+顺序物化对 row 命中直接复制原 double 与下标，对缺项调用与 lazy 路径完全相同的 `FallbackValue`；最大/次大更新仍按 bit 升序并使用严格 `>`。因此购买前后每个顶点的 bit、locator 和返回值逐项一致，也不会改变状态、队列次序或最优值。若查询不足 $\tau$ 个不同顶点，购买永不发生。ordinary 结束后立即释放 bit/locator 查找缓存，只保留需要移交的 A1 row。
 
 ### 9.5 缓存正确性、生命周期与状态计数
 
 `BuildReusableAnchoredSingletonLayer` 为每个非锚 bit 建立一张 `ready` 的标准 row；即使安全 cone 为空，`ready=true` 也表示“该层已经处理完毕”，而不是缺失依赖。构造时固定的 $U_0$ 只定义本轮安全搜索域。若条件式树 DP 在本轮中把 `best` 降低，函数按第 8.4 节丢弃尚未发布的部分轮并用新 $U_0$ 重启；最终发布的一整轮只含一个 cutoff。A1 完成后 `best` 再下降，只会让更多已保存位置在移交时被重新过滤，不会使旧下界失效。
 
-对固定顶点，设全部 singleton future 按值降序为 $x_1,x_2,\ldots$。查询剩余 mask 时：若 $x_1$ 的 bit 仍在 mask 中，答案必为 $x_1$；否则若 $x_2$ 仍在，答案必为 $x_2$；只有两者都不在时才需扫描 mask。故缓存最大和次大足以覆盖所有 O(1) 情形。并列值按稳定 bit 顺序选择不影响最大值。locator 只保存精确 `row.value` 下标或 fallback 标志，不保存舍入后的近似值。
+对固定顶点，设全部 singleton future 按值降序为 $x_1,x_2,\ldots$。查询剩余 mask 时：若 $x_1$ 的 bit 仍在 mask 中，答案必为 $x_1$；否则若 $x_2$ 仍在，答案必为 $x_2$；只有两者都不在时才需扫描 mask。故缓存最大和次大足以覆盖所有 O(1) 情形。并列值按稳定 bit 顺序选择不影响最大值。locator 只保存精确 `row.value` 下标或 fallback 标志，不保存舍入后的近似值。lazy 与顺序物化只是构造该视图的两种等价枚举顺序，后者没有额外的数值近似、精度压缩或候选删减。
 
 ordinary 完成后，`first/second/locator` 立即释放。随后 `std::move(singleton_future.row)` 把 row 容器交给 `RunForwardAnchoredStage`。前向内核看到 size 1 已 `ready` 时不会重新执行合并或图闭包，只按最新上界重滤、运行正常完整解结算，并跳过第二次状态累计。因此“提前供 future 使用”和“属于公共 A 格”是同一物理对象的两个生命周期阶段。A1 的 tentative 顶点在首次进入工作区时计入 `mask_vertex_states`；移交不重复计数。Directed-cut 势只在后续 ordinary/adjoint 证书中读取，其读取本身也不计为 DP 状态。
 
@@ -908,7 +923,7 @@ O\!\left(
 | $g\le3$ 精确闭包 | 一次共同 Bootstrapped-bounded 距离—根初始化 | 不增加渐近空间 | 所有配置逐项相同；不构造 complete potential、witness、dual、tour 或指数状态表 |
 | 共同有序组三元组一步前瞻路径生长 | $O(g^4(m+n))$ | $O(m+n+F)$ 临时空间 | 全部配置调用同一函数；每个有序前两组只恢复一次种子路径并向全部第三组重放；真实边去重，既有上界只作单调安全终止 |
 | 组 tour | $O(2^g g^3)$ | $O(2^g g^2)$ | 只含组维度，不含图顶点维度 |
-| 共同 A1 | $O(k(m+n)\log(n+m))$ | row 至多 $O(kn)$，查找缓存 $O(n)$ | 层 1 属于 $\mathcal L_A$ 时所有配置执行同一 farthest + endpoint-floor cone；不读取 dual 或增强位 |
+| 共同 A1 | $O(k(m+n)\log(n+m)+kn)$ | row 至多 $O(kn)$，查找缓存 $O(n)$ | 层 1 属于 $\mathcal L_A$ 时所有配置执行同一 farthest + endpoint-floor cone；top-two 可由 lazy 二分切换为一次线性物化，不读取 dual 或增强位 |
 | ordinary $D$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n)$ | 无 H 后缀时物化到半格 $h$；存在 H 后缀时 Enhanced 物化到 $q=h-1$，全部逻辑边界直接读取这些公共 row，省略的 $D(h)$ 由辅助 H 同递推转置 |
 | 完整前向 $A$ | 同阶保守上界 | $O(2^g n)$ | 实际只到 size $q=h-1$，末层可只消费 |
 | directed-cut | $O(gm+g(m+n)\log(n+m))$ | $O(gn+m)$ | 最坏界不变；第 $i$ 轮容量更新实际枚举 $\min\{m,\sum_{v\in C_i}\deg(v)\}$ 个原边/邻接项， $C_i$ 为截断势 cone |
@@ -916,7 +931,7 @@ O\!\left(
 | certificate-support 上界 | $O(s^3+2^g s^2+3^g s)$ | $O(s^2+2^g s)$ | 仅在 closure 购买后路径证书严格改善时登记； $s$ 是路径边与 primal 边并图的顶点数 |
 | adjoint 转置与 $H$ | 保守 $O(3^g n+2^g(m+n)\log(n+m))$ | $O(2^g n+gn)$ | 只播种辅助 $H(h)$：直接 $D(Q)$ 可用时完全跳过被支配 pair，否则在 pair 与互补 submask 两种等价枚举间作确定性常数选择；较低层仅递减到 $\ell+1$ |
 
-表中的共同 A1 条件不是参数调优分支：它只是询问层 1 是否属于前向递推定义域 $\mathcal L_A$；属于时三个配置都执行同一逻辑 A1，不属于时没有这张 row。A1 top-two 使用两个初始化为 255 的 byte bit 数组，因而固定触及约 $2(n+1)$ 字节；两个 32-bit locator 再压入一个 64-bit 数组，只有真正查询该顶点 future 时才写入相应 locator 页面。最坏虚拟容量约每顶点 10 字节，典型物理增量更准确地写成约 $2n$ 字节加已触及 locator 页面。缓存均在 ordinary 后释放；locator 能无损定位精确 double，也能统一标记由共同 continuation 定义的正 fallback。复杂度按 $O(n)$ 计。若 A1 内条件式购买收紧上界，至多丢弃当前输入修订上的一个部分 pass；同修订购买保护使这一重启只增加常数因子。
+表中的共同 A1 条件不是参数调优分支：它只是询问层 1 是否属于前向递推定义域 $\mathcal L_A$；属于时三个配置都执行同一逻辑 A1，不属于时没有这张 row。A1 top-two 使用两个初始化为 255 的 byte bit 数组，因而固定触及约 $2(n+1)$ 字节；两个 32-bit locator 再压入一个 64-bit 数组。购买前只有真正查询该顶点 future 时才写入相应 locator 页面；若达到结构购买点，一次顺序物化会触及全部既有 locator 页面，但不增加第二张 locator 或 double 数组。最坏容量约每顶点 10 字节，未购买时的物理增量约为 $2n$ 字节加已触及 locator 页面，购买后的最坏物理增量约为 $10n$ 字节。缓存均在 ordinary 后释放；locator 能无损定位精确 double，也能统一标记由共同 continuation 定义的正 fallback。复杂度按 $O(n)$ 计。若 A1 内条件式 witness 购买收紧上界，至多丢弃当前输入修订上的一个部分 pass；同修订购买保护使这一重启只增加常数因子；它与 top-two 物理表示的购买式是职责不同的两个共同调度器。
 
 ### 14.2 以实际 payload 表示的实现成本
 
@@ -949,7 +964,7 @@ PrunedDP++ 的对应值是主 `StateStore` 首次插入的不同 `(mask,v)` 数�
 | epoch/stamp 缓存 | 避免每张 row 清零 $O(n)$ 下界数组 | 大图上清零成本可能超过实际稀疏搜索 |
 | flat/staged future 与单调拒绝前沿 | Base 一次缓存完整公共证书；DirectedCut 配置复用新增 dual 的中途拒绝，并允许较小标签继续尚未计算的阶段；stage 0 只在 row 已证明复用后物化按原谓词验证的解析 cutoff | 强迫 Base 支付无 dual 收益的 stage 热分支会损害小组实验；把区间下端当作 exact、把一次拒绝永久化或让虚拟 cutoff 入堆都会破坏精确性 |
 | 逐顶点 split 聚合与线性 heapify | 先得到精确 $B(S,v)$，再对每个顶点求一次 candidate-independent future，并以同一全序批量建初始堆 | 逐拆分求 future 会重复工作；若聚合跨越图闭包或改变全序则会破坏精确 row/branch 语义 |
-| A1 top-two bit/locator 缓存 | 跨 ordinary row O(1) 复用最大两个 singleton future，保持原 double 值 | 只缓存 bit 会反复二分稀疏 A1；缓存两个 double 则会放大大图 RSS |
+| A1 top-two bit/locator 缓存与结构购买 | 跨 ordinary row O(1) 复用最大两个 singleton future；少量顶点 lazy 二分，大量顶点在同一缓存中顺序物化，始终保持原 double 值 | 只缓存 bit 会反复二分稀疏 A1；无条件顺序物化会让小查询支付全图工作与 locator 页面；缓存两个 double 则会放大大图 RSS |
 | A1 内核不读取增强位或 dual | 保证 Base/Enhanced 的 seed、cone、fallback 与交接逐项相同；dual 留在 ordinary/adjoint 证书栈 | 在 A1 内接 dual 会产生不同缺项原因和 fallback；强制 Base 也建 dual 又会消解可关闭增强 |
 | 单一零起点 witness scheduler | 两边只代入各自树大小；A1 与 D 连续支付 rent，达到共同 buy 才调用同一树 DP | Base 无条件预买会形成 Base-only 操作；A1 中直接改变 cutoff 而不重启会混合两套 cone 证明 |
 | 辅助 H 半格与 top-only terminal | 用单/双 ordinary split seed 加同一图闭包精确实现被省略的 $D(h)$，再向下递减 H；较低直接 terminal 和已有 $D(Q)$ 时的 pair 被严格支配并减空 | 若直接从逻辑层 $q$ 启动，会漏掉 $D(h)$ 闭包并返回过大的值；若恢复较低 terminal 或已被直接 D 支配的 pair，则只增加重复候选和固定成本 |

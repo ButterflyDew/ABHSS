@@ -28,6 +28,9 @@ struct AnchoredSingletonFuture
     std::vector<unsigned char> first;
     std::vector<unsigned char> second;
     std::unique_ptr<std::uint64_t[]> cached_locator_pair;
+    long long lookup_buy_work = 0;
+    long long lookup_touch_remaining = 0;
+    bool lookup_materialized = false;
 
     /** @brief 读取公共 A1；cone 外返回由共同 continuation 定义的统一 fallback。 */
     double Value(const Problem& problem, int bit, int vertex) const;
@@ -36,20 +39,29 @@ struct AnchoredSingletonFuture
                             int bit,
                             int vertex,
                             std::uint32_t& locator) const;
+    /** @brief 返回指定 singleton 在 A1 cone 外的严格相同正 fallback。 */
+    double FallbackValue(const Problem& problem, int bit, int vertex) const;
     /** @brief 用已缓存下标 O(1) 读取精确值，或返回统一 cone 外 fallback。 */
     double LocatedValue(const Problem& problem,
                         int bit,
                         int vertex,
                         std::uint32_t locator) const;
-    /** @brief 返回未覆盖 singleton 的最大 anchor-aware future 并维护 top-two。 */
+    /** @brief 返回未覆盖 singleton 的最大 anchor-aware future，并维护同一份 top-two 视图。 */
     double Future(const Problem& problem, int remaining, int vertex);
+    /** @brief 由 lazy 查找与一次顺序物化的结构工作量初始化无参数购买式。 */
+    void InitializeLookupPlan(const Problem& problem);
+    /** @brief 按顶点与 singleton 递增顺序物化与 lazy 路径完全相同的 top-two。 */
+    void MaterializeAllTopTwo(const Problem& problem);
 
-    /** @brief ordinary 结束后释放 top-two 查找缓存，仅保留待移交的标准 A1 row。 */
+    /** @brief ordinary 结束后释放 lazy/顺序物化共用的 top-two 缓存，仅保留待移交的标准 A1 row。 */
     void ReleaseLookupCache()
     {
         std::vector<unsigned char>().swap(first);
         std::vector<unsigned char>().swap(second);
         cached_locator_pair.reset();
+        lookup_buy_work = 0;
+        lookup_touch_remaining = 0;
+        lookup_materialized = false;
     }
 };
 
@@ -161,13 +173,27 @@ void BuildOrdinaryRows(Problem& problem,
                        ResidualClosureScheduler& closure_scheduler,
                        int last_layer);
 
-/** @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。 */
+/**
+ * @brief 返回在递增数组中二分一次的保守比较次数，用于选择交集算法。
+ *
+ * 原循环结果对非空数组严格等于 size 的二进制位宽；空数组仍取 1，以免
+ * 把“逐 branch 二分空表”误估为零工作。位扫描只替换重复计数，不改变选择式。
+ */
 inline long long BinarySearchCost(size_t size)
 {
-    long long cost = 1;
-    for (size_t bound = 2; bound < size + 1; bound <<= 1)
-        ++cost;
-    return cost;
+    if (!size)
+        return 1;
+#if defined(_MSC_VER)
+    unsigned long highest = 0;
+#if defined(_WIN64)
+    _BitScanReverse64(&highest, static_cast<unsigned __int64>(size));
+#else
+    _BitScanReverse(&highest, static_cast<unsigned long>(size));
+#endif
+    return static_cast<long long>(highest) + 1;
+#else
+    return static_cast<long long>(64 - __builtin_clzll(static_cast<unsigned long long>(size)));
+#endif
 }
 
 /**

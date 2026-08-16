@@ -554,12 +554,62 @@ void CheckAuxiliaryHalfAdjointRegression()
     Check("ABHSS auxiliary-half adjoint", answer, expected, 0);
 }
 
+/** @brief 逐项证明 A1 lazy 查找与顺序物化返回同一精确 top-two 视图。 */
+void CheckAnchoredSingletonMaterializationEquivalence()
+{
+    constexpr int kVertices = 64;
+    constexpr int kBits = 4;
+    gst::Graph graph;
+    graph.n = kVertices;
+    graph.adj.assign(kVertices + 1, {});
+    gst::Query query;
+    query.groups.resize(kBits + 1);
+    gst::methods::abhss::internal::Problem problem(graph, query, {});
+    problem.g = kBits + 1;
+    problem.nonanchor_count = kBits;
+    problem.subset_count = 1 << kBits;
+
+    gst::methods::abhss::internal::AnchoredSingletonFuture future;
+    future.row.resize(problem.subset_count);
+    for (int index = 0; index < kBits; ++index)
+    {
+        auto& row = future.row[1 << index];
+        row.ready = true;
+        for (int vertex = 1; vertex <= kVertices; ++vertex)
+        {
+            row.vertex.push_back(vertex);
+            row.value.push_back(static_cast<double>((vertex * 7 + index * 3) % 11));
+        }
+    }
+    future.first.assign(kVertices + 1, 255);
+    future.second.assign(kVertices + 1, 255);
+    future.cached_locator_pair.reset(new std::uint64_t[kVertices + 1]);
+    future.InitializeLookupPlan(problem);
+
+    for (int vertex = 1; vertex <= kVertices; ++vertex)
+    for (int remaining = 1; remaining < problem.subset_count; ++remaining)
+    {
+        double expected = 0.0;
+        for (int bits = remaining; bits; bits &= bits - 1)
+        {
+            const int bit = bits & -bits;
+            expected = std::max(expected, future.row[bit].value[vertex - 1]);
+        }
+        const double actual = future.Future(problem, remaining, vertex);
+        if (actual != expected)
+            throw std::runtime_error("A1 lazy/materialized top-two view changed an exact future value.");
+    }
+    if (!future.lookup_materialized)
+        throw std::runtime_error("A1 materialization equivalence regression did not exercise the purchased path.");
+}
+
 }  // namespace
 
 /** @brief 运行入口契约、层计划不变量及 g=2..10 的确定性随机精确性实例。 */
 int main()
 {
     CheckAuxiliaryHalfAdjointRegression();
+    CheckAnchoredSingletonMaterializationEquivalence();
 
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
     // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
