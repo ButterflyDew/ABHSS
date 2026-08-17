@@ -168,9 +168,9 @@ std::vector<Row> BuildForwardAnchoredRows(
     std::vector<int> touched;
     std::vector<int> settled;
 
-    // 完整锚定格没有任何正层时，A(0) 才直接参加最终完成式。不能仅凭
-    // `last_size==0` 判断，因为 Enhanced 的低层前缀可以为空、而高层 H
-    // 仍负责非空逻辑后缀。A(0) 始终是隐式组距离，不写入一张全图 row。
+    // 完整锚定格没有任何正层时，A(0) 才直接参加最终完成式。当前层计划令
+    // `complete_implicit_anchor` 与空正层域等价；仍保留这个语义字段作为调用合同，
+    // 不让内核从偶然的数值边界反推模式。A(0) 是隐式组距离，不物化全图 row。
     if (plan.complete_implicit_anchor)
     {
         std::vector<int> roots;

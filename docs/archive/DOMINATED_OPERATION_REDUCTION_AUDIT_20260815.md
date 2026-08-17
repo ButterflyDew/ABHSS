@@ -8,14 +8,16 @@
 
 > **长门更新（2026-08-17）。** 修复版 Orkut g15 q10 已以 30,000 秒诊断预算自然完成，精确值 54、solver 时间 11,178.235 秒，故没有通过正式 10,000 秒硬门。该轨迹还证伪并回退了后续证书链上包络；完整数据、阶段时间与当前构建门见同一 Adjoint split 审计。
 
+> **当前更新（2026-08-18）。** 本地 checkpoint `e9eee92` 把 Enhanced 的共同前向前缀固定为 A1，并由 H 实现逻辑层 2 到 q。该 checkpoint 的诊断二进制在 Orkut g15 q10 上以精确值 54、9,431.057 秒通过单条 10,000 秒门；查询峰值 18,305.023 MiB，状态数 1,459,398,194。其后的工作树只增加了 adjoint 空域扫描减除，但二进制哈希已经改变，所以最终 q10 仍要无 10,000 秒截断地自然跑完。q1--q9 与完整 P1 也待复跑，详见 [最小共同 A1 与 q10 门禁](MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md)。
+
 ## 1. 审计状态
 
 - A--E 的局部减空仍保留；其历史回滚构建 SHA-256 `3d02cd2ec7ea8bd45db8acee5d2fc29e0232b39548e0539eaf7782bd7e46adad` 只证明这些局部改动的当时物理对照，不再标识当前源码。
 - 当前修复版的两种构建均已通过 5/5 CTest；二进制 SHA-256、Musae 全量与 SteinLib 结果记录在 Adjoint split 审计中，不得沿用本文件的旧值。
 - 接受项 A--E 与新增辅助半层减空均不读取图名、查询编号、运行时间、状态数、row 密度或经验阈值，不压缩 `double` 精度，也不假设边权为整数。
 - 旧错误二进制的 Orkut `g=15` q1--q10 曾全部在 10,000 秒内结束，最紧 q10 为 9,934.603 秒；该数字只用于评估当前复跑风险，不是当前门禁结果。
-- 完整 P1 尚未执行；Orkut q10 已完成但超过正式 TL，因此本文不宣称最终门禁通过。
-- 当前 checkpoint 候选已通过 5/5 CTest、A1 购买分支直接回归、Musae g7 全 300 条逐条一致，以及 Base/Enhanced 各 11/11 SteinLib 已知真值；完整 P1 与清理后 Orkut q1--q10 仍是独立最终硬门。
+- `e9eee92` 的 q10 已以 9,431.057 秒通过单条正式 TL；最终工作树的完整 P1 与 q1--q10 尚未执行，因此本文不宣称最终门禁通过。
+- `e9eee92` 已通过 A1 购买分支直接回归、Musae g7 全 300 条逐条一致，以及 Base/Enhanced 各 11/11 SteinLib 已知真值；最终空扫描候选另通过两种构建各 5/5 CTest 和本文件记录的 Musae 门。完整 P1 与 Orkut q1--q10 全门仍是独立最终硬门。
 
 ## 2. “被支配”的判定标准
 
@@ -40,7 +42,7 @@
 | 公共 A1 | seed、farthest、endpoint-floor cone、非负 fallback、图闭包、owner 移交 | Base 与 Enhanced 完全相同，不能由 dual 或 H 替换 |
 | ordinary D | 规范 split 聚合、统一 future、图闭包、branch 标准化 | 都参与精确状态生成；只删除重复 accessor 和不可能有作用的容器操作 |
 | future 链 | dual、farthest、A1、tour 与 staged cache | 后段可能更强，但前段能更早拒绝，故按时序保留 |
-| forward A / adjoint H | 公共低层 A、辅助半层 terminal、递减 H | 辅助 $H(h)$ 精确转置被省略的 $D(h)$；逻辑 H 后缀替换高层 A，不能省略半层闭包 |
+| forward A / adjoint H | 共同 A1、辅助半层 terminal、递减 H | 辅助 $H(h)$ 精确转置被省略的 $D(h)$；逻辑 H(2..q) 替换 A1 之后的前向层，不能省略半层闭包或必要的较低 terminal |
 | DirectedCut | potential、cone、changed arc、residual、exact fallback、primal 恢复 | 只删除零梯度方向回写；其余操作维持对偶可行性与可行上界 |
 | witness rent-or-buy | 两边各自 witness、统一零起点 rent、同一 buy 公式、同一树 DP | witness 不同，但调度合同和树 DP 共同；不能恢复无条件树 DP |
 | 状态容器 | epoch、bitmap padding guard、ready、branch bitmap、settled 排序 | A1 完整发布屏障后的 singleton `ready` 检查已严格减空；其他生命周期检查或由实测要求保留，不能推广删除 |
@@ -95,22 +97,23 @@
 | YouTube Enhanced 前 30 条 | 205.910918 | 203.704031 | -1.07% |
 | Orkut g15 q3 | 288.672101 | 285.567882 | -1.08% |
 
-### 4.6 F：辅助半层只保留必要 terminal
+### 4.6 F：完整 D 只支配同目标 pair
 
-正确的 H 不能从最高逻辑层 $q=h-1$ 直接启动；它必须先在辅助层 $H(h)$ 完成被省略 ordinary 半层的精确转置。偶数 $g$ 时，辅助目标的补集已有完整 $D(q)$，该单张 D 逐值支配所有同目标 pair；奇数 $g$ 时才用双块 split seed 重建 $D(h)$ 并执行图闭包。此后每张较低 H row 都由 successor 加规范 ordinary branch 及同一图闭包归纳得到，因此其旧式直接 terminal 是重复 realization，可减成空。
+正确的 H 不能从最高逻辑层 $q=h-1$ 直接启动；它必须先在辅助层 $H(h)$ 完成被省略 ordinary 半层的精确转置。更早版本曾进一步声称“较低 H 的全部直接 terminal 都被 successor 支配”，Musae q162/q295 已给出反例：若 ordinary 规范 split 的两侧都不超过 q，而任一侧加入当前目标后都会越过 H 的物理上界，则必要双块 terminal 是唯一入口；successor 还必须读取新增 ordinary 块的全部精确值，不能只读 branch。故“删除全部较低 terminal”不是接受项，相关源码已经恢复。
 
-该操作修复的是精确职责，不是针对 Orkut 的性能开关。它只读取由递推域决定的层号和 ordinary ready 状态，不读取实际 $g$ 常数分段、图名、查询特征或运行统计。12 点固定反例从旧错误值 6.25 恢复为 5.75，九条已知生产差异全部恢复；完整证据见辅助半层事故审计。进一步把奇数情形 pair 限制为某一规范 branch 的候选虽仍精确，但交换绑核实测略慢且显著增加 review 复杂度，因此拒绝。
+当前只保留一个逐值严格支配：对固定 H 目标 S，若完整 ordinary $D(Q)$ 已发布，其中 $Q$ 是 S 的补集，则 $D(Q,v)$ 已是所有同根 split seed 经相同图闭包后的精确最小值；同目标任意 pair 都是两棵可行 rooted 子树的和，不可能小于 $D(Q,v)$。因此该目标只装载单块 $D(Q)$，不再枚举 pair。若完整 $D(Q)$ 不存在，所有证明所需的双块 terminal 仍完整保留。这个删减只读 row 的已证明发布域，不读取图名、查询统计或运行表现。
 
-### 4.7 G1--G6：当前辅助半层版本中的严格等价减空
+### 4.7 G1--G7：当前辅助半层版本中的严格等价减空
 
 这一组改动不增加下界或上界，只删除由当前生命周期和有序容器合同严格蕴含的重复工作。
 
 1. **证书升级后的 ordinary 稳定重滤原地压紧。** 旧实现为每张 row 重新分配 branch bitmap、重算全部 branch 数和最小值。新实现保持顶点顺序，用 read/write 游标原地搬移仍存活项；branch 位随项搬移，branch 数只减去被删项。只有被删值与旧最小值精确相等时才重扫剩余 payload，否则旧最小值仍由未删除项实现。若一项未删，row 完全不写。删除谓词、剩余 payload 和 padding 位逐项相同。
 2. **D/A/H 初始标签统一线性建堆。** `touched` 中每个顶点只出现一次，且 key、distance、vertex 三元组已经确定。`BuildInitialQueue` 把完全相同的节点交给标准线性 heapify；`QueueNode` 以 vertex 作末级比较，形成全序，所以与逐项 `push` 的 pop 轨迹一致，只删除建堆的重复对数调整。
 3. **只在层序已证明处删除 ready 检查。** ordinary split 的两侧都是真子集，已经由较低层发布；平衡补集只在更低层或同层更小编号时消费；forward A 的锚定侧是真子集或隐式空侧，ordinary 侧在整个 A 阶段前已经完成；H successor 严格位于已完成的更高层。普通 forward A 若从未产生标签，会省去 ready 写入，但严格 size 层序已证明该 mask 被处理，后继只把空 payload 读作无穷。ordinary、提前 A1 owner 交接、H 和其他跨阶段边界仍显式保留 `ready`，没有把普通 row 的“已发布空”与“未生成”混写。
-4. **转置不变量移出 64 顶点块。** ordinary 按完整层发布，因此一个规范 representative 的 availability 等价于整层 availability；可转置 mask 在进入顶点块前按原数值升序筛一次。direct terminal 的补集大小固定，pair union 也显式检查为同一 cover，故 `Update` 内重复的目标 popcount 检查恒真。pair 与 submask 两种等价枚举的工作量选择中，一旦累计 pair work 已严格超过 submask work，后续非负增量不可能改变选择，立即停止计数。
+4. **转置不变量移出 64 顶点块。** ordinary 按完整层发布，因此一个规范 representative 的 availability 等价于整层 availability；可转置 mask 在进入顶点块前按原数值升序筛一次。pair 与 submask 两种等价枚举的工作量选择中，一旦累计 pair work 已严格超过 submask work，后续非负增量不可能改变选择，立即停止计数。`Update` 的目标 popcount 由三个调用点的 cover 条件逻辑蕴含，但删除它在偶数 g=14 的四轮 Release 门中合计回退 0.494%，因此作为局部域合同保留，见第 5 节。
 5. **H 边界只生成 successor 子掩码。** 旧循环扫描整个子集格，再用 `mask & ~successor` 拒绝绝大多数 mask。新循环按相同数值升序生成 successor 的全部子掩码，并保留相同的低层域条件；所有被省略 mask 都必定在旧谓词处失败。H seed 中的 successor 由当前 mask 加非空 outside block 得到，严格位于已完成高层，因而删除第二次生命周期读取。
 6. **二分工作量用位宽直接计算。** 非空长度的旧循环结果严格等于其二进制位宽，空表仍定义为 1。编译器位扫描只替换计数循环，不改变交集算法选择式。
+7. **缺少最小单块 cover 时跳过整段直接扫描。** 单块 terminal 的 cover 区间从 $k-h$ 开始，ordinary 发布域按块大小向下闭合。若这一最小层的 representative 不可用，则更大的完整 D 也全部不可用；旧逐值循环的 cover 条件必定逐项失败。当前实现只跳过这段严格空扫描，双块 terminal、successor、互补 H 和 `Update` 域合同全部保留。判断只读取层域 availability，不直接按奇偶、图名、查询编号或计时分派。
 
 普通 probe 现在只保留稀疏阶段事件；逐候选证书计数需要显式 `GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS`。这项拆分只消除探针构建的观测开销，不属于论文算法步骤。共同 A1 的 lazy/顺序物化则是相同精确视图的物理调度，不是严格删状态；其证明、直接分支覆盖和小门见 [A1 top-two 自适应物化门禁](ADAPTIVE_A1_TOP_TWO_MATERIALIZATION_GATE_20260816.md)。
 
@@ -121,7 +124,7 @@
 
 完整 byte 排名、租金表和冷边界都是同一精确 A1 视图的物理 representation，不是严格删状态或新的算法证书；是否最终保留必须由完整 P1 与 Orkut 硬门共同决定。无条件和购买后 staged second-rank ceiling 均已实测回退。证明、复杂度、P1/q10 窗口和负结果见 [A1 完整排名、精确租金因子化与 ceiling 负向门禁](A1_COMPLETE_RANKING_AND_STAGED_CEILING_GATE_20260817.md)。
 
-保留实现此前通过 5/5 CTest、5000 个随机、500 个正权唯一终端和 160 个辅助半格实例，并保持 Base/Enhanced 各 11/11 SteinLib 真值。最新源码又增加全部 mask 的租金表直接断言，并完成两种构建各 5/5 CTest。补齐 Adjoint split 后的完整 q10 以 11,178.235 秒返回精确值 54，证明当前仍未过 10,000 秒门；完整 P1 也尚未运行。局部窗口的进度领先不能替代这两个最终硬门。
+最终空扫描候选的 production SHA-256 为 `96a4add04c2a731f76c1c61bd7762760ee2e8eb11f0bfab7c2e3abfcf25554c3`，diagnostic SHA-256 为 `5c81392125b8b003ec681e679599f9caf202befb0f6f1caf53e2f65b885992c9`；两种构建均通过 5/5 CTest，包括 5000 个随机、500 个正权唯一终端和 160 个辅助半格实例。Musae g7 全 300 条四轮合计为候选 89.201 秒、对照 89.072 秒，变化 +0.145%；奇数 g15 十条两轮为候选 334.142 秒、对照 334.836 秒，变化 -0.207%；偶数 g14 十条两轮为 +0.046%。三组答案、状态与空间逐项一致，故只将它判为端到端中性、transpose 局部减空，不包装成算法贡献。`e9eee92` 的 q10 以 9,431.057 秒返回精确值 54；最终 SHA 的完整 P1 与 q1--q10 仍须运行。
 
 ### 4.9 A1 发布屏障后的恒真检查
 
@@ -174,6 +177,10 @@ ordinary D 和 adjoint H 在单张 row 的队列闭包内不更新 `best`，所�
 
 两个候选都能由当前调用链证明恒真/恒假，但删后发生稳定物理回归：top-two `>=0` / `!=255` 守卫的 Musae 两轮几何回归 0.9028%；`Future` 入口 `first.empty() || !remaining` 的两轮几何回归 1.6241%。权值与状态逐项一致，说明回归来自机器码布局而非算法差异。两项均已恢复；没有使用 NOP、强制对齐或按编译器特调来掩盖回归。
 
+### 5.7 Adjoint `Update` 目标域复查
+
+direct 单块、排序 pair 和互补 submask 三个调用点都先把 cover 限制到合法区间，因此 `Update` 内再次读取目标 popcount 并拒绝越界在逻辑上恒不触发。删除该检查的候选通过两种构建各 5/5 CTest，答案、状态和空间也逐项不变，但无诊断 Release 在 Musae g14 十条查询的四轮交换绑核中合计由 410.412 秒增至 412.439 秒，回退 0.494%。恢复短检查后，同一偶数域两轮只差 +0.046%。当前把它作为 lambda 的局部输入合同保留；这属于已测得更优的平凡连接操作，论文不把它写成剪枝或独立优化。
+
 ## 6. 其他拒绝项与原因
 
 | 候选 | 逻辑判断 | 实测或证明结论 |
@@ -213,7 +220,8 @@ ordinary D 和 adjoint H 在单张 row 的队列闭包内不更新 `best`，所�
 3. 利用 Dijkstra 首次触及唯一性，不做空去重；
 4. singleton membership 与读取合并为一个有类型含义的接口；
 5. 势梯度只回写真正非零的方向；
-6. 辅助 H 半层建立精确基例后，不再重复播种较低 terminal；已有完整 D 时不再枚举被其支配的 pair。
+6. 辅助 H 半层建立精确基例；只有已有完整 $D(Q)$ 时才不再枚举被其逐值支配的同目标 pair，缺少完整 D 的必要较低 terminal 全部保留；
+7. 最小单块 cover 层不可用时，由 ordinary 发布域的向下闭合证明整个单块扫描为空，但双块 terminal 和 successor 不变。
 
 它们没有引入第三种方法、图特化、经验分派或近似数值语义。A1 完整排名、租金表和非内联边界只属于经过实测选择的物理布局，不进入上述严格支配清单，也不应写成独立算法贡献。Base 与 Enhanced 的论文关系仍是：共同执行精确主干；Enhanced 在相同 A1 和 ordinary 基础上增加 DirectedCut，并用结构同职责的 H realization 替换高层 A realization。接受项不会让 Base 获得 Enhanced 不包含的算法职责。
 
@@ -234,7 +242,7 @@ ordinary D 和 adjoint H 在单张 row 的队列闭包内不更新 `best`，所�
 | q9 | 1465.793602 |
 | q10 | 9934.602789 |
 
-最终发布前必须满足：
+`e9eee92` 已满足第 2 项中的 q10 子门，但最终空扫描 SHA 尚未复跑；最终发布前仍必须满足：
 
 1. 最终源码的完整 P1 按图聚合后，13 图中每图的最快 ABHSS 配置不劣于 PrunedDP++；
 2. 最终源码的 Orkut `g=15` q1--q10 每条都在 10,000 秒内精确完成；

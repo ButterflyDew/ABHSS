@@ -178,7 +178,8 @@ void BuildTransposedTerminals(Problem& p,
             });
 
             touched_targets.clear();
-            // lambda：登记某个 H 目标在当前顶点的最小外侧代价。
+            // lambda：登记某个 H 目标在当前顶点的最小外侧代价。调用点已先筛 cover，
+            // 这里仍保留目标域合同；实测删除该短检查会使偶数层转置的物理常数略退化。
             auto Update = [&](int target, double value)
             {
                 const int size = p.popcount[target];
@@ -189,14 +190,19 @@ void BuildTransposedTerminals(Problem& p,
                 terminal_best[target] = std::min(terminal_best[target], value);
             };
 
-            // 已有完整 ordinary row 时直接转置；辅助层的该项还支配同层 pair。
-            for (const auto& entry : values)
+            // ordinary 层域按 size 向下闭合。若最小 terminal cover 都没有完整 D，
+            // 更大的 cover 也不可能有单块 terminal，整次逐值扫描严格为空。
+            if (direct_auxiliary_layer)
             {
-                if (entry.reduced > budget)
-                    break;
-                const int cover = p.popcount[entry.mask];
-                if (cover >= minimum_terminal_cover && cover <= maximum_terminal_cover)
-                    Update(p.full_mask ^ entry.mask, entry.value);
+                // 已有完整 ordinary row 时直接转置；辅助层的该项还支配同层 pair。
+                for (const auto& entry : values)
+                {
+                    if (entry.reduced > budget)
+                        break;
+                    const int cover = p.popcount[entry.mask];
+                    if (cover >= minimum_terminal_cover && cover <= maximum_terminal_cover)
+                        Update(p.full_mask ^ entry.mask, entry.value);
+                }
             }
 
             ++value_epoch;
