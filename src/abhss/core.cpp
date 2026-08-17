@@ -25,7 +25,7 @@ constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
 
 
 /**
- * @brief 返回 A1 cone 与正 fallback 共同使用的剩余代价下界。
+ * @brief 返回 A1 cone 与非负 fallback 共同使用的剩余代价下界。
  *
  * farthest 与 endpoint-floor 都可采纳且沿边至多下降边权；取最大后仍保持
  * 该性质，因此既能安全决定 Dijkstra cone，也能用于 cone 外的 U-B fallback。
@@ -790,20 +790,20 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
 
 }  // namespace
 
-void BuildOrdinaryRows(Problem& p,
-                       AnchoredSingletonFuture* singleton_future,
-                       WitnessUpperScheduler& witness_scheduler,
-                       ResidualClosureScheduler& closure_scheduler,
-                       int last_layer)
+template <bool kStagedCertificateCache>
+void BuildOrdinaryRowsImpl(Problem& p,
+                           AnchoredSingletonFuture* singleton_future,
+                           WitnessUpperScheduler& witness_scheduler,
+                           ResidualClosureScheduler& closure_scheduler,
+                           int last_layer)
 {
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
     std::vector<double> bound_cache(p.graph.n + 1);
     // Base 继续使用单一 stamp；开启 DirectedCut 的配置将 row epoch、证书阶段和两个拒绝前沿位
     // 打包在一个 32-bit 字中。诊断构建复用保留位记录 exact dual，论文构建不会写该位。
-    const bool staged_certificate_cache = p.UsesDirectedCut();
-    std::vector<int> bound_stamp(staged_certificate_cache ? 0 : p.graph.n + 1);
-    std::vector<std::uint32_t> bound_state(staged_certificate_cache ? p.graph.n + 1 : 0);
+    std::vector<int> bound_stamp(kStagedCertificateCache ? 0 : p.graph.n + 1);
+    std::vector<std::uint32_t> bound_state(kStagedCertificateCache ? p.graph.n + 1 : 0);
     constexpr std::uint32_t kBoundStageMask = 7;
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
     constexpr std::uint32_t kBoundExactDual = 8;
@@ -861,7 +861,7 @@ void BuildOrdinaryRows(Problem& p,
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                 ++layer_certificate_calls;
 #endif
-                if (!staged_certificate_cache)
+                if constexpr (!kStagedCertificateCache)
                 {
                     if (bound_stamp[vertex] != stamp)
                     {
@@ -1249,6 +1249,18 @@ void BuildOrdinaryRows(Problem& p,
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_passes_layer", p, -1.0, nullptr, size, layer_certificate_passes);
 #endif
     }
+}
+
+void BuildOrdinaryRows(Problem& p,
+                       AnchoredSingletonFuture* singleton_future,
+                       WitnessUpperScheduler& witness_scheduler,
+                       ResidualClosureScheduler& closure_scheduler,
+                       int last_layer)
+{
+    if (p.UsesDirectedCut())
+        BuildOrdinaryRowsImpl<true>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
+    else
+        BuildOrdinaryRowsImpl<false>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
 }
 
 }  // namespace gst::methods::abhss::internal

@@ -44,14 +44,14 @@ struct AnchoredSingletonFuture
                             int bit,
                             int vertex,
                             std::uint32_t& locator) const;
-    /** @brief 返回指定 singleton 在 A1 cone 外的严格相同正 fallback。 */
+    /** @brief 返回指定 singleton 在 A1 cone 外的严格相同非负 fallback。 */
     double FallbackValue(const Problem& problem, int bit, int vertex) const;
     /** @brief 用已缓存下标 O(1) 读取精确值，或返回统一 cone 外 fallback。 */
     double LocatedValue(const Problem& problem,
                         int bit,
                         int vertex,
                         std::uint32_t locator) const;
-    /** @brief 返回 remaining 中最大的精确 A1 singleton future。 */
+    /** @brief 返回 remaining 中统一 A1 future 视图的精确最大值。 */
     double Future(const Problem& problem, int remaining, int vertex);
     /** @brief 在全部 singleton row 发布后，由其形状初始化两级无参数购买式。 */
     void InitializeLookupPlan(const Problem& problem);
@@ -269,6 +269,56 @@ void ForEachRowBranchIntersection(const Row& values,
         {
             if (branches.IsBranch(j))
                 use(values.vertex[i], values.value[i], branches.value[j]);
+            ++i;
+            ++j;
+        }
+    }
+}
+
+/** @brief 枚举两张有序稀疏 row 在同一顶点均有值的位置。 */
+template <class Use>
+void ForEachRowValueIntersection(const Row& left, const Row& right, Use&& use)
+{
+    const long long linear = static_cast<long long>(left.vertex.size() + right.vertex.size());
+    const long long scan_left = static_cast<long long>(left.vertex.size()) * BinarySearchCost(right.vertex.size());
+    const long long scan_right = static_cast<long long>(right.vertex.size()) * BinarySearchCost(left.vertex.size());
+    if (scan_left < linear && scan_left <= scan_right)
+    {
+        for (size_t i = 0; i < left.vertex.size(); ++i)
+        {
+            const auto it = std::lower_bound(right.vertex.begin(), right.vertex.end(), left.vertex[i]);
+            if (it != right.vertex.end() && *it == left.vertex[i])
+            {
+                const size_t j = static_cast<size_t>(it - right.vertex.begin());
+                use(left.vertex[i], left.value[i], right.value[j]);
+            }
+        }
+        return;
+    }
+    if (scan_right < linear)
+    {
+        for (size_t j = 0; j < right.vertex.size(); ++j)
+        {
+            const auto it = std::lower_bound(left.vertex.begin(), left.vertex.end(), right.vertex[j]);
+            if (it != left.vertex.end() && *it == right.vertex[j])
+            {
+                const size_t i = static_cast<size_t>(it - left.vertex.begin());
+                use(right.vertex[j], left.value[i], right.value[j]);
+            }
+        }
+        return;
+    }
+    size_t i = 0;
+    size_t j = 0;
+    while (i < left.vertex.size() && j < right.vertex.size())
+    {
+        if (left.vertex[i] < right.vertex[j])
+            ++i;
+        else if (right.vertex[j] < left.vertex[i])
+            ++j;
+        else
+        {
+            use(left.vertex[i], left.value[i], right.value[j]);
             ++i;
             ++j;
         }

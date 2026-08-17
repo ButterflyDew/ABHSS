@@ -51,6 +51,27 @@ void ForEachBackwardBranchSum(const Problem& p,
         [&](int vertex, double h, double d) { use(vertex, h + d); });
 }
 
+/**
+ * @brief 枚举 H successor 与新增 ordinary 块的全部精确同根和。
+ *
+ * 补集转置后，普通规范拆分的 branch 可能位于 successor 所代表的一侧；
+ * 因此递推侧不能再次要求新增块为 branch。额外候选仍是两棵互斥 rooted
+ * 子树的真实并，只会增加等价可行推导，不会得到虚假的较低值。
+ */
+template <class Use>
+void ForEachBackwardValueSum(const Problem& p, int block, const Row& backward, Use&& use)
+{
+    if (p.popcount[block] == 1)
+    {
+        const auto& singleton = p.group_distance[p.bit_to_group[FirstBit(block)]];
+        // lambda：把 singleton 精确距离加到同顶点 H 值。
+        ForEachValue(backward, [&](int vertex, double value) { use(vertex, value + singleton[vertex]); });
+        return;
+    }
+    // lambda：把普通 row 全值加到同顶点 H 值；branch 约束可能已由 successor 承担。
+    ForEachRowValueIntersection(backward, p.ordinary[block], [&](int vertex, double h, double d) { use(vertex, h + d); });
+}
+
 /** @brief 转置阶段在一个顶点处保存的普通状态及其对偶约化值。 */
 struct TerminalEntry
 {
@@ -60,39 +81,42 @@ struct TerminalEntry
 };
 
 /**
- * @brief 按顶点转置 ordinary 状态，只生成精确辅助半层的 adjoint 终端。
+ * @brief 按顶点转置 ordinary 状态，为每个物化 H 层补齐直接 ordinary split。
  *
- * 较低 H 层由辅助 H 与 successor 递推完整生成，直接 terminal 被该递推严格支配。
- * 若补集大小的 ordinary 层已经 ready，单张 D 又逐值支配同目标的双块 split；
- * 否则按 64 个顶点为块枚举恰好覆盖补集的双块 seed。所有筛选只使用可采纳下界。
+ * 对目标 H(S)=D(full\S)，若一个规范 split 的较大一侧超过 ordinary 边界，
+ * 它由已完成的 successor H 加回较小 ordinary 块；若两侧都不超过边界，
+ * 则必须在这里直接转置。辅助半层仍负责恢复被省略的首张 D，较低层的
+ * 直接 terminal 负责补齐 successor 递推无法表示的平衡 split。所有候选
+ * 都由互斥的真实 rooted D 值组成，筛选只使用可采纳下界。
  */
 void BuildTransposedTerminals(Problem& p,
+                              int low_last,
                               int high_last,
                               std::vector<std::vector<int>>& terminal_vertex,
                               std::vector<std::vector<double>>& terminal_value)
 {
     terminal_vertex.assign(p.subset_count, {});
     terminal_value.assign(p.subset_count, {});
-    const int terminal_cover = p.nonanchor_count - high_last;
-    // ordinary 按完整层发布，规范 mask 的 ready 即代表整个 terminal_cover 层；
-    // singleton 由隐式组距离提供。该层不存在时才用较低层双块重建辅助终端。
-    const int representative = terminal_cover ? (1 << terminal_cover) - 1 : 0;
-    const bool direct_layer_available = terminal_cover == 0 || OrdinaryAvailable(p, representative);
-    // 可转置 mask 只取决于当前已完成 ordinary 层，与 64 顶点块无关；按原升序只筛一次。
+    const int minimum_terminal_cover = p.nonanchor_count - high_last;
+    const int maximum_terminal_cover = p.nonanchor_count - low_last - 1;
+
+    // 偶数组数的辅助层可直接转置已完成 D；此时同层双块 split 被精确 D 支配。
+    const int representative = minimum_terminal_cover ? (1 << minimum_terminal_cover) - 1 : 0;
+    const bool direct_auxiliary_layer = minimum_terminal_cover == 0 || OrdinaryAvailable(p, representative);
+
+    // 所有已完成 ordinary mask 都可能成为某个 H 层的直接 split；只筛一次。
     std::vector<int> transposed_masks;
     for (int mask = 1; mask < p.subset_count; ++mask)
-    {
-        const int size = p.popcount[mask];
-        if (direct_layer_available ? size == terminal_cover : size < terminal_cover)
+        if (OrdinaryAvailable(p, mask))
             transposed_masks.push_back(mask);
-    }
+
     std::array<std::vector<TerminalEntry>, 64> values_by_offset;
     std::vector<size_t> cursor(p.subset_count);
     std::vector<double> subset_potential(p.subset_count);
     std::vector<int> subset_stamp(p.subset_count);
-    std::vector<double> value_at_mask(direct_layer_available ? 0 : p.subset_count);
-    std::vector<double> reduced_at_mask(direct_layer_available ? 0 : p.subset_count);
-    std::vector<int> value_stamp(direct_layer_available ? 0 : p.subset_count);
+    std::vector<double> value_at_mask(p.subset_count);
+    std::vector<double> reduced_at_mask(p.subset_count);
+    std::vector<int> value_stamp(p.subset_count);
     std::vector<double> terminal_best(p.subset_count, fp::kInf);
     std::vector<int> touched_targets;
     int potential_epoch = 0;
@@ -104,26 +128,22 @@ void BuildTransposedTerminals(Problem& p,
         for (auto& values : values_by_offset)
             values.clear();
         const int first_vertex = std::max(1, static_cast<int>(word << 6));
-        const int end_vertex =
-            std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
+        const int end_vertex = std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
         for (int mask : transposed_masks)
         {
             const int size = p.popcount[mask];
             if (size == 1)
             {
-                const auto& row =
-                    p.group_distance[p.bit_to_group[FirstBit(mask)]];
+                const auto& row = p.group_distance[p.bit_to_group[FirstBit(mask)]];
                 for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
-                    values_by_offset[vertex & 63].push_back(
-                        {mask, row[vertex], 0.0});
+                    values_by_offset[vertex & 63].push_back({mask, row[vertex], 0.0});
                 continue;
             }
             const Row& row = p.ordinary[mask];
             size_t& index = cursor[mask];
             while (index < row.vertex.size() && row.vertex[index] < end_vertex)
             {
-                values_by_offset[row.vertex[index] & 63].push_back(
-                    {mask, row.value[index], 0.0});
+                values_by_offset[row.vertex[index] & 63].push_back({mask, row.value[index], 0.0});
                 ++index;
             }
         }
@@ -143,98 +163,107 @@ void BuildTransposedTerminals(Problem& p,
                     return subset_potential[mask];
                 const int bit = mask & -mask;
                 subset_stamp[mask] = potential_epoch;
-                subset_potential[mask] =
-                    self(self, mask ^ bit) +
-                    p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
+                subset_potential[mask] = self(self, mask ^ bit) + p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
                 return subset_potential[mask];
             };
-            const double full_potential =
-                p.dual.GroupAt(vertex, p.anchor_group) +
-                Potential(Potential, p.full_mask);
+            const double full_potential = p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, p.full_mask);
             const double budget = p.best - full_potential;
             if (budget < 0.0)
                 continue;
             for (auto& entry : values)
                 entry.reduced = entry.value - Potential(Potential, entry.mask);
-            if (!direct_layer_available)
-                std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
-                {
-                    return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask;
-                });
+            std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
+            {
+                return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask;
+            });
 
             touched_targets.clear();
-            // lambda：登记辅助 H 目标在当前顶点的最小外侧代价。
+            // lambda：登记某个 H 目标在当前顶点的最小外侧代价。
             auto Update = [&](int target, double value)
             {
+                const int size = p.popcount[target];
+                if (size <= low_last || size > high_last)
+                    return;
                 if (terminal_best[target] >= fp::kInf)
                     touched_targets.push_back(target);
                 terminal_best[target] = std::min(terminal_best[target], value);
             };
-            if (direct_layer_available)
+
+            // 已有完整 ordinary row 时直接转置；辅助层的该项还支配同层 pair。
+            for (const auto& entry : values)
             {
-                for (const auto& entry : values)
-                    if (entry.reduced <= budget)
-                        Update(p.full_mask ^ entry.mask, entry.value);
+                if (entry.reduced > budget)
+                    break;
+                const int cover = p.popcount[entry.mask];
+                if (cover >= minimum_terminal_cover && cover <= maximum_terminal_cover)
+                    Update(p.full_mask ^ entry.mask, entry.value);
+            }
+
+            ++value_epoch;
+            long long submask_work = 0;
+            for (const auto& entry : values)
+            {
+                value_stamp[entry.mask] = value_epoch;
+                value_at_mask[entry.mask] = entry.value;
+                reduced_at_mask[entry.mask] = entry.reduced;
+                submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
+            }
+
+            // 先估计排序 pair 与互补 submask 的真实循环项数，再枚举同一候选集。
+            long long pair_work = 0;
+            size_t right_limit = values.size();
+            for (size_t left = 0; left + 1 < values.size(); ++left)
+            {
+                while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
+                    --right_limit;
+                if (right_limit <= left + 1)
+                    break;
+                pair_work += static_cast<long long>(right_limit - left - 1);
+                if (pair_work > submask_work)
+                    break;
+            }
+
+            if (pair_work <= submask_work)
+            {
+                for (size_t left = 0; left < values.size(); ++left)
+                {
+                    if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
+                        break;
+                    for (size_t right = left + 1; right < values.size(); ++right)
+                    {
+                        const double pair_reduced = values[left].reduced + values[right].reduced;
+                        if (pair_reduced > budget)
+                            break;
+                        if (values[left].mask & values[right].mask)
+                            continue;
+                        const int pair_union = values[left].mask | values[right].mask;
+                        const int cover = p.popcount[pair_union];
+                        if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
+                            continue;
+                        if (direct_auxiliary_layer && cover == minimum_terminal_cover)
+                            continue;
+                        Update(p.full_mask ^ pair_union, values[left].value + values[right].value);
+                    }
+                }
             }
             else
             {
-                ++value_epoch;
-                long long submask_work = 0;
-                for (const auto& entry : values)
+                for (const auto& left : values)
                 {
-                    value_stamp[entry.mask] = value_epoch;
-                    value_at_mask[entry.mask] = entry.value;
-                    reduced_at_mask[entry.mask] = entry.reduced;
-                    submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
-                }
-                long long pair_work = 0;
-                size_t right_limit = values.size();
-                for (size_t left = 0; left + 1 < values.size(); ++left)
-                {
-                    while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
-                        --right_limit;
-                    if (right_limit <= left + 1)
-                        break;
-                    pair_work += static_cast<long long>(right_limit - left - 1);
-                    // 后续增量非负；超过 submask_work 后分支选择已不可逆，无需继续计数。
-                    if (pair_work > submask_work)
-                        break;
-                }
-                if (pair_work <= submask_work)
-                {
-                    for (size_t left = 0; left < values.size(); ++left)
+                    const int complement = p.full_mask ^ left.mask;
+                    for (int right = complement; right; right = (right - 1) & complement)
                     {
-                        if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
-                            break;
-                        for (size_t right = left + 1; right < values.size(); ++right)
-                        {
-                            const double pair_reduced = values[left].reduced + values[right].reduced;
-                            if (pair_reduced > budget)
-                                break;
-                            if (values[left].mask & values[right].mask)
-                                continue;
-                            const int pair_union = values[left].mask | values[right].mask;
-                            if (p.popcount[pair_union] != terminal_cover)
-                                continue;
-                            Update(p.full_mask ^ pair_union, values[left].value + values[right].value);
-                        }
-                    }
-                }
-                else
-                {
-                    for (const auto& left : values)
-                    {
-                        const int complement = p.full_mask ^ left.mask;
-                        for (int right = complement; right; right = (right - 1) & complement)
-                        {
-                            if (right <= left.mask || value_stamp[right] != value_epoch || p.popcount[left.mask] + p.popcount[right] != terminal_cover)
-                                continue;
-                            const int pair_union = left.mask | right;
-                            const double pair_reduced = left.reduced + reduced_at_mask[right];
-                            if (pair_reduced > budget)
-                                continue;
+                        if (right <= left.mask || value_stamp[right] != value_epoch)
+                            continue;
+                        const int pair_union = left.mask | right;
+                        const int cover = p.popcount[pair_union];
+                        if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
+                            continue;
+                        if (direct_auxiliary_layer && cover == minimum_terminal_cover)
+                            continue;
+                        const double pair_reduced = left.reduced + reduced_at_mask[right];
+                        if (pair_reduced <= budget)
                             Update(p.full_mask ^ pair_union, left.value + value_at_mask[right]);
-                        }
                     }
                 }
             }
@@ -268,7 +297,7 @@ void SolveHighAdjoint(Problem& p,
     std::vector<std::vector<int>> terminal_vertex;
     std::vector<std::vector<double>> terminal_value;
     ProbeTimer transpose_timer;
-    BuildTransposedTerminals(p, high_last, terminal_vertex, terminal_value);
+    BuildTransposedTerminals(p, low_last, high_last, terminal_vertex, terminal_value);
     EmitAbhssProbe(probe_method, "adjoint_transpose", p, transpose_timer.Seconds());
 
     std::vector<Row> backward(p.subset_count);
@@ -306,6 +335,7 @@ void SolveHighAdjoint(Problem& p,
 
     for (int size = high_last; size > low_last; --size)
     {
+        ProbeTimer layer_timer;
         for (int mask = 1; mask < p.subset_count; ++mask)
         {
             if (p.popcount[mask] != size)
@@ -345,8 +375,8 @@ void SolveHighAdjoint(Problem& p,
                 if (p.popcount[successor] > high_last)
                     continue;
                 // 合法 successor 位于已完成的更高 H 层，生命周期检查恒真。
-                // lambda：把 successor 与被移除 ordinary 块的同根和作为当前 H seed。
-                ForEachBackwardBranchSum(
+                // lambda：补集侧可能已含规范 branch；新增 ordinary 块读取全部精确值。
+                ForEachBackwardValueSum(
                     p, block, backward[successor], [&](int vertex, double value)
                 {
                     Set(vertex, value);
@@ -384,12 +414,30 @@ void SolveHighAdjoint(Problem& p,
             // H(mask) 与 D/A 是不同的状态族；同一 mask 下的 touched 顶点
             // 已去重，因此这里批量计入实际发现的高层 adjoint 状态。
             p.AccountMaskVertexStates(touched.size());
+            // 奇数 g 的辅助半格把非锚组恰好二等分。两侧 D(h) 都由 H(h)
+            // realization 承担，因此互补 H row 完成后直接与锚组距离结算；
+            // 这逐项对应完整 ordinary 半格的 anchor + D(h) + D(h)。
+            const int complement = p.full_mask ^ mask;
+            if (size == high_last && p.popcount[complement] == size && complement < mask && backward[complement].ready)
+            {
+                const Row& other = backward[complement];
+                const double previous_best = p.best;
+                // lambda：把互补辅助 H row 与锚组距离结算为真实平衡完成上界。
+                ForEachRowValueIntersection(row, other, [&](int vertex, double left, double right)
+                {
+                    const double anchor = p.group_distance[p.anchor_group].ExactValueOrInf(vertex);
+                    if (anchor < fp::kInf)
+                        p.best = std::min(p.best, left + right + anchor);
+                });
+                if (p.best < previous_best)
+                    EmitAbhssProbe(probe_method, "adjoint_complementary_half_upper", p, -1.0, nullptr, size);
+            }
             EvaluateBoundary(mask);
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;
         }
         EmitAbhssProbe(
-            probe_method, "adjoint_layer", p, -1.0, &backward, size);
+            probe_method, "adjoint_layer", p, layer_timer.Seconds(), &backward, size);
     }
 }
 

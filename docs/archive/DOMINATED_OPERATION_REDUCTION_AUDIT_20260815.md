@@ -2,16 +2,20 @@
 
 本文记录当前 ABHSS 源码的一次全链路“减成空”审计。目标不是追求源码行数最少，而是在不改变精确语义、论文主线和物理性能的前提下，删除被其他操作严格覆盖的重复工作。正式方法口径仍以 `../METHOD.md` 和 `../CODE_GUIDE.md` 为准；本文保存接受与拒绝候选的证明、实测和最终硬门状态。
 
-> **当前勘误。** 本文最初记录的候选 E 及之后的单调证书优化本身没有引入伴随层错误，但它们继承了“从最高逻辑层直接启动 H”的不精确实现。旧 P1 Enhanced 与 Orkut g15 q1--q10 结果因此全部降级为历史性能探针。当前源码已加入辅助 $H(h)$ 并删除被其严格支配的低层直接 terminal；事故、反例和证明见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)。当前 P1 与 Orkut 硬门必须重新运行。
+> **当前勘误。** 本文最初记录的候选 E 及之后的单调证书优化本身没有引入伴随层错误，但它们继承了“从最高逻辑层直接启动 H”的不精确实现。旧 P1 Enhanced 与 Orkut g15 q1--q10 结果因此全部降级为历史性能探针。当前源码已加入辅助 $H(h)$、必要的较低双块 terminal、successor 全值读取与互补 H 完成；事故演进、反例和证明见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)及 [Adjoint split 完备性审计](ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。当前 P1 与清理后 Orkut q1--q10 硬门仍须重新运行。
+
+> **二次勘误（2026-08-17）。** 辅助半层的第一轮修复曾错误地删除全部较低直接 terminal；后续 Musae 全量审计证明该实现仍不完备：较低 H 的平衡 split 需要必要双块终端，successor 需要 ordinary 全值，非锚组二等分还需要互补 H 完成。本文第 5、6、8 节中与此冲突的减空结论只作失败方向历史记录，不再描述当前源码。现行证明与门禁见 [Adjoint split 完备性审计](ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
+
+> **长门更新（2026-08-17）。** 修复版 Orkut g15 q10 已以 30,000 秒诊断预算自然完成，精确值 54、solver 时间 11,178.235 秒，故没有通过正式 10,000 秒硬门。该轨迹还证伪并回退了后续证书链上包络；完整数据、阶段时间与当前构建门见同一 Adjoint split 审计。
 
 ## 1. 审计状态
 
 - A--E 的局部减空仍保留；其历史回滚构建 SHA-256 `3d02cd2ec7ea8bd45db8acee5d2fc29e0232b39548e0539eaf7782bd7e46adad` 只证明这些局部改动的当时物理对照，不再标识当前源码。
-- 当前修复版的最终 CTest、二进制 SHA-256 与仓库一致性结果在本轮本地提交前重新生成；不得沿用旧值。
+- 当前修复版的两种构建均已通过 5/5 CTest；二进制 SHA-256、Musae 全量与 SteinLib 结果记录在 Adjoint split 审计中，不得沿用本文件的旧值。
 - 接受项 A--E 与新增辅助半层减空均不读取图名、查询编号、运行时间、状态数、row 密度或经验阈值，不压缩 `double` 精度，也不假设边权为整数。
 - 旧错误二进制的 Orkut `g=15` q1--q10 曾全部在 10,000 秒内结束，最紧 q10 为 9,934.603 秒；该数字只用于评估当前复跑风险，不是当前门禁结果。
-- 完整 P1 与最终 Orkut 硬门尚未执行，因此本文不提前宣称最终门禁通过。
-- 当前 checkpoint 候选已通过 5/5 CTest、A1 购买分支直接回归，以及 Base/Enhanced 各 11/11 SteinLib 已知真值；完整 P1 与 Orkut q10 仍是独立的最终硬门。
+- 完整 P1 尚未执行；Orkut q10 已完成但超过正式 TL，因此本文不宣称最终门禁通过。
+- 当前 checkpoint 候选已通过 5/5 CTest、A1 购买分支直接回归、Musae g7 全 300 条逐条一致，以及 Base/Enhanced 各 11/11 SteinLib 已知真值；完整 P1 与清理后 Orkut q1--q10 仍是独立最终硬门。
 
 ## 2. “被支配”的判定标准
 
@@ -33,7 +37,7 @@
 | 距离—根初始化 | Base 的 bounded 距离 realization、DirectedCut 的 complete-potential realization、共同根扫描 | 两种 realization 实现同一外层合同，但物理产物不同，不能相互删除 |
 | 上界初始化 | SPT 边并集、root star、facility/primal support、三元 seeded path growth、tour/witness | 候选强弱和出现时机不同；没有一个全程支配其余全部 |
 | `GroupRow` | cutoff 读取、精确 singleton 读取、精确枚举、dense/bitmap 表示 | 合同不同；只合并了重复 membership 定位 |
-| 公共 A1 | seed、farthest、endpoint-floor cone、正 fallback、图闭包、owner 移交 | Base 与 Enhanced 完全相同，不能由 dual 或 H 替换 |
+| 公共 A1 | seed、farthest、endpoint-floor cone、非负 fallback、图闭包、owner 移交 | Base 与 Enhanced 完全相同，不能由 dual 或 H 替换 |
 | ordinary D | 规范 split 聚合、统一 future、图闭包、branch 标准化 | 都参与精确状态生成；只删除重复 accessor 和不可能有作用的容器操作 |
 | future 链 | dual、farthest、A1、tour 与 staged cache | 后段可能更强，但前段能更早拒绝，故按时序保留 |
 | forward A / adjoint H | 公共低层 A、辅助半层 terminal、递减 H | 辅助 $H(h)$ 精确转置被省略的 $D(h)$；逻辑 H 后缀替换高层 A，不能省略半层闭包 |
@@ -117,7 +121,7 @@
 
 完整 byte 排名、租金表和冷边界都是同一精确 A1 视图的物理 representation，不是严格删状态或新的算法证书；是否最终保留必须由完整 P1 与 Orkut 硬门共同决定。无条件和购买后 staged second-rank ceiling 均已实测回退。证明、复杂度、P1/q10 窗口和负结果见 [A1 完整排名、精确租金因子化与 ceiling 负向门禁](A1_COMPLETE_RANKING_AND_STAGED_CEILING_GATE_20260817.md)。
 
-保留实现此前通过 5/5 CTest、5000 个随机、500 个正权唯一终端和 160 个辅助半格实例，并保持 Base/Enhanced 各 11/11 SteinLib 真值。最新源码又增加全部 mask 的租金表直接断言，并完成两种构建各 5/5 CTest。冷边界 pre-reduction 版本的 Orkut g15 q10 已在 10000 秒硬门超时；后续两项严格减空已通过独立交换轮，但 combined 二进制与完整 P1 尚未完成最终硬门。
+保留实现此前通过 5/5 CTest、5000 个随机、500 个正权唯一终端和 160 个辅助半格实例，并保持 Base/Enhanced 各 11/11 SteinLib 真值。最新源码又增加全部 mask 的租金表直接断言，并完成两种构建各 5/5 CTest。补齐 Adjoint split 后的完整 q10 以 11,178.235 秒返回精确值 54，证明当前仍未过 10,000 秒门；完整 P1 也尚未运行。局部窗口的进度领先不能替代这两个最终硬门。
 
 ### 4.9 A1 发布屏障后的恒真检查
 
@@ -160,7 +164,7 @@ ordinary D 和 adjoint H 在单张 row 的队列闭包内不更新 `best`，所�
 
 ### 5.4 R--S：staged cache 延迟发布与冻结配置分派
 
-新 epoch 的临时 cache 零写会被首次 dual 结果覆盖，查询内 frozen config 判断也可由入口模板分派一次；两者在源码语义上均可减空。前者在 Musae 两轮均值回归 0.66%，Orkut q3 回归 0.42%；后者虽把 Base 的证书 lambda 从 0x862 缩到 0x1f2 字节，Musae 仍回归 1.01%。全部权值与状态一致，源码已恢复。详细证据见 [Staged certificate cache 物理减写与冻结分派负向探针](STAGED_CACHE_PHYSICAL_REDUCTION_NEGATIVE_PROBE_20260816.md)。
+新 epoch 的临时 cache 零写会被首次 dual 结果覆盖，查询内 frozen config 判断也可由入口模板分派一次；两者在源码语义上均可减空。当时前者在 Musae 两轮均值回归 0.66%、Orkut q3 回归 0.42%，模板分派也回归 1.01%，故都恢复。ordinary 内核后来发生实质改写后按原文的重试条件复查：模板分派的 Base 两轮合计快 0.39%，Enhanced 与一个后来删除的额外分支联合时合计慢 0.13%，交换核方向反转，判定为无可辨认退化；当前仅恢复同源模板的入口分派，epoch/cache 延迟发布仍拒绝。详细证据见 [Staged certificate cache 物理减写与冻结分派负向探针](STAGED_CACHE_PHYSICAL_REDUCTION_NEGATIVE_PROBE_20260816.md)。
 
 ### 5.5 T--U：公共 A1 必然存在与 ordinary size-1 扫描
 

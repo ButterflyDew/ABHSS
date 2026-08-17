@@ -63,7 +63,7 @@ Linux：
 
 Windows Visual Studio 构建将上述路径换为 `build/Release/abhss.exe`。中间 correctness/ablation 配置是 `--enhancements=directed-cut`，不是第三条正式性能曲线。`--adjoint-completion=on` 且 `--directed-cut=off` 是非法配置，会在加载图之前报错。
 
-五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、5,000 个 $2\le g\le10$ 的确定性随机实例、500 个正权互异单终端压力实例、160 个 $g=7,\ldots,16$ 的 omitted-half transpose 实例、真值 5.75 的 12 点辅助半层固定反例、入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
+五个仓库内 CTest 分别核验图 I/O/分量缓存、查询 I/O、历史零权 witness、5,000 个 $2\le g\le10$ 的确定性随机实例、500 个正权互异单终端压力实例、160 个 $g=7,\ldots,16$ 的 omitted-half transpose 实例、真值 5.75 的 12 点辅助半层固定反例、全部受支持组数的 adjoint split 结构覆盖、互补半格域、稀疏 row 全值交集三种遍历、入口/sub-nanogap 契约，以及 ABHSS/PrunedDP++ 的实际 `(mask,v)` 状态计数。
 
 ## 2. 恢复与转换精确输入
 
@@ -232,6 +232,8 @@ python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results
 ```
 
 诊断运行不自动进入论文汇总。若 PrunedDP++ 明显更快或 ABHSS 超时，保留原数据，再同时检查图的 $n,m$、密度/分量、实现后组大小、双方状态数、上界收紧、row 密度与各 phase 时间，不得仅用“图更大”解释。
+
+对可能越过正式 TL 的单条长询问，可在单独 probe 构建与新 run directory 中追加 `--probe-diagnostics`，并把外层诊断预算设得足以跑完整轨迹。该预算只用于定位，不能替换矩阵中的正式 10,000 秒 TL。runner 会把 `[ProbeDiag]` 行解析进任务 JSON 的 `probe_diagnostics`：`prepare_end`、`singleton_anchor_end`、`ordinary_layer` 和 `adjoint_transpose` 给出阶段边界；`adjoint_layer` 同时给出该 H 层的秒数、row/scalar 数与当前上界；`adjoint_complementary_half_upper` 表示互补辅助半格严格收紧上界。最终还必须保留 solver time、查询峰值 RSS、watchdog 峰值 RSS、返回值和状态数，不能用中途 row 数冒充完成结果。
 
 ## 8. 汇总与出图
 

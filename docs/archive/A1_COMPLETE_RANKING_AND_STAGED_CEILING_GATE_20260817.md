@@ -11,9 +11,9 @@
 3. 两个全图物化函数保持一次性冷机器码边界，不被 IPO 并入逐状态 `Future`。
 
 三者都不读取配置、图名、查询编号、时间、状态数、row 密度或固定组数阈值。Base、DirectedCutOnly 与 Enhanced 调用同一 `AnchoredSingletonFuture::Future`。排名没有压缩 `double`，也不是固定 top-k。
-`Future` 始终返回精确 A1 最大值；无条件和 staged second-rank ceiling 均已因 P1/归一化进度证据回退。
+`Future` 始终返回“row 内真实 A1、row 外非负 fallback”统一视图的精确最大值；无条件和 staged second-rank ceiling 均已因 P1/归一化进度证据回退。
 
-保留实现此前已通过两种构建各 5/5 CTest；本轮又加入全部 mask 的租金表直接断言。冷边界 pre-reduction 二进制已通过 Musae g7 Base 全 300 条两轮小门，但 Orkut g15 q10 在 10001.768655 秒被 watchdog 终止且没有写出权值。后续发布屏障 ready 减空与 ranked-buy 恒正减空已通过独立交换轮，详见 [A1 发布屏障与恒真检查减空门禁](A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md)；combined 二进制的 10000 秒硬门与完整 P1 仍未通过，因此不得提前宣称总目标完成。
+保留实现此前已通过两种构建各 5/5 CTest；本轮又加入全部 mask 的租金表直接断言。冷边界 pre-reduction 二进制已通过 Musae g7 Base 全 300 条两轮小门，但 Orkut g15 q10 在 10001.768655 秒被 watchdog 终止且没有写出权值。后续发布屏障 ready 减空与 ranked-buy 恒正减空已通过独立交换轮，详见 [A1 发布屏障与恒真检查减空门禁](A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md)。加入 Adjoint split 完备性修复后的完整 q10 在 11,178.235 秒返回精确值 54，仍未通过 10,000 秒硬门；完整 P1 也尚未复跑，因此不得提前宣称总目标完成。
 
 ## 2. 完整排名的结构购买
 
@@ -26,7 +26,7 @@ B_{\mathrm{rank}}=B_{\mathrm{scan}}+
 n\left(\frac{t(t-1)}{2}+t\right).
 ```
 
-第一项保守覆盖再次顺扫全部 singleton row 与缺项 fallback，第二项覆盖每个顶点的稳定插入排序和 byte 写入。购买后每个顶点保存全部 $t$ 个 tail bit 的非增次序。查询只线性扫描 byte，找到第一个仍在 remaining 中的 bit，再通过原 `Value` 路径读取一次精确 row double 或同一正 fallback。
+第一项保守覆盖再次顺扫全部 singleton row 与缺项 fallback，第二项覆盖每个顶点的稳定插入排序和 byte 写入。购买后每个顶点保存全部 $t$ 个 tail bit 的非增次序。查询只线性扫描 byte，找到第一个仍在 remaining 中的 bit，再通过原 `Value` 路径读取一次精确 row double 或同一非负 fallback。
 
 因此：
 
@@ -47,7 +47,7 @@ C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
 
 对子集大小归纳可得 $C[M]=\sum_{i\in M}(b_i+1)$，所以一次表读取与旧逐 bit 累加严格相等；累计 rent、排名购买调用点和全部浮点读取均不变。代价是一次 $O(2^k)$ 整数递推和 $4\cdot2^k$ 字节，且只在 top-two 已购买时发生。
 
-`MaterializeAllTopTwo` 与 `MaterializeRankedTail` 在一条查询中各至多运行一次。把它们设为跨编译器非内联函数，只把一次性购买代码留在冷边界，避免 Release IPO 扩大逐状态 `Future`；它不增加算法分支，也不改变执行语句。当前 `Future` 在全部生命周期都返回精确 A1 最大值，不接收既有下界。
+`MaterializeAllTopTwo` 与 `MaterializeRankedTail` 在一条查询中各至多运行一次。把它们设为跨编译器非内联函数，只把一次性购买代码留在冷边界，避免 Release IPO 扩大逐状态 `Future`；它不增加算法分支，也不改变执行语句。当前 `Future` 在全部生命周期都返回统一 row/fallback 视图的精确最大值，不接收既有下界。
 
 ## 4. 正确性直接覆盖
 
@@ -56,7 +56,7 @@ C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
 1. 遍历全部 64 个顶点和 15 个非空 remaining mask，把 lazy、top-two 与 ranked-tail 返回值逐项对照独立逐 bit 最大值；
 2. 断言 top-two 与 ranked tail 两级购买都实际发生，且购买前后 `Future` 都返回同一精确值；
 3. 遍历全部 mask，独立按 bit 累加 `BinarySearchCost(row[bit].size())+1`，逐项对照精确租金表；
-4. 排名只保存 bit 次序，最终值始终从原 row double 或同一正 fallback 读取。
+4. 排名只保存 bit 次序，最终值始终从原 row double 或同一非负 fallback 读取。
 
 该测试只覆盖物理视图和购买计数等价；完整精确性仍由随机 subset DP、零权、状态计数和辅助半层测试共同承担。
 
@@ -108,7 +108,7 @@ C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
 
 四组共同 ordinary 前缀的 `(layer,layer_work)` 均逐项一致；最后一组的排名购买租金仍为 389,006,522，物化约 0.914 秒，候选与对照 watchdog RSS 均约 10,061 MiB。900 秒内排名接近窗口末尾才购买，因此旧 3600 秒的长期增益仍是重要但间接的证据。
 
-“完整排名 + 精确租金表 + 冷边界”的 pre-reduction 生产二进制已在 10000 秒门超时。当前 combined 版本另删除 A1 发布屏障后的恒真 ready 检查与 ranked buy 恒正检查；只有该版本产生精确权值 54 且 solver 时间小于 10000 秒才算通过。
+“完整排名 + 精确租金表 + 冷边界”的 pre-reduction 生产二进制已在 10,000 秒门超时。后续 combined 诊断版另删除 A1 发布屏障后的恒真 ready 检查与 ranked buy 恒正检查，并补齐 Adjoint split；它在独占 CPU 5 上以 11,178.235 秒返回精确权值 54，查询峰值 21,337.590 MiB、watchdog 总 RSS 峰值 27,729.191 MiB、累计状态 1,761,794,764。该结果证明 combined 版本仍未过线；它不能被 900 秒完成 row 的局部领先改写成成功。
 
 ## 6. 本轮拒绝项
 
@@ -143,7 +143,7 @@ C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
 | CPU4 / CPU5 | 46.790243 | 45.783691 | +2.20% |
 | CPU5 / CPU4 | 46.532016 | 46.330567 | +0.43% |
 
-几何归一约回归 1.31%，故恢复“`Future` 返回精确 A1 候选、调用点统一取 max”。不能为了 API 外观保留实测退化。
+几何归一约回归 1.31%，故恢复“`Future` 返回精确的统一 A1 视图候选、调用点统一取 max”。不能为了 API 外观保留实测退化。
 
 ### 6.4 farthest 已有下界 ceiling
 
@@ -159,10 +159,16 @@ C[0]=0,\qquad C[M]=C[M\setminus\{j\}]+b_j+1,
 
 尚未加入精确租金表与冷物化边界的完整 byte tail 生产版，在 q10 的 10000 秒门禁中于 10001.7688 秒被终止，未产生最终权值，人工采样 RSS 约 26 GiB。这证明旧版本未完成最终目标；它不能代表当前候选，也不能被写成成功。
 
+### 6.7 后续证书链上包络
+
+候选在 top-two 已购买后读取全 singleton 视图最大值，并用全组最远距离构造 tour 上包络；若当前 directed-cut 下界同时覆盖两者，就直接把 farthest/A1/tour 三个后续阶段标为完成。该判断在数学上安全，也不改变浮点值。
+
+完整 q10 证明它没有性能价值：候选与可比对照的 ordinary 各层 row、scalar 和 `layer_work` 完全相同，普通阶段却从 6,455.520 秒增加到 6,524.740 秒，增加 69.220 秒（1.07%）。也就是说，它只用额外 helper 调用、分支和缓存读取替换原本更便宜的后续证书求值，没有带来一项状态或图闭包工作削减。源码已删除 `LaterCertificatesDominated`、`FullUpperEnvelope`、对应诊断计数和正式文档口径；后续不得只凭理论支配关系重新加入。
+
 ## 7. 后续硬门
 
-1. 当前 combined 二进制单核运行 Orkut g15 q10 的 10000 秒硬门；完成前不得把 pre-reduction 超时或旧错误二进制结果写成当前结果。
-2. 当前源码完整运行 Orkut g15 q1--q10，逐条小于 10000 秒且 q10 最优值为 54。
+1. 清理后源码单核运行 Orkut g15 q10 的 10,000 秒硬门；当前已知正确完整轨迹为 11,178.235 秒，尚未通过。
+2. 清理后源码完整运行 Orkut g15 q1--q10，逐条小于 10,000 秒且 q10 最优值为 54。
 3. 当前源码完整 P1 按图聚合，13 图中每图最快 ABHSS 配置不劣于 PrunedDP++。
 4. 重建两种构建并通过 CTest、Markdown 渲染检查、复杂度/RSS/二进制 SHA 和代码—文档矛盾检查。
 5. 全部门禁通过后只做本地提交；本轮不得上传远程。

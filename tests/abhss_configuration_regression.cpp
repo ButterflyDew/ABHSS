@@ -566,10 +566,39 @@ void CheckAnchoredSingletonMaterializationEquivalence()
     query.groups.resize(kBits + 1);
     gst::methods::abhss::internal::Problem problem(graph, query, {});
     problem.g = kBits + 1;
+    problem.anchor_group = 0;
+    problem.anchor_bit = 1;
     problem.nonanchor_count = kBits;
     problem.subset_count = 1 << kBits;
+    problem.original_full_mask = (1 << problem.g) - 1;
+    problem.nonanchor_original_mask = problem.original_full_mask ^ problem.anchor_bit;
+    problem.bit_to_group = {1, 2, 3, 4};
+    problem.original_mask.assign(problem.subset_count, 0);
+    for (int mask = 1; mask < problem.subset_count; ++mask)
+    {
+        const int bit = mask & -mask;
+        problem.original_mask[mask] = problem.original_mask[mask ^ bit] | (1 << problem.bit_to_group[gst::methods::abhss::internal::FirstBit(bit)]);
+    }
+    problem.group_distance.resize(problem.g);
+    for (int group = 0; group < problem.g; ++group)
+    {
+        problem.group_distance[group].value.resize(kVertices + 1);
+        for (int vertex = 1; vertex <= kVertices; ++vertex)
+            problem.group_distance[group].value[vertex] = static_cast<double>((vertex * 5 + group * 7) % 13 + 1);
+    }
+    problem.farthest_group.resize(kVertices + 1);
+    for (int vertex = 1; vertex <= kVertices; ++vertex)
+    {
+        int farthest = 0;
+        for (int group = 1; group < problem.g; ++group)
+            if (problem.group_distance[group].value[vertex] > problem.group_distance[farthest].value[vertex])
+                farthest = group;
+        problem.farthest_group[vertex] = static_cast<unsigned char>(farthest);
+    }
+    problem.tour.Build(std::vector<std::vector<double>>(problem.g, std::vector<double>(problem.g)));
 
     gst::methods::abhss::internal::AnchoredSingletonFuture future;
+    future.cutoff = 50.0;
     future.row.resize(problem.subset_count);
     for (int index = 0; index < kBits; ++index)
     {
@@ -577,6 +606,8 @@ void CheckAnchoredSingletonMaterializationEquivalence()
         row.ready = true;
         for (int vertex = 1; vertex <= kVertices; ++vertex)
         {
+            if ((vertex + index) % 3 == 0)
+                continue;
             row.vertex.push_back(vertex);
             row.value.push_back(static_cast<double>((vertex * 7 + index * 3) % 11));
         }
@@ -593,7 +624,7 @@ void CheckAnchoredSingletonMaterializationEquivalence()
         for (int bits = remaining; bits; bits &= bits - 1)
         {
             const int bit = bits & -bits;
-            expected = std::max(expected, future.row[bit].value[vertex - 1]);
+            expected = std::max(expected, future.Value(problem, bit, vertex));
         }
         const double actual = future.Future(problem, remaining, vertex);
         if (actual != expected)
@@ -615,7 +646,57 @@ void CheckAnchoredSingletonMaterializationEquivalence()
             throw std::runtime_error("A1 tail-rent subset factorization changed the exact paid work.");
     }
     if (future.ranked_tail.empty())
+    {
+        const int vertex = 1;
+        const int first_bit = 1 << future.first[vertex];
+        const int second_bit = 1 << future.second[vertex];
+        const int tail_mask = (problem.subset_count - 1) ^ first_bit ^ second_bit;
+        const long long rent = future.ranked_rent_by_mask[tail_mask];
+        if (!tail_mask || rent <= 0)
+            throw std::runtime_error("A1 ranked-tail purchase regression has no positive structural rent.");
+        future.ranked_rent_work = future.ranked_buy_work - rent;
+        future.Future(problem, tail_mask, vertex);
+    }
+    if (future.ranked_tail.empty())
         throw std::runtime_error("A1 materialization equivalence regression did not exercise the ranked-tail purchase.");
+}
+
+/** @brief 强制覆盖两张有序稀疏 row 全值交集的三种确定性遍历路径。 */
+void CheckRowValueIntersectionTraversal()
+{
+    using gst::methods::abhss::internal::ForEachRowValueIntersection;
+    using gst::methods::abhss::internal::Row;
+    // lambda：按顶点编码左右值，并与独立 membership 扫描逐项核对。
+    auto Check = [&](std::vector<int> left_vertex, std::vector<int> right_vertex)
+    {
+        Row left;
+        Row right;
+        left.vertex = std::move(left_vertex);
+        right.vertex = std::move(right_vertex);
+        for (int vertex : left.vertex)
+            left.value.push_back(1000.0 + vertex);
+        for (int vertex : right.vertex)
+            right.value.push_back(2000.0 + vertex);
+        std::vector<int> actual;
+        ForEachRowValueIntersection(left, right, [&](int vertex, double left_value, double right_value)
+        {
+            if (left_value != 1000.0 + vertex || right_value != 2000.0 + vertex)
+                throw std::runtime_error("ABHSS row value intersection mismatched a payload index.");
+            actual.push_back(vertex);
+        });
+        std::vector<int> expected;
+        for (int vertex : left.vertex)
+            if (std::binary_search(right.vertex.begin(), right.vertex.end(), vertex))
+                expected.push_back(vertex);
+        if (actual != expected)
+            throw std::runtime_error("ABHSS row value intersection missed or duplicated a vertex.");
+    };
+
+    Check({2, 4, 6}, {1, 2, 6});
+    std::vector<int> dense(128);
+    std::iota(dense.begin(), dense.end(), 1);
+    Check({64}, dense);
+    Check(dense, {64});
 }
 
 }  // namespace
@@ -625,6 +706,7 @@ int main()
 {
     CheckAuxiliaryHalfAdjointRegression();
     CheckAnchoredSingletonMaterializationEquivalence();
+    CheckRowValueIntersectionTraversal();
 
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
     // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
@@ -778,6 +860,47 @@ int main()
                 throw std::runtime_error(
                     "ABHSS anchored layer has missing or duplicate realization.");
         }
+    }
+
+    // 枚举全部受支持 g 的规范 D split，锁定 adjoint 的三类结构化覆盖：
+    // 单/双 ordinary terminal、全值 H successor，以及偶数个非锚组时的互补 H 半层。
+    for (int group_count = 0; group_count <= 16; ++group_count)
+    {
+        const auto schedule = gst::methods::abhss::MakeAnchoredCompletionSchedule(group_count, enhanced_profile);
+        if (!schedule.uses_adjoint || schedule.forward_last_layer >= schedule.highest_layer)
+            continue;
+        auto CountBits = [](int mask)
+        {
+            int count = 0;
+            for (; mask; mask &= mask - 1)
+                ++count;
+            return count;
+        };
+        const int nonanchor_count = group_count - 1;
+        const int full_mask = (1 << nonanchor_count) - 1;
+        for (int target = 1; target <= full_mask; ++target)
+        {
+            const int target_size = CountBits(target);
+            if (target_size <= schedule.forward_last_layer || target_size > schedule.adjoint_last_layer)
+                continue;
+            const int cover = full_mask ^ target;
+            const int cover_size = CountBits(cover);
+            const int domain = cover ^ (cover & -cover);
+            for (int branch = domain; branch; branch = (branch - 1) & domain)
+            {
+                const int branch_size = CountBits(branch);
+                const int accumulator_size = cover_size - branch_size;
+                const bool direct = cover_size <= schedule.ordinary_last_layer || (branch_size <= schedule.ordinary_last_layer && accumulator_size <= schedule.ordinary_last_layer);
+                const bool via_branch = branch_size <= schedule.ordinary_last_layer && target_size + branch_size <= schedule.adjoint_last_layer;
+                const bool via_accumulator = accumulator_size <= schedule.ordinary_last_layer && target_size + accumulator_size <= schedule.adjoint_last_layer;
+                if (!direct && !via_branch && !via_accumulator)
+                    throw std::runtime_error("ABHSS adjoint split has no direct-terminal or successor realization.");
+            }
+        }
+        if (nonanchor_count == 2 * schedule.adjoint_last_layer)
+            for (int target = 1; target <= full_mask; ++target)
+                if (CountBits(target) == schedule.adjoint_last_layer && CountBits(full_mask ^ target) != schedule.adjoint_last_layer)
+                    throw std::runtime_error("ABHSS complementary auxiliary-half completion domain is inconsistent.");
     }
 
     CheckPreludeContracts(base, enhanced);
