@@ -25,7 +25,7 @@
 3. 先生成不含锚组、大小至多约一半的普通状态 $D$，并只发布规范 branch。
 4. 用前向锚定状态 $A$ 表示包含永久锚组的公共状态；Base 以前向高层完成搜索。
 5. 开启 `DirectedCut` 后，安全增加 ordinary/adjoint 使用的对偶证书与额外可行上界，并以完整距离势、dual-primal witness 替换 Base 中相同职责的 realization；搜索工作支付固定购买价时，再完成 residual 势、恢复真实 primal/support 上界并以更紧的上下界重滤已物化 ordinary。公共 A1 不被替换，也不读取 directed-cut 开关。
-6. 再开启 `AdjointCompletion`，保留低层 $A$，用补集转置和递减的高层 $H$ 替代完整前向高层的等价求值。
+6. 再开启 `AdjointCompletion`，保留共同 A1 前缀，用补集转置和递减的高层 $H$ 替代其后全部前向层的等价求值。
 
 这里的核心不是把两个实现包装成一个名字。`D` 的状态定义、稀疏 row、同根交集、图闭包、上界结算和统一 future 接口只有一份。增强开关只允许两种关系：增加 Base 没有的安全证书，或者以结构/功能对应的 realization 替换同一逻辑职责。禁止出现 Base 独自多执行、而 Enhanced 既不执行也没有同职责替代物的状态层。
 
@@ -49,7 +49,7 @@ SolveOneQuery(G, K, options)
   3  profile  <- DescribeConfiguration(options)
   4  h        <- floor(g/2), q <- max(0,h-1)
      ell      <- q                         (完整前向配置)
-                 或 (q=0 ? 0 : max(1,floor(q/2)))  (AdjointCompletion)
+                 或 min(1,q)               (AdjointCompletion)
      D_last   <- h                         (没有 H 后缀)
                  或 q                       (存在 H 后缀)
      H_last   <- q                         (没有 H 后缀，不物化 H)
@@ -66,17 +66,17 @@ SolveOneQuery(G, K, options)
          完成 residual 势，恢复 primal/facility 与四元路径 support
          以更紧的下界和真实上界单调重滤已完成 D；若 support 更新则切换 evaluator
   8  释放 A1 的只读查找缓存；标准 A1 row 本身仍保留
-  9  若未开启 AdjointCompletion:
+  9  若 H 后缀为空:
        把已有 A1 row（若有）移交给公共前向内核
        用 A 生成逻辑层 1..q 并完成答案
      否则:
-       把已有 A1 row 移交给同一前向内核，继续生成低层 A(2..ell)
+       把已有 A1 row 移交给同一前向内核，只做共同的重滤与完整解结算
        用一/两张 ordinary row 转置播种辅助 H(h)，精确实现被省略的 D(h)
-       从 h 递减 H；ell+1..q 替换高层 A，全部边界读取已物化到 q 的 ordinary
+       从 h 递减 H；逻辑 H(2..q) 替换 A(2..q)，全部边界读取已物化到 q 的 ordinary
  10  返回 best、feasible 和实际首次发现的 (mask,v) 数
 ```
 
-第 5 步不是一条“组数够大才启用”的经验规则。`[1,q]` 是第 8 步精确递推本来就要覆盖的索引域；询问“层 1 是否属于该域”等价于询问一个循环是否有第一轮。所有配置都把这张本来属于前向格的 row 提前，只为了在第 6 步复用；第 8 步接收同一对象而不是再生成一张。A1 构造函数不接收 `profile`，因此 Enhanced 不能在该层额外启用 dual、切换 fallback 或采用另一套闭包。
+第 6 步不是一条“组数够大才启用”的经验规则。`[1,q]` 是精确完成递推本来就要覆盖的索引域；询问“层 1 是否属于该域”等价于询问一个循环是否有第一轮。所有配置都把这张本来属于前向格的 row 提前，供 ordinary future 复用；第 9 步接收同一对象而不是再生成一张。A1 构造函数不接收 `profile`，因此 Enhanced 不能在该层额外启用 dual、切换 fallback 或采用另一套闭包。
 
 ### 2.2 逻辑状态、证书与物理缓存的边界
 
@@ -135,7 +135,7 @@ Enhanced {DirectedCut, AdjointCompletion}
 |---|---|---|---|
 | $g>3$ 的距离—根初始化 | bootstrapped-bounded：在 realization 内取得真实 cutoff，再构造 bounded `GroupRow` 并选择共同根 | complete-potential：构造完整距离势 `GroupRow` 并选择共同根 | 都一次返回 `DistanceRootInitialization{group_distance, root, upper}`；调用者及全部下游只读取同一三元合同，SPT bootstrap 不是独立逻辑阶段； $g\le3$ 在进入该替换职责前由共同 bounded 基例闭包 |
 | witness realization | root-path tree | primal upper + dual-primal tree | 都构造原图真实 witness；预处理均不无条件运行树 DP，随后把各自树大小代入同一 `buy` 公式，并从 `rent=0` 调用同一调度器和树 DP；共同 root-star/root-path-union 不属于差异，facility 上界另归安全新增 |
-| 高层锚定完成 | 完整 ordinary 半格依赖加前向高层 $A$ | ordinary 保留到最高逻辑层 $q$；辅助 $H(h)$ 精确转置实现省略的 $D(h)$，再以低层 $A$ 加递减 $H$ 完成 | $H(h)$ 与 $D(h)$ 是同一递推职责的正反 realization；逻辑 $H(\ell+1,\ldots,q)$ 再替换高层 $A$ |
+| 高层锚定完成 | 完整 ordinary 半格依赖加前向高层 $A$ | ordinary 保留到最高逻辑层 $q$；辅助 $H(h)$ 精确转置实现省略的 $D(h)$，再以共同 A1 加递减 $H$ 完成 | $H(h)$ 与 $D(h)$ 是同一递推职责的正反 realization；逻辑 $H(2),\ldots,H(q)$ 替换 A1 之后的前向层 |
 
 A1 不在替换表中，因为它现在是三个合法配置的逐项共同操作。只要正层域非空，Base、DirectedCutOnly 与 Enhanced 都在 ordinary 前运行同一个 `BuildReusableAnchoredSingletonLayer`，使用相同 seed、farthest + endpoint-floor cone、非负 fallback、标准 `Row`、分级精确 future 视图和所有权交接。该视图先构造 top-two bit/locator，并精确因子化各 remaining mask 的 tail 租金；必要时再购买 top-two 之后的完整 byte 排名。两级表示都不保存近似 double。该函数不读取 `UsesDirectedCut()`、`UsesAdjointCompletion()` 或 `ConfigurationProfile`。开启 `DirectedCut` 只在 A1 之外新增证书：ordinary 的统一 future 栈额外取 $L_{\mathrm{cut}}$，adjoint 继续使用其 reduced/prefix 证书；它不改变 A1 搜索域或 A1 值。
 
@@ -160,23 +160,23 @@ $q$ 来自第 10 节的平衡分解定理，是完整锚定格必须覆盖的最
 `MakeAnchoredCompletionSchedule` 只把这个定义域映射到 realization：
 
 - Base 与 DirectedCutOnly 的前向 $A$ 覆盖逻辑层 $1,\ldots,q$；
-- Enhanced 在 $q=0$ 时令 $\ell=0$，否则令 $\ell=\max\{1,\lfloor q/2\rfloor\}$。前向 $A$ 覆盖 $1,\ldots,\ell$，逻辑 $H$ 覆盖 $\ell+1,\ldots,q$；
+- Enhanced 令 $\ell=\min\{1,q\}$。正层域非空时前向 $A$ 只覆盖共同层 1，逻辑 $H$ 覆盖 $2,\ldots,q$；
 - 空区间 $\mathcal L_A=\varnothing$ 时，完成式只读取隐式 $A(\varnothing)$；非空时层 1 自然属于定义域，三个配置都提前生成并移交同一张标准 A1 row；
-- 若 $\ell=q$，不存在 H 后缀，Enhanced 直接复用完整前向入口，不构造任何转置工作区。
+- 若 $\ell=q$，即 $q\le1$，不存在 H 后缀，Enhanced 直接复用完整前向入口，不构造任何转置工作区。
 
 没有 H 后缀时，ordinary 与完整前向配置一样物化到半格 $h$。存在 H 后缀时，Enhanced 物化 $D$ 到最高逻辑层 $q=h-1$，并把 adjoint 的物理层扩到 $h$：
 
 ```math
 D:1,\ldots,q,
 \qquad
-H:h,h-1,\ldots,\ell+1.
+H:h,h-1,\ldots,2.
 ```
 
 其中 $H(h)$ 是一个辅助半格层，不替代任何额外的前向 $A$；它精确转置实现被省略的 $D(h)$。当 $g=2h$ 时，固定 $|S|=h$ 后的补集大小为 $h-1=q$，已有一张 ordinary row 即可播种 $H(S)$；当 $g=2h+1$ 时补集大小为 $h$，转置枚举两个互斥、大小均不超过 $q$ 的 ordinary 块，恰好给出普通 $D(h)$ 的同根 split seed，随后执行相同的图闭包。因此 $H(h)$ 不是经验补丁，而是被省略半格递推的反向 realization。
 
-从 $H(h)$ 递减时， $H(S\cup B)+D(B)$ 与 ordinary 从补集 $[k]\setminus(S\cup B)$ 扩为 $[k]\setminus S$ 的规范转移逐项对应。于是辅助层以下的 $H(S)$ 继续表示 $D([k]\setminus S)$ 的补集转置；逻辑区间 $\ell+1,\ldots,q$ 才承担替换高层 $A$ 的职责。该边界不需要树 separator、两箱容量或三块 terminal，也不读取图名、实际状态数、incumbent、时间或内存。
+从 $H(h)$ 递减时， $H(S\cup B)+D(B)$ 与 ordinary 从补集 $[k]\setminus(S\cup B)$ 扩为 $[k]\setminus S$ 的规范转移逐项对应。于是辅助层以下的 $H(S)$ 继续表示 $D([k]\setminus S)$ 的补集转置；逻辑区间 $2,\ldots,q$ 承担替换 A1 之后全部前向层的职责。该边界不需要树 separator、两箱容量或三块 terminal，也不读取图名、实际状态数、incumbent、时间或内存。
 
-$q$、 $\ell$ 与 $h$ 都是递推数组边界，不选择“哪种算法更快”。代码可以询问 `ContainsLogicalLayer(1)` 或 `UsesAdjointH(h)`，却不能出现“观测到某个 $g$ 后决定是否使用某项操作”的经验分派。
+$q$ 与 $h$ 来自平衡分解， $\ell=\min\{1,q\}$ 只保留 Base 与 Enhanced 必须逐项共有的最小非空前向前缀；它们都是递推数组边界，不选择“哪种算法更快”。代码可以询问 `ContainsLogicalLayer(1)` 或 `UsesAdjointH(h)`，却不能出现“观测到某个 $g$ 后决定是否使用某项操作”的经验分派。
 
 ### 3.3 配置职责账本
 
@@ -576,7 +576,7 @@ row 内返回精确 $A(\{i\},v)$，row 外返回该下界。cone 与 fallback �
 
 ### 9.4 不含经验组数阈值的统一调度
 
-调度只读取第 3.2 节的逻辑层域 $\mathcal L_A=\{1,\ldots,q\}$。域为空时，所有配置直接用隐式 $A(\varnothing)$ 完成；域非空时，A1 正是第一个成员，所有配置都在 ordinary 前生成它。Enhanced 的前向边界定义为 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 永远属于共同前向前缀，只有层 $2,\ldots,q$ 中的高层后缀才可能由 $H$ 替换。不存在“组数较小时延后、组数较大时提前”或任何等价隐藏阈值。
+调度只读取第 3.2 节的逻辑层域 $\mathcal L_A=\{1,\ldots,q\}$。域为空时，所有配置直接用隐式 $A(\varnothing)$ 完成；域非空时，A1 正是第一个成员，所有配置都在 ordinary 前生成它。Enhanced 的前向边界固定为 $\ell=\min\{1,q\}$，所以 A1 永远属于共同前向前缀，逻辑层 $2,\ldots,q$ 全由 $H$ 替换。不存在“组数较小时延后、组数较大时提前”或任何等价隐藏阈值。
 
 每个顶点第一次查询 A1 future 时，lazy 路径扫描所有 A1 singleton，缓存最大和次大的组 bit，以及对应精确值在 `row.value` 中的 32-bit 下标。若该值来自 cone 外，locator 的最高位统一记录上一节的非负 fallback。两个 locator 压在一个 64-bit 项中；后续若最大 bit 仍未覆盖就常数时间读取，否则优先读取次大值，只有两者都已覆盖时才进入 tail。
 
@@ -681,9 +681,9 @@ A(S,v)+D(L,v)+D(R\setminus L,v).
 |---|---:|---|---|---|
 | Base | $q$ | 已提前生成的 A1（若该层存在） | 否 | 直接返回最优值 |
 | DirectedCutOnly | $q$ | 已提前生成的 A1（若该层存在） | 否 | 直接返回最优值 |
-| Enhanced | $\ell$ | 已提前生成的 A1（若该层存在） | 是 | 把 A1 之后的低层边界交给 $H$ |
+| Enhanced（H 后缀非空） | $1$ | 已提前生成的 A1 | 是 | 只重滤并结算 A1，再把层 $2,\ldots,q$ 交给 $H$ |
 
-对每个 size，内核先检查初始容器中该 row 是否已经 `ready`。复用 A1 时，它仍执行与普通 A row 相同的 `CompleteAnchoredRow` 和上界重滤；只有尚未生成的后续层才枚举 $A(S\setminus T)+D(T)$ seed 并做闭包。`last_size=0` 只可能表示完整域 $\mathcal L_A$ 本身为空，此时计划设置 `complete_implicit_anchor=true`，直接以隐式 $A(\varnothing)$ 做最终结算。只要完整域非空，Enhanced 的定义就保证 $\ell\ge1$，不会出现“高层 H 存在但共同 A1 前缀为空”的特殊路径。所有情况都不会创建假的 size-0 payload，读取 $A(\varnothing,v)$ 时统一退回 $d_a(v)$。因此 Base、消融配置和 Enhanced 的低层不是三套递推，只是同一递推在不同已证明层边界上的调用。
+对每个 size，内核先检查初始容器中该 row 是否已经 `ready`。复用 A1 时，它仍执行与普通 A row 相同的 `CompleteAnchoredRow` 和上界重滤；Base 与 DirectedCutOnly 随后枚举尚未生成的 $A(S\setminus T)+D(T)$ seed 并做闭包，Enhanced 的 adjoint 路径则在 A1 后立即停止前向生成。`last_size=0` 只可能表示完整域 $\mathcal L_A$ 本身为空，此时计划设置 `complete_implicit_anchor=true`，直接以隐式 $A(\varnothing)$ 做最终结算。 $q=1$ 时 H 后缀为空，Enhanced 直接复用完整前向入口； $q>1$ 时共同前向边界严格为 1，不会出现“高层 H 存在但共同 A1 前缀为空”的特殊路径。所有情况都不会创建假的 size-0 payload，读取 $A(\varnothing,v)$ 时统一退回 $d_a(v)$。因此 Base、消融配置和 Enhanced 的共同 A1 不是三套递推，而是同一 row 在不同已证明后继 realization 前的共同入口。
 
 ## 11. `DirectedCut` 增强
 
@@ -739,20 +739,13 @@ $L_{mathrm{new}}$ 是可采纳下界， $U_{mathrm{new}}$ 是真实可行上界�
 
 完整前向格在高层不断用相似 ordinary row 扩展许多 $A(S,\cdot)$。对一个完整解，真正重要的是低层锚定前缀与“其余组已经付出的外侧代价”在边界相遇。adjoint 把高层依赖按补集转置，使同一个 ordinary 值在一个顶点处一次参与多个高层目标。
 
-固定：
+固定 $h=\lfloor g/2\rfloor$ 与 $q=\max\{0,h-1\}$。Enhanced 的前向边界为：
 
 ```math
-h_{\max}=\lfloor g/2\rfloor-1,
+\ell=\min\{1,q\}.
 ```
 
-当 $h_{\max}=0$ 时令 $h_{\mathrm{low}}=0$；当 $h_{\max}>0$ 时令：
-
-```math
-h_{\mathrm{low}}=
-\max\left\{1,\left\lfloor h_{\max}/2\right\rfloor\right\}.
-```
-
-存在非空 H 后缀时，公共前向内核只物化 $|S|\le h_{\mathrm{low}}$ 的 $A$ 并保留边界层；外层的 1 保证共同 A1 始终位于前向前缀。层计划同时令 ordinary 物化到 $q=h-1$，并令 adjoint 从辅助半格 $h$ 递减到 $h_{\mathrm{low}}+1$。辅助 $H(h)$ 精确转置实现省略的 $D(h)$，其余 H 层再承担高层 A 的替换职责。若前向边界已覆盖完整逻辑域，则直接复用完整前向入口，不构造转置工作区。这些都是递推索引边界，不含经验组数、row 密度、图名、incumbent 或耗时分派。
+存在非空 H 后缀时，公共前向内核只接收、重滤并结算已经共同生成的 A1，不再生成 A2 及更高层；数字 1 表示 Base 与 Enhanced 必须逐项相同的最小非空前向前缀，不是待调参数。层计划同时令 ordinary 物化到 $q=h-1$，并令 adjoint 从辅助半格 $h$ 递减到 2。辅助 $H(h)$ 精确转置实现省略的 $D(h)$，逻辑 $H(2),\ldots,H(q)$ 再承担 A1 之后全部前向层的替换职责。若 $q\le1$，前向边界已经覆盖完整逻辑域，Enhanced 直接复用完整前向入口，不构造转置工作区。这些都是递推索引边界，不含经验组数、row 密度、图名、incumbent 或耗时分派。
 
 ### 12.2 按顶点补集转置
 
@@ -790,7 +783,7 @@ H(S,v)=D([k]\setminus S,v),
 
 ### 12.3 递减 H、全值 successor 与边界结算
 
-从辅助层 $h$ 递减到 $\ell+1$。对目标 $S$，种子来自第 12.2 节的直接终端，或来自更大的 successor：
+从辅助层 $h$ 递减到 2。对目标 $S$，种子来自第 12.2 节的直接终端，或来自更大的 successor：
 
 ```math
 H(S,v)=\mathrm{closure}\left(
@@ -869,7 +862,7 @@ $H(S)$ 与 $A(S)$ 的数值含义不同，不能逐项比较；可比较的是�
   为两侧都不超过 q 的规范 split 超集登记双块 terminal
   用 reduced budget 与 prefix 删除不能严格改善 incumbent 的候选
 
-for size = h down to ell+1:
+for size = h down to 2:
   start layer timer
   for each target S with |S| = size:
     从 terminal[S] 装载直接 seed

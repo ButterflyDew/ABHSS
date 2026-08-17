@@ -17,6 +17,7 @@
 - `ADAPTIVE_A1_TOP_TWO_MATERIALIZATION_GATE_20260816.md`：共同 A1 top-two 从 lazy 二分切换到原缓存顺序物化的精确性、P1 小门、Orkut 进度与尚未完成的 q10 硬门。
 - `A1_COMPLETE_RANKING_AND_STAGED_CEILING_GATE_20260817.md`：完整 byte tail、精确 mask-rent 因子化与冷物化边界，以及无条件/staged ceiling、locator、farthest 和 API 变体的负向门禁。
 - `A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md`：A1 完整发布后的 singleton ready 与 ranked-buy 恒正检查减空、交换绑核证据，以及 top-two/Future 入口守卫的物理回归。
+- `MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md`：Enhanced 只保留共同 A1、由 H 实现其余逻辑层的正确性边界、交换绑核证据和当前 Orkut g15 q10 完整门。
 - `LAZY_EXACT_DUAL_PURCHASE_NEGATIVE_PROBE_20260817.md`：non-exact interval 首次拒绝后延迟购买精确 directed-cut 势的正确性边界、交换绑核轻微回归与完整回退结论。
 - `ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md`：较低 H 平衡 split、successor 全值职责与互补辅助半格的正确性事故、结构证明、Musae/SteinLib 门禁及 Orkut q10 完整长轨迹。
 - `AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md`：从逻辑层直接启动 H 的精确性事故、12 点固定反例、九条生产差异、辅助 $H(h)$ 修复及当前待复跑硬门。

@@ -112,14 +112,14 @@ main
 
 预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。初始阶段只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且树 DP 有新输入时调用同一个 `EvaluateWitnessTree`。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。只有开启 DirectedCut 的配置可能在 ordinary 中另行购买 residual closure；购买后完成 residual 势并恢复真实 primal/facility 上界，若四元真实路径生长继续严格收紧上界，则把路径边与 primal 边合成 certificate support，调用 `RefreshCertificate` 按 support 顶点数切换确定性 buy 与 `EvaluateCertificateSupport`。路径上界已经直接写入 `best`，不再重建一棵后续无人消费的 witness 树。完整势和真实上界随后共同重滤已经物化的 D；删除条件仍是“精确 rooted 值 + 可采纳 future 不小于现有真实上界”。这是 closure 购买后的单调证书刷新，不改变初始 witness 的共同调度规则。
 
-`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。 $g\le3$ 查询在进入层计划前已经由全部配置共同的精确恒等式闭包。对其余查询，域为空时完成式直接使用隐式 $A(\varnothing)$；域非空时 A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界为 $q=0$ 时 $\ell=0$，否则 $\ell=\max\{1,\lfloor q/2\rfloor\}$，所以 A1 总在前向前缀。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数。
+`MakeAnchoredCompletionSchedule` 从平衡证明得到完整锚定格的正层域 $\mathcal L_A=\{1,\ldots,q\}$，其中 $q=\max\{0,\lfloor g/2\rfloor-1\}$。代码只判断某个逻辑层是否属于该域，不含 `g >= 常数` 一类经验分段。 $g\le3$ 查询在进入层计划前已经由全部配置共同的精确恒等式闭包。对其余查询，域为空时完成式直接使用隐式 $A(\varnothing)$；域非空时 A1 是第一个成员，所有配置一律在 ordinary 前生成它。Enhanced 的前向边界固定为 $\ell=\min\{1,q\}$：有正层时只保留共同 A1，逻辑层 $2,\ldots,q$ 全由 H 实现。该 row 形成 `AnchoredSingletonFuture`，在 ordinary 后按所有权移交给公共前向内核，既不重复闭包也不重复计数； $q\le1$ 时 H 后缀为空，直接复用完整前向入口。
 
 A1 的重启循环只有在全部 singleton bit 都写入 `ready` 后才初始化 `AnchoredSingletonFuture` 的查找计划；空 payload 也属于已发布 row。因此 future 只读阶段把该初始化点当作发布屏障，直接遍历完整 bit 域，不在每次读取时重复检查 `ready`。同理，A1 域推出 $g\ge4$、 $k\ge3$，两级购买工作严格为正；ranked-tail 热路径只比较 rent 与 buy。上述两项是共同生命周期不变量的减空，不是按组数启用的算法开关。其他仍可能观察未生成 row 的模块继续使用 `ready`。
 
 令 $k=g-1$， $h=\lfloor g/2\rfloor$， $q=h-1$。没有 H 后缀时，ordinary 与完整前向配置一样物化到半格 $h$。存在 H 后缀时，Enhanced 与 Base 仍用同一 `BuildOrdinaryRows` 完整生成 $D(1),\ldots,D(q)$；Enhanced 不物化更高的 $D(h)$，而把 adjoint 的物理区间扩为：
 
 ```math
-H(h),H(h-1),\ldots,H(\ell+1).
+H(h),H(h-1),\ldots,H(2).
 ```
 
 $H(h)$ 是辅助层，不对应额外的前向 A 层。若 $g=2h$，其补集大小为 $q$，单张已有 $D(q)$ 直接播种；同目标任意 pair 之和不小于 $D(q)$，因此只在这一目标上完全跳过 pair。若 $g=2h+1$，其补集大小为 $h$，两个互斥且大小不超过 $q$ 的 ordinary 块覆盖全部规范 split。随后执行与 ordinary 相同的图闭包，因此 $H(h)$ 精确实现被省略的 $D(h)$。较低 H 层按 ordinary split 的结构分为三类：完整 $D(Q)$ 已物化时直接转置；两侧都不超过 $q$ 时转置双块 terminal；至少一侧超过 $q$ 时，由已完成的 H successor 加回较小 ordinary 侧。successor 必须读取新增块的全部精确值，因为原规范 branch 可能位于 successor 所代表的一侧。若非锚组恰能二等分，互补的两个 $H(h)$ 还共同恢复锚组加两张 $D(h)$ 的平衡完成式。调度器只使用由 $g$ 推出的 $h,q,\ell$ 和集合大小，不读取图名、row 密度、incumbent、时间、内存或经验组数阈值。
@@ -136,7 +136,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | $g>3$ 的距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段；低组基例在此之前共同闭包 |
 | ordinary 的其他 future | flat realization：farthest、公共 A1、tour 的完整值首次存活后缓存 | staged realization：先增加 directed-cut，再依次复用 farthest、公共 A1、tour 的已算前缀 | 证书集合是安全新增；求值 realization 的共同输入、输出和严格拒绝职责相同，选择只由 DirectedCut 位决定 |
 | witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 对未被共同闭包的查询，树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
-| A1 之后的高层锚定完成 | 完整 ordinary 半格 $D(h)$ 加前向高层 $A$ | 完整物化到最高逻辑层 $q$；以必要的单/双 ordinary 终端、全值 successor 和互补半格完成精确构造 $H(h),\ldots,H(\ell+1)$，再与低层 $A$ 结算 | $H(h)$ 与 $D(h)$ 是同一 rooted 递推职责的正反 realization；逻辑 H 后缀再替换高层 A。A1 与 $D(1..q)$ 都是共同操作；只减去被完整 D 逐值支配的同目标 pair |
+| A1 之后的高层锚定完成 | 完整 ordinary 半格 $D(h)$ 加前向高层 $A$ | 完整物化到最高逻辑层 $q$；以必要的单/双 ordinary 终端、全值 successor 和互补半格完成精确构造 $H(h),\ldots,H(2)$，再与共同 A1 结算 | $H(h)$ 与 $D(h)$ 是同一 rooted 递推职责的正反 realization；逻辑 $H(2),\ldots,H(q)$ 替换 A1 之后的前向层。A1 与 $D(1..q)$ 都是共同操作；只减去被完整 D 逐值支配的同目标 pair |
 | 无 Base 对应物的工作 | 无 | directed-cut 可行证书、额外 facility 收紧、延迟 residual 证书刷新与单调 D 重滤 | 安全新增；只加强下界、真实上界或删去已不能严格改善的状态 |
 
 `DirectedCutOnly` 采用表中的 DirectedCut 距离与 witness realization，增加 dual/facility 证书，但仍保留完整前向高层 $A$，只作为隔离 `AdjointCompletion` 的正确性/消融配置。表中不允许出现“Base 独有且 Enhanced 没有同职责替代物”的逻辑阶段。

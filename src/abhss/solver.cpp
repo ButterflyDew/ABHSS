@@ -88,10 +88,10 @@ void CompleteWithForwardGrid(Problem& problem,
 }
 
 /**
- * @brief 使用低层前向 A 与高层 adjoint H 完成全部锚定状态。
+ * @brief 使用共同 A1 与 adjoint H 完成全部锚定状态。
  *
- * 切分点由平衡分解所需的最高逻辑层确定，不观察图名、row 密度或运行时间。该函数是
- * `AdjointCompletion` 开关唯一的调度入口；关闭开关即回到
+ * 平衡完成域非空时只保留共同 A1 前缀，并由 adjoint 实现其余逻辑层；该边界不观察图名、
+ * row 密度或运行时间。该函数是 `AdjointCompletion` 开关唯一的调度入口；关闭开关即回到
  * `CompleteWithForwardGrid`，不会保留第二套 ordinary 递推。
  */
 void CompleteWithAdjoint(Problem& problem,

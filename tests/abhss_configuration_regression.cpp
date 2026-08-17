@@ -829,10 +829,7 @@ int main()
             directed_schedule.adjoint_last_layer != expected_highest ||
             directed_schedule.uses_adjoint ||
             enhanced_schedule.highest_layer != expected_highest ||
-            enhanced_schedule.forward_last_layer !=
-                (expected_highest > 0
-                     ? std::max(1, expected_highest / 2)
-                     : 0) ||
+            enhanced_schedule.forward_last_layer != std::min(1, expected_highest) ||
             enhanced_schedule.ordinary_last_layer != expected_enhanced_ordinary ||
             enhanced_schedule.adjoint_last_layer != expected_enhanced_adjoint ||
             !enhanced_schedule.uses_adjoint ||

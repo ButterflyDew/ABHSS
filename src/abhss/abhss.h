@@ -218,10 +218,9 @@ struct AnchoredCompletionSchedule
  * @brief 从组数决定的递推域边界生成唯一层计划。
  *
  * 这里的整数除法来自平衡分解：`floor(g/2)-1` 是完整锚定格的最高层，
- * adjoint 再对该区间做固定的 meet-in-the-middle 切分；只要区间非空，公共 A1 必属于前向前缀。
+ * adjoint 保留最小的共同前向前缀 A1，并转置实现其后的全部逻辑层。
  * 存在 H 后缀时 ordinary 保留到最高逻辑层，辅助 H 半格以同一 ordinary 递推的转置取代被省略的 D 半格。
- * 函数不读取图、
- * 查询内容、row 密度、incumbent、耗时或内存，也不比较 g 与经验常数。
+ * 函数不读取图、查询内容、row 密度、incumbent、耗时或内存，也不比较 g 与经验常数。
  */
 constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     int group_count,
@@ -234,13 +233,7 @@ constexpr AnchoredCompletionSchedule MakeAnchoredCompletionSchedule(
     schedule.adjoint_last_layer = schedule.highest_layer;
     schedule.uses_adjoint =
         profile.high_layer == HighLayerRealization::AdjointH;
-    schedule.forward_last_layer = schedule.uses_adjoint
-                                      ? (schedule.highest_layer > 0
-                                             ? std::max(
-                                                   1,
-                                                   schedule.highest_layer / 2)
-                                             : 0)
-                                      : schedule.highest_layer;
+    schedule.forward_last_layer = schedule.uses_adjoint ? std::min(1, schedule.highest_layer) : schedule.highest_layer;
     if (schedule.uses_adjoint && schedule.forward_last_layer < schedule.highest_layer)
     {
         schedule.ordinary_last_layer = schedule.highest_layer;
