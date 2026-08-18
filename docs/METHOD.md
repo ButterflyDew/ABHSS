@@ -1009,7 +1009,7 @@ O\!\left(
 O\left(M_D+M_A+M_H+(R_D+R_A+R_H)\log(n+m)\right),
 ```
 
-若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。计入分级 A1 缓存后，阶段空间分别为 Base 的 $O(Z_D+Z_A+kn+2^k)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn+kn+2^k)$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn+kn+2^k)$；因 $k=g-1$，租金表与主 subset 状态同阶，A1 byte 缓存不改变后二者的 $O(gn)$ 线性项，但都必须在实际 RSS 中报告。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，H 只保存从辅助半格到低层边界之间实际生成的稀疏 row。
+若 $Z_{A1}^{\mathrm{work}}$ 表示共同 A1 在构造 cone 中曾被接纳的不同状态，则其构造工作还包括相应 queue/邻接扫描；它可能大于 ordinary 结束后重滤所保留的 A1 payload。A1 本身不读取 DirectedCut 的 $O(gn)$ 单组势；这些势只用于 ordinary/adjoint 的独立证书。令 $S_{\mathrm{sup}}=O(s^2+2^k s)$ 表示当前 certificate support 的 Floyd metric、subset-DP 表与 dirty 标记；尚未登记 support 时取 $S_{\mathrm{sup}}=0$。计入分级 A1 缓存后，阶段空间分别为 Base 的 $O(Z_D+Z_A+kn+2^k)$、DirectedCutOnly 的 $O(Z_D+Z_A+gn+kn+2^k+S_{\mathrm{sup}})$、Enhanced 的 $O(Z_D+Z_A+Z_H+gn+kn+2^k+S_{\mathrm{sup}})$。因 $k=g-1$，租金表与主 subset 状态同阶，A1 byte 缓存不改变后二者的 $O(gn)$ 线性项；support DP 从购买期临时对象变成 scheduler 生命周期内的持久对象，虽不超过表 14.1 已列出的 support 上界，却可能与后续 D/H payload 同时驻留并抬高实际峰值，所以两部分都必须在 RSS 中报告。转置 terminal 和 residual 是阶段临时量；residual 在 ordinary 前释放，H 只保存从辅助半格到低层边界之间实际生成的稀疏 row。
 
 实现为每条查询额外报告 `mask_vertex_states`。其口径是累计的“首次发现状态项数”，不是结束时 payload、队列弹出数或峰值空间：状态族属于实际键，对每张完整物化的 $D$、 $A$、 $H$ 逻辑 row，顶点第一次从无穷变为有限候选时计一次；同一 row 内后续改进不重复，D/A/H 中数值相同的 `(mask,v)` 分别计数。所有配置提前生成的共同 A1 在生成时计入，所有权转交给公共 $A$ 内核后不再计。最后只消费而不保留的 $A$ 层仍计入，因为这些状态已经实际生成。组距离、tour、directed-cut 势读取、转置前终端候选、完整解结算及队列过期项均排除。记该累计数为 $C_{\mathrm{ABHSS}}$，则它可用于解释搜索工作量，但通常 $C_{\mathrm{ABHSS}}\ge Z_D+Z_A(+Z_H)$，不能替代峰值内存指标。
 

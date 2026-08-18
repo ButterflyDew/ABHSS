@@ -165,9 +165,9 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 第一版完备性修复后的诊断构建曾在独占 CPU 5、30,000 秒外层预算下自然完成 Orkut q10：精确权值为 54，solver 时间 11,178.235 秒，超过正式 10,000 秒 TL；查询峰值为 21,337.590 MiB，watchdog 总 RSS 峰值为 27,729.191 MiB，累计首次发现状态为 1,761,794,764。其阶段时间为预处理 189.940 秒、共同 A1 85.956 秒、ordinary 6,524.740 秒、低层 A 2,040.340 秒、adjoint 2,337.210 秒。该构建还包含后来回退的证书链候选，只保留为历史风险对照。
 
-最小共同 A1 checkpoint `e9eee92` 令逻辑层 $2,\ldots,q$ 全由已经证明等价的 H realization 承担。其诊断二进制 SHA-256 `067620fbac9b16a661b74d2c1071a1ea15648f01034a893f5de7e06b09ab11d2` 在同一 Orkut q10 上得到精确权值 54，solver 时间为 9,431.057 秒，低于正式 TL 568.943 秒；查询峰值 18,305.023 MiB，watchdog 总 RSS 峰值 24,696.602 MiB，累计状态 1,459,398,194。相对上述历史完备版分别减少 15.63% 时间、14.21% 查询峰值和 17.16% 状态。该 checkpoint 的 ordinary 为 6,710.250 秒，A1 移交后的共同前向结算只有 8.766 秒；代价是最终上界从旧路径的 H6 延后到 H2 才由 56 收紧为 54。该对照的旧二进制含后来回退的代码，不能把每个 wall-time 差值都归因于层边界；交换绑核的 Musae $g=14$ 对照则逐条保持答案并把状态减少 12.82%，两轮时间分别改善 11.33% 和 13.71%。其后的最终工作树只增加 adjoint 空域扫描减除，但二进制哈希已改变，不能继承该 q10 的正式门禁结论。详细记录见 [最小共同 A1 与 q10 门禁](archive/MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md)。
+最小共同 A1 checkpoint `e9eee92` 令逻辑层 $2,\ldots,q$ 全由已经证明等价的 H realization 承担。其诊断二进制 SHA-256 `067620fbac9b16a661b74d2c1071a1ea15648f01034a893f5de7e06b09ab11d2` 在同一 Orkut q10 上得到精确权值 54，solver 时间为 9,431.057 秒，低于正式 TL 568.943 秒；查询峰值 18,305.023 MiB，watchdog 总 RSS 峰值 24,696.602 MiB，累计状态 1,459,398,194。相对上述历史完备版分别减少 15.63% 时间、14.21% 查询峰值和 17.16% 状态。该 checkpoint 的 ordinary 为 6,710.250 秒，A1 移交后的共同前向结算只有 8.766 秒；代价是最终上界从旧路径的 H6 延后到 H2 才由 56 收紧为 54。该对照的旧二进制含后来回退的代码，不能把每个 wall-time 差值都归因于层边界；交换绑核的 Musae $g=14$ 对照则逐条保持答案并把状态减少 12.82%，两轮时间分别改善 11.33% 和 13.71%。后续最终工作树又加入 adjoint 空域扫描减除与 certificate-support 增量求值；最终生产二进制不能继承该 checkpoint 的时间，但已经用自身二进制完成 q10 单条硬门，见第 7.6 节。详细演进见 [最小共同 A1 与 q10 门禁](archive/MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md)。
 
-`mean_f` 仍不是难度的单调解释变量：q10 属于最低 size stratum，却远慢于组更大的 q8；因此不能按平均组大小删除 q10 或设置经验超参数。正式复跑仍对每条查询使用固定 10,000 秒，并以冻结机器、当前 commit、当前二进制哈希和新结果行为准。为了看清超过门线后的完整轨迹，最终 SHA 的 q10 单独使用 30,000 秒外层诊断预算自然跑完，但仍按结果行中的 `solver_seconds < 10000` 判断正式成功；必须保存阶段 probe、每分钟 RSS/进度采样和最终状态，30,000 秒不得改写成正式 TL。`e9eee92` 已通过 q10 单条门，但最终 SHA 的 q1--q10 全门和 13 图 P1 仍须重跑。P1 中 GPU4GST 全部查询及绝大多数自然查询的层计划不变；受影响的 LinkedMDB 15 条 $g=10$ 与 DBpedia 2 条 $g=10$ 已完成两轮交换绑核定向 gate 并逐条保持答案，最终仍按完整 P1 聚合验收。事故演进与正确性修复见 [辅助半层 Adjoint 审计](archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)和 [Adjoint split 完备性审计](archive/ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
+`mean_f` 仍不是难度的单调解释变量：q10 属于最低 size stratum，却远慢于组更大的 q8；因此不能按平均组大小删除 q10 或设置经验超参数。正式复跑仍对每条查询使用固定 10,000 秒，并以冻结机器、当前 commit、当前二进制哈希和新结果行为准。为了保留完整轨迹，冻结求解器源码提交 `12d6adb` 的诊断构建对 q10 使用大于正式 TL 的 86,400 秒外层预算，但该查询在 9,250.911 秒自然完成，结果行本身满足 `solver_seconds < 10000`；精确权值 54，状态数 1,459,398,194。外层诊断预算不得改写成正式 TL。由此，最终 SHA 的 q10 单条门已经通过；最终 SHA 的 q1--q9 与 q10 组成的十条全门以及 13 图 P1 全量仍须重跑。P1 中 GPU4GST 全部查询及绝大多数自然查询的层计划不变；受影响的 LinkedMDB 15 条 $g=10$ 与 DBpedia 2 条 $g=10$ 已完成两轮交换绑核定向 gate 并逐条保持答案，最终仍按完整 P1 聚合验收。事故演进与正确性修复见 [辅助半层 Adjoint 审计](archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)和 [Adjoint split 完备性审计](archive/ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
 
 ## 5. 副实验： $\langle g,f\rangle$ 受控敏感性
 
@@ -350,7 +350,20 @@ P1 非退化门覆盖 Musae `g=7` 全 300 条和 Orkut `g=7` 固定 q175。Enhan
 
 诊断构建在长查询运行途中逐次输出 `support_dp_full` 或 `support_dp_incremental`，并记录 `evaluation`、`published_masks`、`activated_masks`、`recomputed_masks`；`ordinary_row` 与 `ordinary_layer` 还记录从 ordinary 开始的累计秒数，`witness_buy`、`witness_refilter` 和 `adjoint_layer` 事件同时给出当前 `best`、行数、标量数、工作量与局部阶段秒数。下一次自然完成长跑必须保留这些日志，不能只留下最终 `weights.txt`。完整二进制身份、阶段分解、正确性论证和被否决复杂化见 [`archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md`](archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md)。
 
-### 7.7 Linux 编译与服务器锁定
+### 7.7 当前版相对最近有效历史 P1 的 `g=5/7` 风险抽样
+
+第 7.6 节只比较 `6593b0d` 与 `12d6adb`，不能推广为当前版相对较早完整 P1 的逐查询无退化。为覆盖更大的重构跨度，当前正式二进制与最新一轮位于已知 Adjoint 正确性事故之前、且完整跑完 P1 的 `672bd25` 二进制做了两轮交换绑核抽样；13 条查询优先选取双方曾输给 PrunedDP++、Enhanced 明显慢于 Base 或绝对耗时较高的历史弱项。104 条运行记录全部完成，当前/历史 Base/Enhanced 与 PrunedDP++ 的目标值逐项一致。
+
+| `g` | 配置 | 查询数 | 当前秒 | 历史秒 | 当前/历史 | 当前峰值 MiB | 历史峰值 MiB |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 5 | Base | 6 | 99.598 | 110.544 | 0.9010 | 298.7 | 301.8 |
+| 5 | Enhanced | 6 | 194.336 | 197.731 | 0.9828 | 2,201.3 | 2,201.2 |
+| 7 | Base | 7 | 250.726 | 281.244 | 0.8915 | 497.1 | 525.9 |
+| 7 | Enhanced | 7 | 375.488 | 373.701 | 1.0048 | 2,660.5 | 2,293.9 |
+
+Base 13 条全部更快，Enhanced `g=5` 六条全部更快，Enhanced `g=7` 有 6/7 条持平或更快。唯一稳定反向项是 Orkut `g=7` q175：Enhanced 由 189.730 秒增至 196.356 秒，增加 3.5%；峰值由 2,293.9 MiB 增至 2,660.5 MiB。交换 CPU 后方向不变，因此不能归为单核噪声；但 `6593b0d -> 12d6adb` 的直接门在同一查询上只有 0.10% 时间波动且空间略降，说明该差异来自 `672bd25` 以来更大的正确性与阶段重构范围，不是增量 support-DP 单独造成。这个定向风险样本否定了“当前版在 P1 `g=5/7` 普遍退化”，不能证明逐查询无退化，也不能替代 8,318 条正式 P1。完整协议与逐查询表见 [P1 `g=5/7` 历史弱项抽样](archive/P1_G5_G7_HISTORY_REGRESSION_PROBE_20260818.md)。
+
+### 7.8 Linux 编译与服务器锁定
 
 正式服务器推荐用顶层 GNU `Makefile`：`make release JOBS=<physical-core-count>` 完成 Release 配置、当前可用 target 编译和 CTest；`make validate-paper-binaries` 只要求两个正式性能二进制 `abhss`/`pruneddp`，`make validate-all-binaries` 才要求已恢复的 Basic+/SCIP-Jack。CMake 禁用 compiler extensions，在工具链支持时对正式本地 target 统一开启 Release IPO/LTO，并在 GCC 9/10 没有可链接浮点 `from_chars` 时自动回退 `strtod`。
 

@@ -4,6 +4,8 @@
 
 > **二次勘误（2026-08-17）。** 本文加入辅助 $H(h)$ 的第一轮修复仍错误地删除了全部较低直接 terminal，并让 successor 只读规范 branch；Musae q162/q295 证明该实现仍会高报。现行代码补齐必要较低双块终端、全值 successor 与互补 H 完成。本文第 6 节的相反陈述已经失效，详见 [Adjoint split 完备性审计](ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
 
+> **最终版状态（2026-08-18）。** 在 split 完备性修复之后，冻结求解器源码提交 `12d6adb` 采用最小共同 A1 与 certificate-support 增量求值，以自身二进制在 9,250.911 秒完成 Orkut g15 q10，精确权值仍为 54。q10 单条门已通过；冻结的 q1--q10 十条全门与 13 图 P1 仍待重跑。
+
 ## 1. 事故表现与定位
 
 旧实现完整生成 ordinary 到最高逻辑层

@@ -1,6 +1,6 @@
 {
-  "schema_version": 8,
-  "audited_at": "2026-08-15",
+  "schema_version": 9,
+  "audited_at": "2026-08-18",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
@@ -23,12 +23,12 @@
     "result": "PASS"
   },
   "repository_consistency_audit": {
-    "current_release_binary_sha256": "4b8f0338999173518bfe11a905ab63059d59490d8056e1a99873210283198a4a",
-    "github_markdown": "PASS: all 83 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
+    "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
+    "github_markdown": "PASS: all 97 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
     "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 27,564 performance tasks (P1=8,318, P2=720, S2=150 queries across three methods)",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
     "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 72 cells and 720 queries in a temporary directory; every query, group-id, selected-query JSON/CSV file was byte-identical, and cells.json was identical after removing only the two output-location fields",
-    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common-A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, exact auxiliary H(h) replacement for omitted D(h), top-only adjoint terminals, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts and source limitations as the code and machine manifests"
+    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts and source limitations as the code and machine manifests"
   },
   "configuration_inclusion_clarification_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#inclusion_clarification_gate_20260724",
@@ -185,9 +185,9 @@
   },
   "auxiliary_half_adjoint_gate": {
     "evidence": "docs/archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md",
-    "status": "CURRENT; exactness gates PASS, P1 and Orkut g15 hard performance gates pending",
-    "contract": "Enhanced materializes ordinary D through q=h-1; physical H starts at auxiliary h=floor(g/2), exactly realizes omitted D(h), and descends by the complement-transposed ordinary recurrence. Direct terminals exist only at H(h); direct D dominates pairs when ready and lower direct terminals are dominated by successor recurrence plus closure.",
-    "current_release_binary_sha256": "4b8f0338999173518bfe11a905ab63059d59490d8056e1a99873210283198a4a",
+    "status": "HISTORICAL prerequisite extended by the split-completeness, minimal-forward-A1 and incremental certificate-support gates; current exactness and q10 single-query gate PASS",
+    "contract": "Enhanced materializes ordinary D through q=h-1; physical H starts at auxiliary h=floor(g/2), exactly realizes omitted D(h), and descends by the complement-transposed ordinary recurrence. Every materialized lower-H target receives all necessary complete-D singleton/double terminals; successor reads all exact ordinary values; complementary auxiliary H completes the balanced even split.",
+    "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
     "compile_policy": "Release GCC flags end in -O2 with LTO, warnings enabled and no fast-math or floating-point precision change",
     "local_ctest": "5/5 PASS",
     "independent_exactness": "PASS: 5000 deterministic random connected cases g=2..10, 500 positive unique-terminal stress cases g=6..10, 160 omitted-half transpose cases g=7..16, and the fixed 12-vertex g=7 fixture with optimum 5.75; cumulative discovered states base=103878, directed-cut-only=31982, enhanced=33869",
@@ -206,18 +206,23 @@
       "enhanced": {"matches": "11/11", "solver_seconds": 4.578776, "states": 54477},
       "evidence_directory": "results/probes/auxiliary_half_current_steinlib"
     },
-    "strict_dominance": "PASS in exactness and state-domain gates: lower direct H terminals are removed; even-g direct D skips all dominated pairs; odd-g pair and complement-submask enumerators cover the same feasible seed set. A narrower canonical-branch physical implementation was rejected after exchanged-core A/B because it was slightly slower and materially harder to review.",
-    "orkut_g15_current": "PENDING: q1-q10 must be rerun from this binary with query_seconds < 10000 for every query; the old q10=9934.602789 seconds is risk evidence only",
-    "p1_current": "PENDING: rerun all 13 graphs and require per-query exactness plus fastest ABHSS aggregate no worse than PrunedDP++ on every graph",
-    "result": "EXACTNESS PASS; FINAL PERFORMANCE GATES PENDING"
+    "strict_dominance": "SUPERSEDED wording: removing all lower direct H terminals was incomplete. Current exactness requires the complete-D singleton/double terminals described by the active contract; only terms proved dominated under that complete seed set are omitted.",
+    "current_extensions": {
+      "minimal_forward_a1": {"evidence": "docs/archive/MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md", "contract": "ell=min(1,q); A1 is common and H realizes logical layers 2..q", "q10_checkpoint_seconds": 9431.057},
+      "incremental_certificate_support_dp": {"evidence": "docs/archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md", "contract": "dirty-supermask recomputation is value-equivalent to a full rebuild and leaves scheduler purchases unchanged", "q10_final_seconds": 9250.911428, "q10_final_states": 1459398194},
+      "p1_g5_g7_history_risk_sample": {"evidence": "docs/archive/P1_G5_G7_HISTORY_REGRESSION_PROBE_20260818.md", "records": 104, "objective_mismatches": 0, "scope": "13 deliberately weak/heavy queries; not a replacement for full P1", "known_regression": "Orkut g7 q175 Enhanced current/history time=1.035 and peak memory +16.0%"}
+    },
+    "orkut_g15_current": "PARTIAL PASS: solver-source commit 12d6adb q10 completed in 9250.911428 seconds with exact weight 54 and 1459398194 states; q1-q9 plus q10 as a frozen ten-query run remain pending",
+    "p1_current": "PENDING full rerun: the g=5/g=7 targeted history-risk sample has 104/104 successful records and zero objective mismatches, but Orkut g7 q175 Enhanced is 3.5% slower and 16.0% larger than 672bd25",
+    "result": "EXACTNESS AND FINAL-Q10 SINGLE GATE PASS; FULL P1 AND ORKUT Q1-Q10 PERFORMANCE GATES PENDING"
   },
   "known_optimum_panel": {
     "suite": "E0_steinlib_wrp",
     "instances": 11,
     "range_g": [11, 16],
     "results": {
-      "abhss_base": "11/11 match on current auxiliary-half binary",
-      "abhss_enhanced": "11/11 match on current auxiliary-half binary",
+      "abhss_base": "11/11 match in the current source exactness regression",
+      "abhss_enhanced": "11/11 match in the current source exactness regression",
       "pruneddp_safe": "11/11 match",
       "dpbf": "11/11 match",
       "scip_jack_7_0_3": "11/11 match",
