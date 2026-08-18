@@ -972,65 +972,117 @@ long long EstimateCertificateSupportDpWork(size_t support_vertices, int nonancho
     return SaturatingAdd(work, SaturatingMultiply(binary_subsets - 1, vertices));
 }
 
-double EvaluateCertificateSupport(const Problem& p)
+void CertificateSupportDpCache::PublishOrdinary(int mask)
 {
-    std::vector<int> vertices;
-    vertices.reserve(2 * p.certificate_support_edges.size());
-    for (int edge_id : p.certificate_support_edges)
+    if (mask > 0)
+        pending_masks_.push_back(mask);
+}
+
+void CertificateSupportDpCache::Reset()
+{
+    full_rebuild_required_ = true;
+    pending_masks_.clear();
+}
+
+void CertificateSupportDpCache::InitializeSupport()
+{
+    // 收集固定 certificate support 的去重顶点域；后续所有 DP 都使用这组局部编号。
+    vertices_.reserve(2 * problem_.certificate_support_edges.size());
+    for (int edge_id : problem_.certificate_support_edges)
     {
-        vertices.push_back(p.graph.edges[edge_id].u);
-        vertices.push_back(p.graph.edges[edge_id].v);
+        vertices_.push_back(problem_.graph.edges[edge_id].u);
+        vertices_.push_back(problem_.graph.edges[edge_id].v);
     }
-    std::sort(vertices.begin(), vertices.end());
-    vertices.erase(std::unique(vertices.begin(), vertices.end()), vertices.end());
-    if (vertices.empty())
-        return fp::kInf;
+    std::sort(vertices_.begin(), vertices_.end());
+    vertices_.erase(std::unique(vertices_.begin(), vertices_.end()), vertices_.end());
+    initialized_ = true;
+    if (vertices_.empty())
+        return;
 
     // lambda：把原图顶点映射到 certificate support 的连续局部编号。
     auto Index = [&](int vertex)
     {
-        const auto it = std::lower_bound(vertices.begin(), vertices.end(), vertex);
-        return it != vertices.end() && *it == vertex ? static_cast<int>(it - vertices.begin()) : -1;
+        const auto it = std::lower_bound(vertices_.begin(), vertices_.end(), vertex);
+        return it != vertices_.end() && *it == vertex ? static_cast<int>(it - vertices_.begin()) : -1;
     };
 
-    const int count = static_cast<int>(vertices.size());
-    std::vector<double> metric(static_cast<size_t>(count) * count, fp::kInf);
+    // 在 support 原边上建立局部邻接矩阵，再用 Floyd 得到只经过真实 support
+    // 路径的完备度量；证书不变时这张矩阵只构造一次。
+    const int count = static_cast<int>(vertices_.size());
+    metric_.assign(static_cast<size_t>(count) * count, fp::kInf);
     for (int i = 0; i < count; ++i)
-        metric[static_cast<size_t>(i) * count + i] = 0.0;
-    for (int edge_id : p.certificate_support_edges)
+        metric_[static_cast<size_t>(i) * count + i] = 0.0;
+    for (int edge_id : problem_.certificate_support_edges)
     {
-        const UndirectedEdge& edge = p.graph.edges[edge_id];
+        const UndirectedEdge& edge = problem_.graph.edges[edge_id];
         const int u = Index(edge.u);
         const int v = Index(edge.v);
-        metric[static_cast<size_t>(u) * count + v] = std::min(metric[static_cast<size_t>(u) * count + v], edge.w);
-        metric[static_cast<size_t>(v) * count + u] = std::min(metric[static_cast<size_t>(v) * count + u], edge.w);
+        metric_[static_cast<size_t>(u) * count + v] = std::min(metric_[static_cast<size_t>(u) * count + v], edge.w);
+        metric_[static_cast<size_t>(v) * count + u] = std::min(metric_[static_cast<size_t>(v) * count + u], edge.w);
     }
     for (int middle = 0; middle < count; ++middle)
         for (int from = 0; from < count; ++from)
         {
-            const double prefix = metric[static_cast<size_t>(from) * count + middle];
+            const double prefix = metric_[static_cast<size_t>(from) * count + middle];
             if (prefix >= fp::kInf)
                 continue;
             for (int to = 0; to < count; ++to)
-                metric[static_cast<size_t>(from) * count + to] = std::min(metric[static_cast<size_t>(from) * count + to], prefix + metric[static_cast<size_t>(middle) * count + to]);
+                metric_[static_cast<size_t>(from) * count + to] = std::min(metric_[static_cast<size_t>(from) * count + to], prefix + metric_[static_cast<size_t>(middle) * count + to]);
         }
 
-    std::vector<double> dp(static_cast<size_t>(p.subset_count) * count, fp::kInf);
-    std::vector<double> merged(count, fp::kInf);
-    std::vector<double> closed(count, fp::kInf);
-    for (int size = 1; size <= p.nonanchor_count; ++size)
-        for (int mask = 1; mask < p.subset_count; ++mask)
+    dp_.assign(static_cast<size_t>(problem_.subset_count) * count, fp::kInf);
+    merged_.resize(count);
+    closed_.resize(count);
+    dirty_.assign(problem_.subset_count, 0);
+}
+
+void CertificateSupportDpCache::MarkAllMasksDirty()
+{
+    std::fill(dirty_.begin(), dirty_.end(), 0);
+    for (int mask = 1; mask < problem_.subset_count; ++mask)
+        dirty_[mask] = 1;
+    pending_masks_.clear();
+    full_rebuild_required_ = false;
+}
+
+bool CertificateSupportDpCache::IsPublishedOrdinaryMask(int mask) const
+{
+    return mask > 0 && mask < problem_.subset_count && problem_.popcount[mask] > 1 && problem_.ordinary[mask].ready;
+}
+
+void CertificateSupportDpCache::MarkSupersetsDirty(int mask)
+{
+    const int remaining = problem_.full_mask ^ mask;
+    for (int extra = remaining;; extra = (extra - 1) & remaining)
+    {
+        dirty_[mask | extra] = 1;
+        if (!extra)
+            break;
+    }
+}
+
+void CertificateSupportDpCache::RecomputeDirtyMasks()
+{
+    const int count = static_cast<int>(vertices_.size());
+    // 按基数递增保证每个脏 mask 的真子集已经是当前版本；同基数继续保持旧
+    // evaluator 的数值 mask 次序，使所有浮点加法与比较顺序不变。
+    for (int size = 1; size <= problem_.nonanchor_count; ++size)
+        for (int mask = 1; mask < problem_.subset_count; ++mask)
         {
-            if (p.popcount[mask] != size)
+            if (problem_.popcount[mask] != size || !dirty_[mask])
                 continue;
+            ++last_recomputed_mask_count_;
+            const size_t offset = static_cast<size_t>(mask) * count;
+            // singleton 读取精确组距离；其余 mask 直接读取 ordinary 唯一真值，
+            // 未发布或被 refilter 为空的 row 由 RowValue 返回无穷。
             for (int i = 0; i < count; ++i)
             {
-                const int vertex = vertices[i];
                 if (size == 1)
-                    merged[i] = p.group_distance[p.bit_to_group[FirstBit(mask)]].value[vertex];
+                    merged_[i] = problem_.group_distance[problem_.bit_to_group[FirstBit(mask)]].value[vertices_[i]];
                 else
-                    merged[i] = p.ordinary[mask].ready ? RowValue(p.ordinary[mask], vertex) : fp::kInf;
+                    merged_[i] = RowValue(problem_.ordinary[mask], vertices_[i]);
             }
+            // 枚举与旧 evaluator 相同的规范同根拆分，固定最低 bit 消除左右对称。
             const int pivot = mask & -mask;
             for (int left = (mask - 1) & mask; left; left = (left - 1) & mask)
             {
@@ -1040,24 +1092,61 @@ double EvaluateCertificateSupport(const Problem& p)
                 const size_t left_offset = static_cast<size_t>(left) * count;
                 const size_t right_offset = static_cast<size_t>(right) * count;
                 for (int i = 0; i < count; ++i)
-                    merged[i] = std::min(merged[i], dp[left_offset + i] + dp[right_offset + i]);
+                    merged_[i] = std::min(merged_[i], dp_[left_offset + i] + dp_[right_offset + i]);
             }
-            std::fill(closed.begin(), closed.end(), fp::kInf);
+            // 把同根合并值沿固定 support metric 闭包到每个可选根。
+            std::fill(closed_.begin(), closed_.end(), fp::kInf);
             for (int root = 0; root < count; ++root)
                 for (int branch = 0; branch < count; ++branch)
-                    closed[root] = std::min(closed[root], merged[branch] + metric[static_cast<size_t>(branch) * count + root]);
-            std::copy(closed.begin(), closed.end(), dp.begin() + static_cast<size_t>(mask) * count);
+                    closed_[root] = std::min(closed_[root], merged_[branch] + metric_[static_cast<size_t>(branch) * count + root]);
+            std::copy(closed_.begin(), closed_.end(), dp_.begin() + offset);
+            dirty_[mask] = 0;
         }
+}
 
-    double best = fp::kInf;
-    const size_t full_offset = static_cast<size_t>(p.full_mask) * count;
-    for (int terminal : p.query.groups[p.anchor_group])
+double CertificateSupportDpCache::Evaluate()
+{
+    // 第一次购买建立固定 support metric 与 DP 工作区；空 support 没有可行上界。
+    if (!initialized_)
+        InitializeSupport();
+    if (vertices_.empty())
+        return fp::kInf;
+    last_evaluation_was_full_ = full_rebuild_required_;
+    last_published_mask_count_ = pending_masks_.size();
+    last_activated_mask_count_ = 0;
+    last_recomputed_mask_count_ = 0;
+    // 首次购买/refilter 后重算全部 mask；普通购买只失效新 direct seed 的超集。
+    if (full_rebuild_required_)
+        MarkAllMasksDirty();
+    else
     {
-        const int index = Index(terminal);
-        if (index >= 0)
-            best = std::min(best, dp[full_offset + index]);
+        for (int mask : pending_masks_)
+            if (IsPublishedOrdinaryMask(mask))
+            {
+                ++last_activated_mask_count_;
+                MarkSupersetsDirty(mask);
+            }
+        pending_masks_.clear();
+    }
+    RecomputeDirtyMasks();
+
+    // 只在 support 内真实锚组终端读取 full mask，保持旧 evaluator 的上界语义。
+    double best = fp::kInf;
+    const int count = static_cast<int>(vertices_.size());
+    const size_t full_offset = static_cast<size_t>(problem_.full_mask) * count;
+    for (int terminal : problem_.query.groups[problem_.anchor_group])
+    {
+        const auto it = std::lower_bound(vertices_.begin(), vertices_.end(), terminal);
+        if (it != vertices_.end() && *it == terminal)
+            best = std::min(best, dp_[full_offset + static_cast<size_t>(it - vertices_.begin())]);
     }
     return best;
+}
+
+double EvaluateCertificateSupport(const Problem& p)
+{
+    CertificateSupportDpCache cache(p);
+    return cache.Evaluate();
 }
 
 /**

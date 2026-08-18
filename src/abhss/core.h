@@ -114,14 +114,21 @@ class WitnessUpperScheduler
 {
 public:
     explicit WitnessUpperScheduler(Problem& problem);
+    ~WitnessUpperScheduler();
 
     /**
      * @brief 累加一段实际工作，并在满足共同阈值时购买树 DP。
-     * @param ordinary_changed 本段结束时是否有新的 ordinary DP row 可用；
-     *        A1 传 false，D row 完成后传 true。
+     * @param ordinary_changed 本段结束时是否发布了新的 ordinary row；A1 传 false。
      * @return 本次购买是否严格收紧 incumbent；A1 据此安全重启整轮。
      */
     bool Account(long long row_work, bool ordinary_changed);
+
+    /** @brief DirectedCut 配置把新 ordinary mask 交给 support-DP；Base 不调用。 */
+    void PublishOrdinaryMask(int mask)
+    {
+        if (support_dp_)
+            support_dp_->PublishOrdinary(mask);
+    }
 
     long long BuyWork() const { return buy_; }
     long long RentWork() const { return rent_; }
@@ -145,6 +152,7 @@ private:
     int evaluated_revision_ = -1;
     int evaluation_count_ = 0;
     bool enabled_ = false;
+    std::unique_ptr<CertificateSupportDpCache> support_dp_;
 };
 
 /**

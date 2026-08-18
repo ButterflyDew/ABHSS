@@ -385,6 +385,56 @@ double EvaluateWitnessTree(const WitnessTree& tree,
 /** @brief 估计一次证书支持图 subset DP 的结构工作量。 */
 long long EstimateCertificateSupportDpWork(std::size_t support_vertices,
                                            int nonanchor_count);
+/**
+ * @brief 持久维护 certificate-support subset DP，并只重算新 ordinary 输入的超集。
+ *
+ * 第一次求值与旧全量 evaluator 逐项相同；以后新发布 D(M) 只可能改变包含 M
+ * 的 support DP mask。ordinary row 本身是 direct seed 的唯一真值，不复制第二张
+ * mask-vertex 表。证书升级重滤 ordinary 后调用 Reset，使下一次购买保守地全表
+ * 重建。该缓存不改变 scheduler 的 rent、buy 或购买位置。
+ */
+class CertificateSupportDpCache
+{
+public:
+    explicit CertificateSupportDpCache(const Problem& problem) : problem_(problem) {}
+
+    /** @brief 登记一张新发布的 ordinary row；实际投影延迟到下一次购买。 */
+    void PublishOrdinary(int mask);
+    /** @brief ordinary 被重滤后令下一次购买重建全表。 */
+    void Reset();
+    /** @brief 返回与当前全部已发布 ordinary 完全一致的 support 可行上界。 */
+    double Evaluate();
+    /** @brief 返回最近一次求值是否因首次购买或 refilter 执行了全表重建。 */
+    bool LastEvaluationWasFull() const { return last_evaluation_was_full_; }
+    /** @brief 返回最近一次求值前收到的新 ordinary mask 数。 */
+    std::size_t LastPublishedMaskCount() const { return last_published_mask_count_; }
+    /** @brief 返回最近一次被接纳为新 direct seed 的 ordinary mask 数。 */
+    std::size_t LastActivatedMaskCount() const { return last_activated_mask_count_; }
+    /** @brief 返回最近一次实际重算的 support-DP mask 数。 */
+    std::size_t LastRecomputedMaskCount() const { return last_recomputed_mask_count_; }
+
+private:
+    void InitializeSupport();
+    void MarkAllMasksDirty();
+    bool IsPublishedOrdinaryMask(int mask) const;
+    void MarkSupersetsDirty(int mask);
+    void RecomputeDirtyMasks();
+
+    const Problem& problem_;
+    std::vector<int> vertices_;
+    std::vector<double> metric_;
+    std::vector<double> dp_;
+    std::vector<double> merged_;
+    std::vector<double> closed_;
+    std::vector<unsigned char> dirty_;
+    std::vector<int> pending_masks_;
+    bool initialized_ = false;
+    bool full_rebuild_required_ = true;
+    bool last_evaluation_was_full_ = false;
+    std::size_t last_published_mask_count_ = 0;
+    std::size_t last_activated_mask_count_ = 0;
+    std::size_t last_recomputed_mask_count_ = 0;
+};
 /** @brief 在 closure primal 与路径 witness 的并图上组合 ordinary 子解。 */
 double EvaluateCertificateSupport(const Problem& problem);
 /** @brief 在 dual primal 设施点上构造 residual-support 度量并做 subset DP 上界。 */

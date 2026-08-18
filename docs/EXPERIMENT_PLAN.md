@@ -340,7 +340,17 @@ SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命
 
 最终候选通过 Release 全构建、5/5 CTest、显式 $g=2,3$ 共同闭包回归、逐弧 residual 复算和 15/15 GitHub Markdown 校验。完整机器信息、二进制/源文件 SHA-256、RSS 和被否决中间态记录在 [`p1_local_optimization_probe_20260729.json`](../experiments/p1_local_optimization_probe_20260729.json)。下一步必须在正式 Linux 服务器上重新构建，并全量运行 P1 的 13 图、8,318 条查询；只有服务器结果才能回答“13 图中是否仍存在 PrunedDP++ 同时快于 Base 与 Enhanced”的论文底线。
 
-### 7.6 Linux 编译与服务器锁定
+### 7.6 Certificate-support 增量求值门
+
+Orkut P2 `g=15` 新增面板 q10 是当前已知最重的自然完成查询之一。旧版提交 `6593b0d` 的诊断二进制在固定 CPU 5 上用 9395.877740 秒完成；保持调度、状态搜索和浮点语义不变，仅把同一 support 上反复全量重建的 subset DP 改为脏超集增量求值后，诊断候选用 9250.911428 秒完成，节省 144.966312 秒，且权值 54 与 1,459,398,194 个 `(mask,v)` 状态完全一致。查询内存峰值从 18,305.211 MiB 增到 18,318.242 MiB，即增加 13.031 MiB；这是持久保存 $O(2^k s)$ DP 表的预期代价。该查询没有超过 10,000 秒，余量为 749.089 秒。两次长跑都开启了稀疏诊断，故这里只作为同诊断口径的机制门禁，不替代无诊断正式 P2 计时。
+
+494 次 support 购买中有 2 次因首次购买或 refilter 全量重建，492 次走增量路径。旧版等价地处理 8,093,202 个 mask，新版实际重算 1,374,856 个，即 16.988%；剔除相同的约 144.8 秒 ordinary refilter 后，support evaluator 本体约由 255.806 秒降到 60.769 秒。整条查询只获得 1.57% 加速，是因为 ordinary 搜索仍占约 6529.6 秒、adjoint 仍占约 2442.6 秒；不能把局部 evaluator 的 4.21 倍写成端到端加速。
+
+P1 非退化门覆盖 Musae `g=7` 全 300 条和 Orkut `g=7` 固定 q175。Enhanced 的 Musae 总时为 22.195592 -> 22.021389 秒；Orkut 两轮合计为 392.950553 -> 391.618166 秒。最终生产二进制再次运行 Orkut q175 得到 197.194998 -> 197.392606 秒，即 0.10% 的中性波动；权值、状态数逐项相同，查询峰值还少 0.387 MiB。Base 在编译期不含 support-mask 通知；Musae 与 Orkut 的正负约 1% 顺序波动没有稳定方向，答案、状态和内存不变。该门因此只证明新增缓存对 P1 无可识别退化、对重 support 购买查询确有端到端收益，不替代正式 P1/P2 汇总。
+
+诊断构建在长查询运行途中逐次输出 `support_dp_full` 或 `support_dp_incremental`，并记录 `evaluation`、`published_masks`、`activated_masks`、`recomputed_masks`；`ordinary_row` 与 `ordinary_layer` 还记录从 ordinary 开始的累计秒数，`witness_buy`、`witness_refilter` 和 `adjoint_layer` 事件同时给出当前 `best`、行数、标量数、工作量与局部阶段秒数。下一次自然完成长跑必须保留这些日志，不能只留下最终 `weights.txt`。完整二进制身份、阶段分解、正确性论证和被否决复杂化见 [`archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md`](archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md)。
+
+### 7.7 Linux 编译与服务器锁定
 
 正式服务器推荐用顶层 GNU `Makefile`：`make release JOBS=<physical-core-count>` 完成 Release 配置、当前可用 target 编译和 CTest；`make validate-paper-binaries` 只要求两个正式性能二进制 `abhss`/`pruneddp`，`make validate-all-binaries` 才要求已恢复的 Basic+/SCIP-Jack。CMake 禁用 compiler extensions，在工具链支持时对正式本地 target 统一开启 Release IPO/LTO，并在 GCC 9/10 没有可链接浮点 `from_chars` 时自动回退 `strtod`。
 

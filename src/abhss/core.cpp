@@ -122,6 +122,8 @@ WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
                ? EstimateWitnessTreeDpWork(problem_.witness_tree.vertex.size(), problem_.nonanchor_count)
                : EstimateCertificateSupportDpWork(problem_.certificate_support_vertex_count, problem_.nonanchor_count);
     enabled_ = buy_ > 0;
+    if (!problem_.certificate_support_edges.empty())
+        support_dp_ = std::make_unique<CertificateSupportDpCache>(problem_);
     // 诊断构建把共同零起点与 buy 写入事件；正式构建会在编译期消除。
     EmitAbhssProbe(
         ProbeFamilyMethod(problem_),
@@ -132,6 +134,8 @@ WitnessUpperScheduler::WitnessUpperScheduler(Problem& problem)
         -1,
         buy_);
 }
+
+WitnessUpperScheduler::~WitnessUpperScheduler() = default;
 
 bool WitnessUpperScheduler::Account(long long row_work, bool ordinary_changed)
 {
@@ -155,6 +159,8 @@ bool WitnessUpperScheduler::Account(long long row_work, bool ordinary_changed)
     {
         ProbeTimer refilter_timer;
         const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
+        if (support_dp_)
+            support_dp_->Reset();
         EmitAbhssProbe(ProbeFamilyMethod(problem_), "witness_refilter", problem_, refilter_timer.Seconds(), &problem_.ordinary, evaluation_count_ + 1, removed);
     }
     purchased_rent_ = paid_rent >= std::numeric_limits<long long>::max() - purchased_rent_
@@ -194,7 +200,8 @@ void WitnessUpperScheduler::Evaluate()
 {
     if (!problem_.certificate_support_edges.empty())
     {
-        problem_.best = std::min(problem_.best, EvaluateCertificateSupport(problem_));
+        problem_.best = std::min(problem_.best, support_dp_->Evaluate());
+        EmitCertificateSupportDpProbe(ProbeFamilyMethod(problem_), problem_, evaluation_count_ + 1, *support_dp_);
         return;
     }
     problem_.best = std::min(
@@ -211,6 +218,9 @@ void WitnessUpperScheduler::RefreshCertificate()
     rent_ = 0;
     evaluated_revision_ = ordinary_revision_;
     enabled_ = buy_ > 0;
+    support_dp_ = problem_.certificate_support_edges.empty()
+                      ? nullptr
+                      : std::make_unique<CertificateSupportDpCache>(problem_);
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "certificate_refresh", problem_, -1.0, &problem_.ordinary, evaluation_count_, buy_);
 }
 
@@ -797,6 +807,9 @@ void BuildOrdinaryRowsImpl(Problem& p,
                            ResidualClosureScheduler& closure_scheduler,
                            int last_layer)
 {
+    // 诊断构建为超长询问输出 ordinary 内累计进度；正式构建中计时器为空对象，
+    // Seconds 固定返回 -1，EmitAbhssProbe 也编译为空，不进入论文计时路径。
+    ProbeTimer ordinary_progress_timer;
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> split(p.graph.n + 1, fp::kInf);
     std::vector<double> bound_cache(p.graph.n + 1);
@@ -1172,10 +1185,12 @@ void BuildOrdinaryRowsImpl(Problem& p,
             p.AccountMaskVertexStates(touched.size());
 
             layer_work += row_work;
+            if constexpr (kStagedCertificateCache)
+                witness_scheduler.PublishOrdinaryMask(mask);
             witness_scheduler.Account(row_work, true);
             if (closure_scheduler.Account(row_work, static_cast<long long>(row.vertex.size())))
                 witness_scheduler.RefreshCertificate();
-            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_row", p, -1.0, nullptr, size, row_work);
+            EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_row", p, ordinary_progress_timer.Seconds(), nullptr, size, row_work);
 
             if (size == p.half)
             {
@@ -1228,7 +1243,7 @@ void BuildOrdinaryRowsImpl(Problem& p,
         EmitAbhssProbe(ProbeFamilyMethod(p),
                        "ordinary_layer",
                        p,
-                       -1.0,
+                       ordinary_progress_timer.Seconds(),
                        &p.ordinary,
                        size,
                        layer_work);

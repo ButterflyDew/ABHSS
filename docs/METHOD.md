@@ -490,7 +490,27 @@ s\frac{3^k-2^{k+1}+1}{2}
 +(2^k-1)s^2+s^3+(2^k-1)s.
 ```
 
-每一项分别对应非平凡规范拆分、各 mask 的 metric 闭包、Floyd 和初值写入。调度器只在证书真正替换后清零 rent、锁定当前 ordinary 修订并切换到这个公式；下一张 D row 提供新输入后才能再次购买。形式化地，support Floyd 的每个有限 metric 都对应 support 内一条真实原图路径；DP 初值要么是精确 singleton 路径，要么是已经可展开的 rooted D 子树；同根合并取连通并，metric 闭包再接一条真实 support 路径。归纳可得每个有限 DP 项都是连通真实子图，最终只在 support 中的锚组终端读取 full mask。因此 `EvaluateCertificateSupport` 仍然只是安全增加的可行上界。路径证书本身已直接写入 `best`；代码不再把同一批路径边额外重建成无人消费的 `witness_tree`，后续 evaluator 只读取路径边与 primal 边的并图。它不是 Base 初始 witness 的另一套隐式规则，也不改变 A1 或 ordinary 的状态语义。
+每一项分别对应非平凡规范拆分、各 mask 的 metric 闭包、Floyd 和初值写入。调度器只在证书真正替换后清零 rent、锁定当前 ordinary 修订并切换到这个公式；下一张 D row 提供新输入后才能再次购买。形式化地，support Floyd 的每个有限 metric 都对应 support 内一条真实原图路径；DP 初值要么是精确 singleton 路径，要么是已经可展开的 rooted D 子树；同根合并取连通并，metric 闭包再接一条真实 support 路径。归纳可得每个有限 DP 项都是连通真实子图，最终只在 support 中的锚组终端读取 full mask。因此 support evaluator 仍然只是安全增加的可行上界。路径证书本身已直接写入 `best`；代码不再把同一批路径边额外重建成无人消费的 `witness_tree`，后续 evaluator 只读取路径边与 primal 边的并图。它不是 Base 初始 witness 的另一套隐式规则，也不改变 A1 或 ordinary 的状态语义。
+
+第一次 support 购买由 `CertificateSupportDpCache` 执行上述完整 evaluator，并持久保存固定 support 上的 Floyd metric 与全部 subset-DP 值。设两次购买之间新发布的 ordinary mask 集合为 $P$，需要失效的 mask 域定义为：
+
+```math
+\mathcal U(P)=\{X\mid \exists M\in P,\ M\subseteq X\}.
+```
+
+一张新 $D(M)$ 只改变 mask $M$ 的 direct seed。若 $X\notin\mathcal U(P)$，则 $X$ 的 direct seed 未变；其任意规范拆分 $L\mathbin{\dot\cup}R=X$ 也不可能含有某个 $M\in P$，否则 $M\subseteq L\subseteq X$ 或 $M\subseteq R\subseteq X$ 会与假设矛盾。按基数归纳，所有 split 子项、同根合并值与固定 metric 闭包都不变。因此只要按基数递增重算 $\mathcal U(P)$，所得全表与从当前 ordinary 输入独立全量重建逐项相同。实现仍使用原来的数值 submask 枚举和 `double` 运算，不压缩精度，也不改变候选次序。
+
+若一次购买收紧 incumbent，已有 D 会被 destructive refilter；此时某些旧 direct seed 可能增加为无穷，不能仅按“新发布”处理，所以 `Reset` 强制下一次购买全表重建。若 residual closure 产生不同 support，`RefreshCertificate` 丢弃整个旧缓存并重建 metric。由此，缓存只消除相同 support、相同旧输入上的重复前缀，不依赖经验阈值、图名、 $g$ 分段或运行时间。调度器仍按完整的 $B_{\mathrm{sup}}$ 支付 buy，因此 rent、购买位置与 refilter 时点均与未缓存版本一致。
+
+完整购买的最坏时间和空间分别为：
+
+```math
+O\!\left(s^3+2^k s^2+3^k s\right)
+\quad\text{和}\quad
+O\!\left(s^2+2^k s\right).
+```
+
+增量购买另用 $O(2^k)$ dirty 标记；标记新 mask $M$ 的全部超集耗时 $O(2^{k-\lvert M\rvert})$，之后只对脏 mask 执行原递推。最坏情况下脏域仍是全部 mask，所以渐近上界不变；常见的后续购买只发布少量较大 mask，实际重算域显著变小。DP 从购买期间的临时对象变成 scheduler 生命周期内的持久对象，不增加峰值渐近空间，但会让这部分空间在两次购买之间继续存活。Base 不会产生 support 证书，其 `BuildOrdinaryRowsImpl<false>` 在编译期不含 ordinary-mask 发布操作；这是 DirectedCut 安全新增证书内部的等价求值优化，不是 Base/Enhanced 的同职责替换。
 
 ### 8.3 从共同零点连续累计 A1 与 D 的 rent
 
@@ -500,7 +520,7 @@ s\frac{3^k-2^{k+1}+1}{2}
 R\leftarrow R+W.
 ```
 
-初始证书下，当 $R\ge B_{\mathrm{wit}}$ 且树 DP 的输入修订相对上次购买已经变化时，调度器调用同一个 `EvaluateWitnessTree`，用返回的真实可行值收紧 `best`，随后令 $R=0$。第一次购买允许只使用隐式 singleton；此后每完成一张 ordinary row 都推进输入修订。若 residual closure 后切换为 support 证书，阈值改为 $B_{\mathrm{sup}}$，消费函数改为 `EvaluateCertificateSupport`，但“必须有新 ordinary 修订”与 rent 清零规则不变。若尚未有新 ordinary 信息，即使 rent 再次达到阈值也只保留累计值，等下一张 D row `ready` 后再购买，避免对完全相同的 DP 输入重复求值。
+初始证书下，当 $R\ge B_{\mathrm{wit}}$ 且树 DP 的输入修订相对上次购买已经变化时，调度器调用同一个 `EvaluateWitnessTree`，用返回的真实可行值收紧 `best`，随后令 $R=0$。第一次购买允许只使用隐式 singleton；此后每完成一张 ordinary row 都推进输入修订。若 residual closure 后切换为 support 证书，阈值改为 $B_{\mathrm{sup}}$，消费入口改为 `CertificateSupportDpCache::Evaluate`，但“必须有新 ordinary 修订”与 rent 清零规则不变。若尚未有新 ordinary 信息，即使 rent 再次达到阈值也只保留累计值，等下一张 D row `ready` 后再购买，避免对完全相同的 DP 输入重复求值。
 
 A1 结束时未消费的 rent 不清零，而是交给 D 继续累计；D 也不创建第二个调度器。这样 Base 与 Enhanced 的差异只剩 witness 大小及条件式树 DP 本身可能得到的上界强弱，不存在“Base 先无条件购买、Enhanced 不购买”的不对称路径。
 

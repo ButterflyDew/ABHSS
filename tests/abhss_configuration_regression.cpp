@@ -699,6 +699,98 @@ void CheckRowValueIntersectionTraversal()
     Check(dense, {64});
 }
 
+/** @brief 核对持久 support-DP 在逐批发布 ordinary row 后始终等于独立全量重算。 */
+void CheckIncrementalCertificateSupportDp()
+{
+    using gst::methods::abhss::SolveOptions;
+    using gst::methods::abhss::internal::CertificateSupportDpCache;
+    using gst::methods::abhss::internal::EvaluateCertificateSupport;
+    using gst::methods::abhss::internal::Problem;
+
+    gst::Graph graph;
+    graph.n = 6;
+    graph.adj.assign(7, {});
+    AddEdge(graph, 1, 2, 1.0);
+    AddEdge(graph, 2, 3, 1.5);
+    AddEdge(graph, 3, 4, 0.5);
+    AddEdge(graph, 4, 5, 2.0);
+    AddEdge(graph, 5, 6, 1.0);
+    AddEdge(graph, 1, 6, 4.0);
+    AddEdge(graph, 2, 5, 2.5);
+
+    gst::Query query;
+    query.groups = {{1}, {2}, {4}, {5}, {1, 6}};
+    Problem problem(graph, query, SolveOptions::Enhanced());
+    problem.nonanchor_count = 4;
+    problem.subset_count = 16;
+    problem.full_mask = 15;
+    problem.anchor_group = 4;
+    problem.bit_to_group = {0, 1, 2, 3};
+    problem.popcount.resize(problem.subset_count);
+    for (int mask = 1; mask < problem.subset_count; ++mask)
+        problem.popcount[mask] = problem.popcount[mask >> 1] + (mask & 1);
+
+    problem.group_distance.resize(query.groups.size());
+    for (int group = 0; group < 4; ++group)
+    {
+        auto& row = problem.group_distance[group];
+        row.value.resize(graph.n + 1);
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            row.value[vertex] = 0.25 * ((group + 2) * vertex % 9);
+    }
+    problem.ordinary.resize(problem.subset_count);
+    problem.certificate_support_vertex_count = graph.n;
+    for (const gst::UndirectedEdge& edge : graph.edges)
+        problem.certificate_support_edges.push_back(edge.id);
+
+    CertificateSupportDpCache cache(problem);
+    // lambda：每一批发布后把持久表与一个新建的独立全量 evaluator 精确比较。
+    auto CheckSame = [&]()
+    {
+        const double incremental = cache.Evaluate();
+        const double rebuilt = EvaluateCertificateSupport(problem);
+        if (incremental != rebuilt)
+            throw std::runtime_error("incremental certificate-support DP differs from a full rebuild");
+    };
+    // lambda：构造一张确定性稀疏 ordinary row，并按真实生命周期通知缓存。
+    auto Publish = [&](int mask)
+    {
+        auto& row = problem.ordinary[mask];
+        row.ready = true;
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            if ((vertex + mask) % 3)
+            {
+                row.vertex.push_back(vertex);
+                row.value.push_back(0.125 * (mask + 2 * vertex));
+            }
+        cache.PublishOrdinary(mask);
+    };
+
+    CheckSame();
+    Publish(3);
+    Publish(5);
+    CheckSame();
+    Publish(6);
+    Publish(9);
+    Publish(10);
+    Publish(12);
+    CheckSame();
+    Publish(7);
+    Publish(11);
+    Publish(13);
+    Publish(14);
+    Publish(15);
+    CheckSame();
+
+    // 模拟上界收紧后的 destructive refilter：删除已有值后必须走保守全量重建。
+    problem.ordinary[7].vertex.resize(2);
+    problem.ordinary[7].value.resize(2);
+    problem.ordinary[11].vertex.clear();
+    problem.ordinary[11].value.clear();
+    cache.Reset();
+    CheckSame();
+}
+
 }  // namespace
 
 /** @brief 运行入口契约、层计划不变量及 g=2..10 的确定性随机精确性实例。 */
@@ -707,6 +799,7 @@ int main()
     CheckAuxiliaryHalfAdjointRegression();
     CheckAnchoredSingletonMaterializationEquivalence();
     CheckRowValueIntersectionTraversal();
+    CheckIncrementalCertificateSupportDp();
 
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
     // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。

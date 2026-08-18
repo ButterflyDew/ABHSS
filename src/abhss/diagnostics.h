@@ -111,6 +111,26 @@ inline void EmitAbhssProbe(const char* method,
 #endif
 }
 
+/** @brief 记录一次 certificate-support DP 购买实际触及的增量域。 */
+inline void EmitCertificateSupportDpProbe(const char* method, const Problem& problem, int evaluation, const CertificateSupportDpCache& cache)
+{
+#if defined(GST_ENABLE_PROBE_DIAGNOSTICS)
+    if (!gst::ProbeDiagnosticsEnabled())
+        return;
+    std::ostringstream out;
+    out << "method=" << method << " phase=support_dp_" << (cache.LastEvaluationWasFull() ? "full" : "incremental")
+        << " g=" << problem.g << " best=" << problem.best << " evaluation=" << evaluation
+        << " published_masks=" << cache.LastPublishedMaskCount() << " activated_masks=" << cache.LastActivatedMaskCount()
+        << " recomputed_masks=" << cache.LastRecomputedMaskCount();
+    gst::EmitProbeDiagnostic(out.str());
+#else
+    (void)method;
+    (void)problem;
+    (void)evaluation;
+    (void)cache;
+#endif
+}
+
 }  // namespace gst::methods::abhss::internal
 
 #endif  // ABHSS_DIAGNOSTICS_H
