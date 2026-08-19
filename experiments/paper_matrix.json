@@ -7,16 +7,24 @@
   "method_switching": "forbidden; ABHSS configuration is frozen before a query batch; base and enhanced invoke the same executable and no per-query oracle is allowed",
   "abhss_configuration_chain": {
     "base": [],
-    "directed_cut_only": ["directed-cut"],
-    "enhanced": ["directed-cut", "adjoint-completion"],
+    "directed_cut_only": [
+      "directed-cut"
+    ],
+    "enhanced": [
+      "directed-cut",
+      "adjoint-completion"
+    ],
     "dependency": "adjoint-completion requires directed-cut",
-    "formal_configurations": ["base", "enhanced"]
+    "formal_configurations": [
+      "base",
+      "enhanced"
+    ]
   },
   "timeout_seconds": 10000,
   "graph_load_timeout_seconds": 1800,
   "primary_design": {
     "P1": "all queries on the five MonoGST+ and eight GPU4GST author workloads; the two DBLP graphs remain distinct; report one aggregate row per graph rather than per g",
-    "P2": "cross-g study for g=5..16 on two small, two medium and two large GPU4GST graphs; five input-stratified queries per graph/g cell",
+    "P2": "cross-g study for g=5..15 on two small, two medium and two large GPU4GST graphs; ten input-stratified queries per graph/g cell in two five-query tranches",
     "S2": "secondary controlled <g,f> study on DBLP-MonoGSTPlus and IMDb-latest-20260722; g in {6,10,14}, f in {200,400,800,1600,3200}, five MonoGST+-protocol queries per cell"
   },
   "methods": {
@@ -26,22 +34,38 @@
       "configuration": "base",
       "enabled_enhancements": [],
       "executable": "build/abhss",
-      "fallback_executables": ["build/abhss.exe", "build/Release/abhss.exe"],
-      "arguments": ["--enhancements=none"]
+      "fallback_executables": [
+        "build/abhss.exe",
+        "build/Release/abhss.exe"
+      ],
+      "arguments": [
+        "--enhancements=none"
+      ]
     },
     "abhss_enhanced": {
       "kind": "native",
       "algorithm_family": "ABHSS",
       "configuration": "enhanced",
-      "enabled_enhancements": ["directed-cut", "adjoint-completion"],
+      "enabled_enhancements": [
+        "directed-cut",
+        "adjoint-completion"
+      ],
       "executable": "build/abhss",
-      "fallback_executables": ["build/abhss.exe", "build/Release/abhss.exe"],
-      "arguments": ["--enhancements=all"]
+      "fallback_executables": [
+        "build/abhss.exe",
+        "build/Release/abhss.exe"
+      ],
+      "arguments": [
+        "--enhancements=all"
+      ]
     },
     "pruneddp_safe": {
       "kind": "native",
       "executable": "build/pruneddp",
-      "fallback_executables": ["build/pruneddp.exe", "build/Release/pruneddp.exe"],
+      "fallback_executables": [
+        "build/pruneddp.exe",
+        "build/Release/pruneddp.exe"
+      ],
       "arguments": [
         "--state-storage=hash",
         "--mst-upper=on",
@@ -52,14 +76,20 @@
       "kind": "native",
       "correctness_only": true,
       "executable": "build/dpbf",
-      "fallback_executables": ["build/dpbf.exe", "build/Release/dpbf.exe"],
+      "fallback_executables": [
+        "build/dpbf.exe",
+        "build/Release/dpbf.exe"
+      ],
       "arguments": []
     },
     "basic_plus_upstream": {
       "kind": "native",
       "correctness_only": true,
       "executable": "build/basic_plus",
-      "fallback_executables": ["build/basic_plus.exe", "build/Release/basic_plus.exe"],
+      "fallback_executables": [
+        "build/basic_plus.exe",
+        "build/Release/basic_plus.exe"
+      ],
       "arguments": [],
       "max_g": 14
     },
@@ -87,7 +117,12 @@
       "id": "S0_smoke",
       "paper_role": "gate",
       "role": "engineering smoke test, not a paper result",
-      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe", "dpbf"],
+      "methods": [
+        "abhss_base",
+        "abhss_enhanced",
+        "pruneddp_safe",
+        "dpbf"
+      ],
       "cases": [
         {
           "id": "S0_smoke__example",
@@ -110,60 +145,97 @@
         "scip_jack_7_0_3"
       ],
       "manifest": "experiment_data/steinlib/index.json",
-      "filter": {"converted": true},
+      "filter": {
+        "converted": true
+      },
       "graph_template": "experiment_data/steinlib/{name}",
       "query_template": "experiment_data/steinlib/{name}/query.txt",
       "stp_field": "source_file",
-      "id_fields": ["name"]
+      "id_fields": [
+        "name"
+      ]
     },
     {
       "id": "P1_monogstplus_published",
       "paper_role": "primary-1",
       "role": "all five MonoGST+ author graphs and every author-used query",
-      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "methods": [
+        "abhss_base",
+        "abhss_enhanced",
+        "pruneddp_safe"
+      ],
       "manifest": "experiment_data/p1_published_workloads/manifest.json",
       "manifest_key": "cases",
-      "filter": {"source_family": "MonoGSTPlus"},
+      "filter": {
+        "source_family": "MonoGSTPlus"
+      },
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "query_block"]
+      "id_fields": [
+        "dataset",
+        "query_block"
+      ]
     },
     {
       "id": "P1_gpu4gst_published",
       "paper_role": "primary-1",
       "role": "all eight GPU4GST author graphs and all 300 author queries at each of g=3,5,7",
-      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "methods": [
+        "abhss_base",
+        "abhss_enhanced",
+        "pruneddp_safe"
+      ],
       "manifest": "experiment_data/p1_published_workloads/manifest.json",
       "manifest_key": "cases",
-      "filter": {"source_family": "GPU4GST"},
+      "filter": {
+        "source_family": "GPU4GST"
+      },
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "query_block"]
+      "id_fields": [
+        "dataset",
+        "query_block"
+      ]
     },
     {
       "id": "P2_cross_g",
       "paper_role": "primary-2",
-      "role": "g=5..16 on two small, two medium and two large author graphs",
-      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "role": "g=5..15 on two small, two medium and two large author graphs",
+      "methods": [
+        "abhss_base",
+        "abhss_enhanced",
+        "pruneddp_safe"
+      ],
       "manifest": "experiment_data/p2_cross_g/cells.json",
       "graph_field": "graph_path",
       "query_field": "panel_query_path",
-      "id_fields": ["dataset", "g"]
+      "id_fields": [
+        "dataset",
+        "g"
+      ]
     },
     {
       "id": "S2_controlled_gf",
       "paper_role": "secondary",
       "role": "controlled MonoGST+-protocol <g,f> sensitivity on DBLP and latest IMDb",
-      "methods": ["abhss_base", "abhss_enhanced", "pruneddp_safe"],
+      "methods": [
+        "abhss_base",
+        "abhss_enhanced",
+        "pruneddp_safe"
+      ],
       "manifest": "experiment_data/s1_controlled_gf/cells.json",
       "graph_field": "graph_path",
       "query_field": "query_path",
-      "id_fields": ["dataset", "g", "f_target"]
+      "id_fields": [
+        "dataset",
+        "g",
+        "f_target"
+      ]
     }
   ],
   "excluded_from_formal_matrix": [
     "the retired official-latest A/B/C workload",
-    "ablations until a later preregistered design is approved",
+    "ablations, which are preregistered separately in experiments/ablation_plan.json and are not main-matrix methods",
     "approximation-only quality comparisons until a later preregistered design is approved",
     "GPU or heterogeneous timing comparisons"
   ]

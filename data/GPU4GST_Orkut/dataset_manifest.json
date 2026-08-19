@@ -19,8 +19,7 @@
     {"g": 12, "seed": 12446855612869277564, "min_bfs_depth": 1, "max_bfs_depth": 2, "mean_bfs_depth": 1.16333, "insufficient_root_rejections": 28, "infeasible_query_rejections": 0},
     {"g": 13, "seed": 7606490577516468862, "min_bfs_depth": 1, "max_bfs_depth": 6, "mean_bfs_depth": 1.25, "insufficient_root_rejections": 34, "infeasible_query_rejections": 0},
     {"g": 14, "seed": 15620050075351917584, "min_bfs_depth": 1, "max_bfs_depth": 3, "mean_bfs_depth": 1.22667, "insufficient_root_rejections": 32, "infeasible_query_rejections": 0},
-    {"g": 15, "seed": 89184804499739812, "min_bfs_depth": 1, "max_bfs_depth": 3, "mean_bfs_depth": 1.24333, "insufficient_root_rejections": 19, "infeasible_query_rejections": 0},
-    {"g": 16, "seed": 14494194740591157270, "min_bfs_depth": 1, "max_bfs_depth": 3, "mean_bfs_depth": 1.27, "insufficient_root_rejections": 25, "infeasible_query_rejections": 0}
+    {"g": 15, "seed": 89184804499739812, "min_bfs_depth": 1, "max_bfs_depth": 3, "mean_bfs_depth": 1.24333, "insufficient_root_rejections": 19, "infeasible_query_rejections": 0}
   ],
   "author_query_files": ["query_author_g3.txt", "query_author_g5.txt", "query_author_g7.txt"]
 }

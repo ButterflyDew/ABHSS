@@ -1,6 +1,6 @@
 # GPU4GST 数据准备工具
 
-`prepare_gpu4gst` 将 `data_origin` 中 GPU4GST 作者发布的数据转换为当前仓库可以直接读取的目录。当前论文来源和查询协议见 [`../../docs/EXPERIMENT_PLAN.md`](../../docs/EXPERIMENT_PLAN.md)，逐文件历史细节见 [`../../docs/archive/GPU4GST_DATA.md`](../../docs/archive/GPU4GST_DATA.md)。
+`prepare_gpu4gst` 将 `data_origin` 中 GPU4GST 作者发布的数据转换为当前仓库可以直接读取的目录。当前论文来源和查询协议见 [`../../docs/EXPERIMENT_PLAN.md`](../../docs/EXPERIMENT_PLAN.md)，逐文件历史细节见 [`../../docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-gpu4gst-data`](../../docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-gpu4gst-data)。
 
 ## 构建与运行
 

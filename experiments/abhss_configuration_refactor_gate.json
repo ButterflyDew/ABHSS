@@ -1,14 +1,13 @@
 {
   "schema_version": 2,
   "generated_at": "2026-07-23T11:01:10.9319471Z",
-  "updated_at": "2026-08-02",
+  "updated_at": "2026-08-20",
   "purpose": "prove that the former Light/Heavy implementations are one ABHSS algorithm whose frozen configurations differ only by safe additions or same-role replacements, without exactness or solver-time regression",
   "result": "PASS",
-  "current_contract_gate": "endpoint_floor_a1_gate_20260802",
-  "current_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98",
+  "current_contract_gate": "experiments/correctness_audit.json#local_regression_gates plus final_dominated_operation_gate",
   "policy": {
     "scope": "2026-07-23 original single-entry refactor gate; the 2026-07-24 clarification gate has its own policy block",
-    "weight_tolerance": 1e-6,
+    "weight_tolerance": 1e-06,
     "maximum_panel_regression_fraction": 0.03,
     "comparison_unit": "sum of solver-only query time over each predeclared panel and fixed configuration",
     "rerun_rule": "if one panel exceeds 1.03, alternate old/new at least three times and compare medians",
@@ -18,10 +17,18 @@
   },
   "configuration_chain": {
     "base": [],
-    "directed_cut_only": ["directed-cut"],
-    "enhanced": ["directed-cut", "adjoint-completion"],
+    "directed_cut_only": [
+      "directed-cut"
+    ],
+    "enhanced": [
+      "directed-cut",
+      "adjoint-completion"
+    ],
     "dependency": "adjoint-completion requires directed-cut",
-    "formal_configurations": ["base", "enhanced"],
+    "formal_configurations": [
+      "base",
+      "enhanced"
+    ],
     "executable_count": 1
   },
   "relation_contract": {
@@ -36,14 +43,14 @@
       "additional facility feasible upper bound"
     ],
     "common_operations": {
-      "anchored_singleton_A1": "If q=max(0,floor(g/2)-1) is positive, Base, DirectedCutOnly and Enhanced use the same seeds, farthest + endpoint-floor cone, positive fallback, standard rows, top-two view, state accounting and ownership transfer. The A1 builder reads neither enhancement flags nor dual potentials.",
+      "anchored_singleton_A1": "If q=max(0,floor(g/2)-1) is positive, Base, DirectedCutOnly and Enhanced use the same seeds, farthest + endpoint-floor cone, nonnegative fallback, standard rows, top-two view, state accounting and ownership transfer. The A1 builder reads neither enhancement flags nor dual potentials.",
       "ordinary_A1_view": "Every legal configuration reads the common A1 view; DirectedCut adds its independent potential to the ordinary max stack instead of replacing A1.",
       "witness_rent_or_buy": "After preprocessing, every legal configuration creates the same scheduler at rent=0. Common A1 and ordinary D continuously pay queue-pop/edge-relax rent; each profile substitutes only its own witness vertex count into t*((3^k-1)/2+3^k), and every eligible buy invokes the same EvaluateWitnessTree."
     },
     "same_role_replacements": {
       "distance_root_initialization": "BootstrappedBounded -> CompletePotential; both are realizations of one BuildDistanceRootInitialization responsibility and return the same {group_distance, root, feasible upper} contract. The canonical SPT union and full-distance expansion are private representation costs inside the respective realization, not unequal outer stages.",
       "upper_witness": "Base root-path tree -> Enhanced primal upper plus dual-primal tree. Both preprocessing paths only construct their witness and never unconditionally call EvaluateWitnessTree; both then enter the common zero-rent scheduler, common buy formula and common tree DP. Common root-star and root-path-union uppers remain shared, and facility is separately classified as a safe addition.",
-      "high_completion_after_A1": "Base forward high A -> Enhanced common A1/low A plus adjoint high H; with q>0, ell=max(1,floor(q/2)) keeps A1 outside the replaced suffix"
+      "high_completion_after_A1": "Base forward high A -> Enhanced common A1 plus adjoint high H; with q>0, ell=min(1,q) retains only A1 in the common forward prefix and H realizes logical layers 2..q"
     },
     "machine_contract": "DescribeConfiguration/SolveOptions ConfigurationProfile plus MakeAnchoredCompletionSchedule/AnchoredCompletionSchedule",
     "regression_assertion": "abhss_configuration_exactness checks the common A1 realization in all legal profiles, the added-operation subset relation, every remaining replacement realization, and exact one-realization coverage of every required anchored layer for group counts 0..16"
@@ -55,7 +62,10 @@
       "maximum_new_over_old": 1.03,
       "short_panel_rule": "when one old/new pair exceeds 1.03, alternate at least three times and compare medians",
       "rerun_rule_triggered": true,
-      "triggered_panels": ["musae_g6", "musae_g10"],
+      "triggered_panels": [
+        "musae_g6",
+        "musae_g10"
+      ],
       "solver_time_only": true
     },
     "comparison_baseline": {
@@ -128,7 +138,7 @@
         "queries": 1,
         "comparison": "one old/new run per configuration; below the preregistered 1.03 rerun trigger",
         "base_old_seconds": 90.425096,
-        "base_new_seconds": 93.065060,
+        "base_new_seconds": 93.06506,
         "base_new_over_old": 1.029195037,
         "enhanced_old_seconds": 34.216071,
         "enhanced_new_seconds": 34.571531,
@@ -156,7 +166,7 @@
         "base_old_seconds": 18.940209,
         "base_new_seconds": 18.792427,
         "base_new_over_old": 0.992197446,
-        "enhanced_old_seconds": 73.912270,
+        "enhanced_old_seconds": 73.91227,
         "enhanced_new_seconds": 71.851436,
         "enhanced_new_over_old": 0.972117836,
         "weights_and_state_counts_match": true
@@ -213,17 +223,33 @@
       "final_hash_interleaved_checks": {
         "musae_author_g5_full_base": {
           "queries": 300,
-          "old_seconds": [17.989440, 17.372995, 17.547932],
-          "new_seconds": [17.735320, 17.570958, 18.225195],
+          "old_seconds": [
+            17.98944,
+            17.372995,
+            17.547932
+          ],
+          "new_seconds": [
+            17.73532,
+            17.570958,
+            18.225195
+          ],
           "old_median_seconds": 17.547932,
-          "new_median_seconds": 17.735320,
+          "new_median_seconds": 17.73532,
           "new_over_old": 1.010678637,
           "weight_mismatches": 0
         },
         "musae_cross_g10_enhanced": {
           "queries": 5,
-          "old_seconds": [2.381182, 2.299604, 2.342078],
-          "new_seconds": [2.271983, 2.271125, 2.336541],
+          "old_seconds": [
+            2.381182,
+            2.299604,
+            2.342078
+          ],
+          "new_seconds": [
+            2.271983,
+            2.271125,
+            2.336541
+          ],
           "old_median_seconds": 2.342078,
           "new_median_seconds": 2.271983,
           "new_over_old": 0.970071449,
@@ -231,10 +257,22 @@
         }
       },
       "final_hash_known_optimum_check": {
-        "steinlib_base_seconds": 12.558120,
+        "steinlib_base_seconds": 12.55812,
         "steinlib_enhanced_seconds": 4.007772,
         "result": "Base 11/11 and Enhanced 11/11 match the g=11..16 known optima",
-        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+        "weights": [
+          361,
+          237,
+          497,
+          250,
+          422,
+          208,
+          179,
+          798,
+          290,
+          405,
+          1190
+        ]
       }
     },
     "final_documented_binary": {
@@ -245,7 +283,19 @@
       "steinlib_known_optimum_check": {
         "base": "11/11 match, 13.301639 solver seconds",
         "enhanced": "11/11 match, 4.029878 solver seconds",
-        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+        "weights": [
+          361,
+          237,
+          497,
+          250,
+          422,
+          208,
+          179,
+          798,
+          290,
+          405,
+          1190
+        ]
       }
     },
     "release_binary": {
@@ -256,7 +306,19 @@
       "steinlib_known_optimum_check": {
         "base": "11/11 match, 13.323551 solver seconds",
         "enhanced": "11/11 match, 4.191898 solver seconds",
-        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+        "weights": [
+          361,
+          237,
+          497,
+          250,
+          422,
+          208,
+          179,
+          798,
+          290,
+          405,
+          1190
+        ]
       }
     },
     "repository_audit_rebuild": {
@@ -268,7 +330,19 @@
       "steinlib_known_optimum_check": {
         "base": "11/11 match, 13.207488 solver seconds",
         "enhanced": "11/11 match, 3.978831 solver seconds",
-        "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190]
+        "weights": [
+          361,
+          237,
+          497,
+          250,
+          422,
+          208,
+          179,
+          798,
+          290,
+          405,
+          1190
+        ]
       },
       "performance_evidence": "the release_binary performance panels remain the applicable executable-path evidence because the audit changed no solver statement; no new performance number is inferred from the changed whole-file PE hash"
     },
@@ -276,7 +350,19 @@
       "ctest": "5/5 PASS after the final build",
       "independent_random_exact_dp": "144 deterministic connected cases, all three legal configurations, g=2..10",
       "steinlib_known_optima": "Base 11/11 and Enhanced 11/11 on WRP instances with g=11..16 after the final build",
-      "steinlib_weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "steinlib_weights": [
+        361,
+        237,
+        497,
+        250,
+        422,
+        208,
+        179,
+        798,
+        290,
+        405,
+        1190
+      ],
       "performance_panel_weight_mismatches": 0,
       "new_timeouts_or_feasibility_regressions": 0
     },
@@ -286,8 +372,16 @@
         "purpose": "stress the formerly deferred A1 case with the complete 300-query author workload",
         "queries": 300,
         "comparison": "three runs per binary; compare medians",
-        "old_seconds": [17.536750, 17.321490, 17.327307],
-        "new_seconds": [17.174919, 17.947839, 17.623782],
+        "old_seconds": [
+          17.53675,
+          17.32149,
+          17.327307
+        ],
+        "new_seconds": [
+          17.174919,
+          17.947839,
+          17.623782
+        ],
         "old_median_seconds": 17.327307,
         "new_median_seconds": 17.623782,
         "new_over_old": 1.017110276,
@@ -302,7 +396,11 @@
         "queries": 5,
         "comparison": "three final-candidate runs versus the frozen seven-run old median",
         "old_median_seconds": 0.324194,
-        "new_seconds": [0.313223, 0.322729, 0.304143],
+        "new_seconds": [
+          0.313223,
+          0.322729,
+          0.304143
+        ],
         "new_median_seconds": 0.313223,
         "new_over_old": 0.966159152,
         "weights_match": true
@@ -312,8 +410,16 @@
         "purpose": "verify that the Enhanced path, whose state work is unchanged, does not regress",
         "queries": 5,
         "comparison": "three alternating old/new runs; compare medians",
-        "old_seconds": [2.327287, 2.427691, 2.404028],
-        "new_seconds": [2.416109, 2.329040, 2.335852],
+        "old_seconds": [
+          2.327287,
+          2.427691,
+          2.404028
+        ],
+        "new_seconds": [
+          2.416109,
+          2.32904,
+          2.335852
+        ],
         "old_median_seconds": 2.404028,
         "new_median_seconds": 2.335852,
         "new_over_old": 0.971640929,
@@ -335,12 +441,15 @@
         "id": "reddit_cross_g10_queries1_2_base",
         "purpose": "multi-million-vertex sparse-query time and memory direction check",
         "queries": 2,
-        "old_total_seconds": 2.245410,
+        "old_total_seconds": 2.24541,
         "new_total_seconds": 2.176247,
         "new_over_old": 0.969198053,
         "query2_old_peak_rss_mib": 161.852,
         "query2_new_peak_rss_mib": 161.789,
-        "weights": [0, 100],
+        "weights": [
+          0,
+          100
+        ],
         "weights_match": true
       }
     ],
@@ -401,7 +510,19 @@
       "steinlib_known_optima": "Base 11/11 and Enhanced 11/11 match WRP known optima for g=11..16",
       "steinlib_base_seconds": 13.115069,
       "steinlib_enhanced_seconds": 3.627557,
-      "steinlib_weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "steinlib_weights": [
+        361,
+        237,
+        497,
+        250,
+        422,
+        208,
+        179,
+        798,
+        290,
+        405,
+        1190
+      ],
       "performance_weight_mismatches": 0,
       "new_timeouts_or_feasibility_regressions": 0
     },
@@ -411,9 +532,27 @@
         "source": "data/GPU4GST_Musae/query_g6.txt",
         "queries": "1..5",
         "comparison": "one old/new behavior check; timings are too short for a performance claim",
-        "weights": [141, 133, 296, 229, 229],
-        "old_mask_vertex_states": [19, 113, 1043, 34452, 506],
-        "new_mask_vertex_states": [19, 113, 1043, 34452, 506],
+        "weights": [
+          141,
+          133,
+          296,
+          229,
+          229
+        ],
+        "old_mask_vertex_states": [
+          19,
+          113,
+          1043,
+          34452,
+          506
+        ],
+        "new_mask_vertex_states": [
+          19,
+          113,
+          1043,
+          34452,
+          506
+        ],
         "result": "Base arithmetic and state behavior are unchanged"
       },
       {
@@ -421,22 +560,56 @@
         "source": "data/GPU4GST_Musae/query_g10.txt",
         "queries": "1..5",
         "comparison": "three interleaved observations per binary; compare total-time medians",
-        "old_total_seconds": [5.676571, 5.605170, 5.665100],
-        "new_total_seconds": [5.077327, 5.232046, 5.028597],
-        "old_median_seconds": 5.665100,
+        "old_total_seconds": [
+          5.676571,
+          5.60517,
+          5.6651
+        ],
+        "new_total_seconds": [
+          5.077327,
+          5.232046,
+          5.028597
+        ],
+        "old_median_seconds": 5.6651,
         "new_median_seconds": 5.077327,
         "new_over_old": 0.896246668,
-        "weights": [297, 929, 433, 294, 495],
-        "old_mask_vertex_states": [149286, 187374, 814018, 7726, 1297451],
-        "new_mask_vertex_states": [192539, 258437, 588247, 5481, 930440]
+        "weights": [
+          297,
+          929,
+          433,
+          294,
+          495
+        ],
+        "old_mask_vertex_states": [
+          149286,
+          187374,
+          814018,
+          7726,
+          1297451
+        ],
+        "new_mask_vertex_states": [
+          192539,
+          258437,
+          588247,
+          5481,
+          930440
+        ]
       },
       {
         "id": "musae_g14_query1_enhanced",
         "source": "data/GPU4GST_Musae/query_g14.txt",
         "queries": "1..1",
         "comparison": "three interleaved observations per binary; compare medians",
-        "old_seconds": [9.861638, 9.660872, 9.676265],
-        "new_seconds": [9.708000, 9.651949, 9.646426],
+        "old_seconds": [
+          9.861638,
+          9.660872,
+          9.676265
+        ],
+        "new_seconds": [
+          9.708,
+          9.651949,
+          9.646426
+        ],
         "old_median_seconds": 9.676265,
         "new_median_seconds": 9.651949,
         "new_over_old": 0.997487047,
@@ -450,8 +623,14 @@
         "source": "data/GPU4GST_Youtube/query_g10.txt",
         "queries": "1..1",
         "comparison": "two interleaved observations per binary; compare medians",
-        "old_seconds": [12.666790, 12.442645],
-        "new_seconds": [12.850978, 12.666198],
+        "old_seconds": [
+          12.66679,
+          12.442645
+        ],
+        "new_seconds": [
+          12.850978,
+          12.666198
+        ],
         "old_median_seconds": 12.5547175,
         "new_median_seconds": 12.758588,
         "new_over_old": 1.016238557,
@@ -479,14 +658,34 @@
         "source": "data/GPU4GST_Reddit/query_g10.txt",
         "queries": "1..2",
         "comparison": "reported negative control: all runs close during preprocessing before A1, so this panel is not used to attribute A1 non-regression",
-        "old_total_seconds": [30.300488, 28.181989, 28.024821, 28.302857],
-        "new_total_seconds": [31.222194, 28.881785, 29.377420, 27.986794, 29.657766],
+        "old_total_seconds": [
+          30.300488,
+          28.181989,
+          28.024821,
+          28.302857
+        ],
+        "new_total_seconds": [
+          31.222194,
+          28.881785,
+          29.37742,
+          27.986794,
+          29.657766
+        ],
         "old_median_seconds": 28.242423,
-        "new_median_seconds": 29.377420,
+        "new_median_seconds": 29.37742,
         "new_over_old": 1.040187664,
-        "weights": [100, 200],
-        "old_mask_vertex_states": [0, 0],
-        "new_mask_vertex_states": [0, 0],
+        "weights": [
+          100,
+          200
+        ],
+        "old_mask_vertex_states": [
+          0,
+          0
+        ],
+        "new_mask_vertex_states": [
+          0,
+          0
+        ],
         "classification": "timing variation on an A1-inactive pre-state path; disclosed, excluded only from the A1-active 1.03 attribution gate"
       },
       {
@@ -495,7 +694,7 @@
         "queries": "1..1",
         "comparison": "single high-g stress direction; not used as the repeated-panel threshold statistic",
         "old_seconds": 219.745747,
-        "new_seconds": 168.639290,
+        "new_seconds": 168.63929,
         "new_over_old": 0.767429142,
         "old_query_peak_rss_mib": 455.449,
         "new_query_peak_rss_mib": 306.414,
@@ -550,7 +749,7 @@
       "state_accounting": "Discarded partial A1 work pays rent but is not a published logical state; only the final accepted A1 rows are counted and transferred to forward A."
     },
     "policy": {
-      "weight_tolerance": 1e-6,
+      "weight_tolerance": 1e-06,
       "maximum_repeated_panel_new_over_old": 1.03,
       "comparison_unit": "sum of solver-only query time for a fixed configuration and fixed query panel",
       "short_panel_rule": "alternate old/new order and compare medians; seven pairs for subsecond g6 and three pairs for g10 on the final binary",
@@ -578,9 +777,18 @@
       "musae_g10_previous_failure_repaired": "query 1 returns 291, not the rejected mixed-cutoff result 426",
       "steinlib": {
         "instances": 11,
-        "g_range": [11, 16],
-        "base": {"known_optimum_matches": "11/11", "solver_seconds": 9.823664},
-        "enhanced": {"known_optimum_matches": "11/11", "solver_seconds": 3.723920}
+        "g_range": [
+          11,
+          16
+        ],
+        "base": {
+          "known_optimum_matches": "11/11",
+          "solver_seconds": 9.823664
+        },
+        "enhanced": {
+          "known_optimum_matches": "11/11",
+          "solver_seconds": 3.72392
+        }
       },
       "objective_mismatches": 0,
       "timeout_or_feasibility_regressions": 0
@@ -591,24 +799,74 @@
         "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
         "source_sha256": "12f4f1c0448e3783865186532d46e6b96ea5edb7ec5658fd6830db1fa5ba83d0",
         "query_range": "1..5",
-        "weights": [340, 282, 283, 198, 184],
+        "weights": [
+          340,
+          282,
+          283,
+          198,
+          184
+        ],
         "runs_per_binary_configuration": 7,
         "base": {
-          "old_totals": [0.306796, 0.322458, 0.316663, 0.299884, 0.307338, 0.307200, 0.301235],
-          "new_totals": [0.293856, 0.297238, 0.317825, 0.307538, 0.322391, 0.300155, 0.313161],
-          "old_median": 0.307200,
+          "old_totals": [
+            0.306796,
+            0.322458,
+            0.316663,
+            0.299884,
+            0.307338,
+            0.3072,
+            0.301235
+          ],
+          "new_totals": [
+            0.293856,
+            0.297238,
+            0.317825,
+            0.307538,
+            0.322391,
+            0.300155,
+            0.313161
+          ],
+          "old_median": 0.3072,
           "new_median": 0.307538,
-          "new_over_old": 1.001100260,
-          "states_each_run_old_and_new": [1777, 2064, 113, 760, 99],
+          "new_over_old": 1.00110026,
+          "states_each_run_old_and_new": [
+            1777,
+            2064,
+            113,
+            760,
+            99
+          ],
           "passed": true
         },
         "enhanced": {
-          "old_totals": [0.588196, 0.583232, 0.560175, 0.578834, 0.599609, 0.570586, 0.571280],
-          "new_totals": [0.572174, 0.587853, 0.569517, 0.582641, 0.586939, 0.605192, 0.581552],
+          "old_totals": [
+            0.588196,
+            0.583232,
+            0.560175,
+            0.578834,
+            0.599609,
+            0.570586,
+            0.57128
+          ],
+          "new_totals": [
+            0.572174,
+            0.587853,
+            0.569517,
+            0.582641,
+            0.586939,
+            0.605192,
+            0.581552
+          ],
           "old_median": 0.578834,
           "new_median": 0.582641,
           "new_over_old": 1.006577015,
-          "states_each_run_old_and_new": [982, 477, 62, 0, 3],
+          "states_each_run_old_and_new": [
+            982,
+            477,
+            62,
+            0,
+            3
+          ],
           "passed": true
         }
       },
@@ -617,26 +875,66 @@
         "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
         "source_sha256": "cce7d24be2353e3703e8de1f044b54bcdfac05140369cc228ee1075ca5e4f5d9",
         "query_range": "1..5",
-        "weights": [291, 275, 731, 389, 365],
+        "weights": [
+          291,
+          275,
+          731,
+          389,
+          365
+        ],
         "runs_per_binary_configuration": 3,
         "base": {
-          "old_totals": [13.403142, 12.415176, 12.820206],
-          "new_totals": [13.117022, 12.605179, 12.585803],
+          "old_totals": [
+            13.403142,
+            12.415176,
+            12.820206
+          ],
+          "new_totals": [
+            13.117022,
+            12.605179,
+            12.585803
+          ],
           "old_median": 12.820206,
           "new_median": 12.605179,
           "new_over_old": 0.983227493,
-          "old_states": [49203, 568465, 1781121, 71478, 369639],
-          "new_states": [49203, 568465, 1781521, 71478, 369639],
+          "old_states": [
+            49203,
+            568465,
+            1781121,
+            71478,
+            369639
+          ],
+          "new_states": [
+            49203,
+            568465,
+            1781521,
+            71478,
+            369639
+          ],
           "state_change_reason": "rent accumulated after the A1 purchase can make a later D-stage purchase eligible at a different ordinary revision",
           "passed": true
         },
         "enhanced": {
-          "old_totals": [2.250586, 2.083018, 2.124140],
-          "new_totals": [2.131375, 2.092144, 2.190987],
-          "old_median": 2.124140,
+          "old_totals": [
+            2.250586,
+            2.083018,
+            2.12414
+          ],
+          "new_totals": [
+            2.131375,
+            2.092144,
+            2.190987
+          ],
+          "old_median": 2.12414,
           "new_median": 2.131375,
           "new_over_old": 1.003406084,
-          "states_each_run_old_and_new": [28068, 19274, 103225, 44098, 132411],
+          "states_each_run_old_and_new": [
+            28068,
+            19274,
+            103225,
+            44098,
+            132411
+          ],
           "passed": true
         }
       }
@@ -646,30 +944,86 @@
         "id": "youtube_g10_query1",
         "source_sha256": "b5127bfa98d03babec20a860ba6f0c9213d26fb9bf6b7dd73776633a55b5da78",
         "weight": 48,
-        "base": {"old_seconds": 19.364107, "new_seconds": 19.609395, "new_over_old": 1.012667148, "old_states": 942973, "new_states": 942973, "old_rss_mib": 105.637, "new_rss_mib": 105.723},
-        "enhanced": {"old_seconds": 13.922364, "new_seconds": 13.894155, "new_over_old": 0.997973835, "old_states": 341307, "new_states": 341307, "old_rss_mib": 252.738, "new_rss_mib": 248.441},
+        "base": {
+          "old_seconds": 19.364107,
+          "new_seconds": 19.609395,
+          "new_over_old": 1.012667148,
+          "old_states": 942973,
+          "new_states": 942973,
+          "old_rss_mib": 105.637,
+          "new_rss_mib": 105.723
+        },
+        "enhanced": {
+          "old_seconds": 13.922364,
+          "new_seconds": 13.894155,
+          "new_over_old": 0.997973835,
+          "old_states": 341307,
+          "new_states": 341307,
+          "old_rss_mib": 252.738,
+          "new_rss_mib": 248.441
+        },
         "passed": true
       },
       {
         "id": "orkut_g6_query1",
         "source_sha256": "6ad223cf54860e634d42463d1d34650b02b573b3c3468ffbf6fa620ea286c2b5",
         "weight": 11,
-        "base": {"old_seconds": 19.157284, "new_seconds": 18.379818, "new_over_old": 0.959416690, "old_states": 174343, "new_states": 174343, "old_rss_mib": 253.770, "new_rss_mib": 272.730},
-        "enhanced": {"old_seconds": 73.805967, "new_seconds": 70.973760, "new_over_old": 0.961626314, "old_states": 66987, "new_states": 66987, "old_rss_mib": 2175.316, "new_rss_mib": 2168.930},
+        "base": {
+          "old_seconds": 19.157284,
+          "new_seconds": 18.379818,
+          "new_over_old": 0.95941669,
+          "old_states": 174343,
+          "new_states": 174343,
+          "old_rss_mib": 253.77,
+          "new_rss_mib": 272.73
+        },
+        "enhanced": {
+          "old_seconds": 73.805967,
+          "new_seconds": 70.97376,
+          "new_over_old": 0.961626314,
+          "old_states": 66987,
+          "new_states": 66987,
+          "old_rss_mib": 2175.316,
+          "new_rss_mib": 2168.93
+        },
         "passed": true
       },
       {
         "id": "musae_g14_query1",
         "source_sha256": "7da2fcacc60c1a2a59cebf68d987b8b5868c2ed7ba2bbe289eb467c743db2d10",
         "weight": 414,
-        "base": {"old_seconds": 94.121125, "new_seconds": 91.655003, "new_over_old": 0.973798422, "old_states": 6581139, "new_states": 6605541, "old_rss_mib": 89.168, "new_rss_mib": 89.172},
-        "enhanced": {"old_seconds": 35.728035, "new_seconds": 35.289030, "new_over_old": 0.987712590, "old_states": 6223600, "new_states": 6177805, "old_rss_mib": 97.172, "new_rss_mib": 96.527},
+        "base": {
+          "old_seconds": 94.121125,
+          "new_seconds": 91.655003,
+          "new_over_old": 0.973798422,
+          "old_states": 6581139,
+          "new_states": 6605541,
+          "old_rss_mib": 89.168,
+          "new_rss_mib": 89.172
+        },
+        "enhanced": {
+          "old_seconds": 35.728035,
+          "new_seconds": 35.28903,
+          "new_over_old": 0.98771259,
+          "old_states": 6223600,
+          "new_states": 6177805,
+          "old_rss_mib": 97.172,
+          "new_rss_mib": 96.527
+        },
         "passed": true
       }
     ],
     "steinlib_direction": {
-      "base": {"old_seconds": 14.104839, "new_seconds": 9.823664, "new_over_old": 0.696474735},
-      "enhanced": {"old_seconds": 4.218650, "new_seconds": 3.723920, "new_over_old": 0.882727887}
+      "base": {
+        "old_seconds": 14.104839,
+        "new_seconds": 9.823664,
+        "new_over_old": 0.696474735
+      },
+      "enhanced": {
+        "old_seconds": 4.21865,
+        "new_seconds": 3.72392,
+        "new_over_old": 0.882727887
+      }
     },
     "maximum_repeated_panel_regression": {
       "panel": "musae_g6_enhanced",
@@ -748,12 +1102,36 @@
       "queries": 11,
       "source": "experiment_data/steinlib/index.json",
       "source_sha256": "f3e9899df6b626b0eee94dc366b57821983f8317c8203f03694730d56888169c",
-      "instance_order": ["wrp3-11", "wrp3-12", "wrp3-13", "wrp3-14", "wrp3-15", "wrp3-16", "wrp4-11", "wrp4-13", "wrp4-14", "wrp4-15", "wrp4-16"],
-      "weights": [361, 237, 497, 250, 422, 208, 179, 798, 290, 405, 1190],
+      "instance_order": [
+        "wrp3-11",
+        "wrp3-12",
+        "wrp3-13",
+        "wrp3-14",
+        "wrp3-15",
+        "wrp3-16",
+        "wrp4-11",
+        "wrp4-13",
+        "wrp4-14",
+        "wrp4-15",
+        "wrp4-16"
+      ],
+      "weights": [
+        361,
+        237,
+        497,
+        250,
+        422,
+        208,
+        179,
+        798,
+        290,
+        405,
+        1190
+      ],
       "base": {
         "old_total_seconds": 15.663659,
         "new_total_seconds": 15.346104,
-        "new_over_old": 0.979726640,
+        "new_over_old": 0.97972664,
         "passed": true
       },
       "enhanced": {
@@ -770,7 +1148,13 @@
       "queries": 5,
       "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
       "source_sha256": "12f4f1c0448e3783865186532d46e6b96ea5edb7ec5658fd6830db1fa5ba83d0",
-      "weights": [340, 282, 283, 198, 184],
+      "weights": [
+        340,
+        282,
+        283,
+        198,
+        184
+      ],
       "base": {
         "old_total_seconds": 0.340344,
         "new_total_seconds": 0.333497,
@@ -779,7 +1163,7 @@
       },
       "enhanced": {
         "old_total_seconds": 0.624449,
-        "new_total_seconds": 0.619780,
+        "new_total_seconds": 0.61978,
         "new_over_old": 0.992523008,
         "passed": true
       }
@@ -791,7 +1175,13 @@
       "queries": 5,
       "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
       "source_sha256": "cce7d24be2353e3703e8de1f044b54bcdfac05140369cc228ee1075ca5e4f5d9",
-      "weights": [291, 275, 731, 389, 365],
+      "weights": [
+        291,
+        275,
+        731,
+        389,
+        365
+      ],
       "base": {
         "old_total_seconds": 14.650781,
         "new_total_seconds": 14.810915,
@@ -812,7 +1202,13 @@
       "queries": 5,
       "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g14.txt",
       "source_sha256": "7da2fcacc60c1a2a59cebf68d987b8b5868c2ed7ba2bbe289eb467c743db2d10",
-      "weights": [414, 580, 659, 297, 575],
+      "weights": [
+        414,
+        580,
+        659,
+        297,
+        575
+      ],
       "base": {
         "old_total_seconds": 1080.617007,
         "new_total_seconds": 1087.887453,
@@ -834,7 +1230,9 @@
       "source": "experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g6.txt",
       "source_sha256": "6ad223cf54860e634d42463d1d34650b02b573b3c3468ffbf6fa620ea286c2b5",
       "query_range": "1..1",
-      "weights": [11],
+      "weights": [
+        11
+      ],
       "base": {
         "old_total_seconds": 24.446206,
         "new_total_seconds": 23.535858,
@@ -843,8 +1241,8 @@
       },
       "enhanced": {
         "old_total_seconds": 90.243451,
-        "new_total_seconds": 87.818050,
-        "new_over_old": 0.973123800,
+        "new_total_seconds": 87.81805,
+        "new_over_old": 0.9731238,
         "passed": true
       }
     },
@@ -856,7 +1254,10 @@
       "source": "experiment_data/p2_cross_g/GPU4GST_Reddit/cross_g10.txt",
       "source_sha256": "231b47540a4495e12086acc9cf6e69f61913801b4a5a7ee3bf98df76d2926d21",
       "query_range": "1..2",
-      "weights": [0, 100],
+      "weights": [
+        0,
+        100
+      ],
       "base": {
         "old_total_seconds": 3.168216,
         "new_total_seconds": 3.100777,
@@ -884,7 +1285,7 @@
       "non_redundancy": "CompletePotential is not forced to repeat the canonical SPT bootstrap because doing so cannot change its complete distance output or common root-star result and would add up to g single-source shortest-path searches."
     },
     "policy": {
-      "weight_tolerance": 1e-6,
+      "weight_tolerance": 1e-06,
       "maximum_repeated_panel_new_over_old": 1.03,
       "comparison_unit": "median sum of solver-only query time for a fixed binary, configuration and query panel",
       "alternation": "old/new launch order alternates; seven pairs for subsecond Musae g6, three pairs for Musae g10, and five pairs for the triggered Enhanced SteinLib aggregate",
@@ -922,24 +1323,74 @@
         "id": "musae_g6",
         "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g6.txt",
         "query_range": "1..5",
-        "weights": [340, 282, 283, 198, 184],
+        "weights": [
+          340,
+          282,
+          283,
+          198,
+          184
+        ],
         "runs_per_binary_configuration": 7,
         "base": {
-          "old_totals": [0.309778, 0.349761, 0.337674, 0.348237, 0.360436, 0.372977, 0.325224],
-          "new_totals": [0.297649, 0.334637, 0.322937, 0.292908, 0.350773, 0.332611, 0.346924],
+          "old_totals": [
+            0.309778,
+            0.349761,
+            0.337674,
+            0.348237,
+            0.360436,
+            0.372977,
+            0.325224
+          ],
+          "new_totals": [
+            0.297649,
+            0.334637,
+            0.322937,
+            0.292908,
+            0.350773,
+            0.332611,
+            0.346924
+          ],
           "old_median": 0.348237,
           "new_median": 0.332611,
-          "new_over_old": 0.955128260,
-          "states_each_run_old_and_new": [1777, 2064, 113, 760, 99],
+          "new_over_old": 0.95512826,
+          "states_each_run_old_and_new": [
+            1777,
+            2064,
+            113,
+            760,
+            99
+          ],
           "passed": true
         },
         "enhanced": {
-          "old_totals": [0.582339, 0.564845, 0.572127, 0.576532, 0.605761, 0.588970, 0.584270],
-          "new_totals": [0.597841, 0.549632, 0.551617, 0.578981, 0.594324, 0.596266, 0.572921],
+          "old_totals": [
+            0.582339,
+            0.564845,
+            0.572127,
+            0.576532,
+            0.605761,
+            0.58897,
+            0.58427
+          ],
+          "new_totals": [
+            0.597841,
+            0.549632,
+            0.551617,
+            0.578981,
+            0.594324,
+            0.596266,
+            0.572921
+          ],
           "old_median": 0.582339,
           "new_median": 0.578981,
           "new_over_old": 0.994233599,
-          "states_each_run_old_and_new": [982, 477, 62, 0, 3],
+          "states_each_run_old_and_new": [
+            982,
+            477,
+            62,
+            0,
+            3
+          ],
           "passed": true
         }
       },
@@ -947,24 +1398,58 @@
         "id": "musae_g10",
         "source": "experiment_data/p2_cross_g/GPU4GST_Musae/cross_g10.txt",
         "query_range": "1..5",
-        "weights": [291, 275, 731, 389, 365],
+        "weights": [
+          291,
+          275,
+          731,
+          389,
+          365
+        ],
         "runs_per_binary_configuration": 3,
         "base": {
-          "old_totals": [13.430782, 12.943019, 13.094906],
-          "new_totals": [13.316210, 13.206400, 12.976786],
+          "old_totals": [
+            13.430782,
+            12.943019,
+            13.094906
+          ],
+          "new_totals": [
+            13.31621,
+            13.2064,
+            12.976786
+          ],
           "old_median": 13.094906,
-          "new_median": 13.206400,
+          "new_median": 13.2064,
           "new_over_old": 1.008514303,
-          "states_each_run_old_and_new": [49203, 568465, 1781521, 71478, 369639],
+          "states_each_run_old_and_new": [
+            49203,
+            568465,
+            1781521,
+            71478,
+            369639
+          ],
           "passed": true
         },
         "enhanced": {
-          "old_totals": [2.354473, 2.259823, 2.287082],
-          "new_totals": [2.314395, 2.199319, 2.163106],
+          "old_totals": [
+            2.354473,
+            2.259823,
+            2.287082
+          ],
+          "new_totals": [
+            2.314395,
+            2.199319,
+            2.163106
+          ],
           "old_median": 2.287082,
           "new_median": 2.199319,
           "new_over_old": 0.961626649,
-          "states_each_run_old_and_new": [28068, 19274, 103225, 44098, 132411],
+          "states_each_run_old_and_new": [
+            28068,
+            19274,
+            103225,
+            44098,
+            132411
+          ],
           "passed": true
         }
       }
@@ -973,32 +1458,86 @@
       {
         "id": "youtube_g10_query1",
         "weight": 48,
-        "base": {"old_seconds": 22.161634, "new_seconds": 19.850138, "new_over_old": 0.895698305, "states_each": 942973, "old_rss_mib": 106.012, "new_rss_mib": 105.668},
-        "enhanced": {"old_seconds": 14.065857, "new_seconds": 13.913244, "new_over_old": 0.989150110, "states_each": 341307, "old_rss_mib": 248.641, "new_rss_mib": 248.477},
+        "base": {
+          "old_seconds": 22.161634,
+          "new_seconds": 19.850138,
+          "new_over_old": 0.895698305,
+          "states_each": 942973,
+          "old_rss_mib": 106.012,
+          "new_rss_mib": 105.668
+        },
+        "enhanced": {
+          "old_seconds": 14.065857,
+          "new_seconds": 13.913244,
+          "new_over_old": 0.98915011,
+          "states_each": 341307,
+          "old_rss_mib": 248.641,
+          "new_rss_mib": 248.477
+        },
         "passed": true
       },
       {
         "id": "orkut_g6_query1",
         "weight": 11,
-        "base": {"old_seconds": 18.020921, "new_seconds": 18.027482, "new_over_old": 1.000364077, "states_each": 174343, "old_rss_mib": 240.410, "new_rss_mib": 239.434},
-        "enhanced": {"old_seconds": 71.457513, "new_seconds": 71.452179, "new_over_old": 0.999925354, "states_each": 66987, "old_rss_mib": 2172.785, "new_rss_mib": 2170.949},
+        "base": {
+          "old_seconds": 18.020921,
+          "new_seconds": 18.027482,
+          "new_over_old": 1.000364077,
+          "states_each": 174343,
+          "old_rss_mib": 240.41,
+          "new_rss_mib": 239.434
+        },
+        "enhanced": {
+          "old_seconds": 71.457513,
+          "new_seconds": 71.452179,
+          "new_over_old": 0.999925354,
+          "states_each": 66987,
+          "old_rss_mib": 2172.785,
+          "new_rss_mib": 2170.949
+        },
         "passed": true
       }
     ],
     "steinlib": {
       "instances": 11,
-      "g_range": [11, 16],
+      "g_range": [
+        11,
+        16
+      ],
       "initial_direction": {
-        "base": {"known_optimum_matches": "11/11", "old_seconds": 9.364713, "new_seconds": 9.131532, "new_over_old": 0.975100038},
-        "enhanced": {"known_optimum_matches": "11/11", "old_seconds": 3.595699, "new_seconds": 3.742238, "new_over_old": 1.040753967, "triggered_repeat": true}
+        "base": {
+          "known_optimum_matches": "11/11",
+          "old_seconds": 9.364713,
+          "new_seconds": 9.131532,
+          "new_over_old": 0.975100038
+        },
+        "enhanced": {
+          "known_optimum_matches": "11/11",
+          "old_seconds": 3.595699,
+          "new_seconds": 3.742238,
+          "new_over_old": 1.040753967,
+          "triggered_repeat": true
+        }
       },
       "enhanced_repeated": {
         "runs_per_binary": 5,
-        "old_totals": [3.560374, 3.528937, 3.563412, 3.517522, 3.561992],
-        "new_totals": [3.742908, 3.643549, 3.546320, 3.645392, 3.603270],
+        "old_totals": [
+          3.560374,
+          3.528937,
+          3.563412,
+          3.517522,
+          3.561992
+        ],
+        "new_totals": [
+          3.742908,
+          3.643549,
+          3.54632,
+          3.645392,
+          3.60327
+        ],
         "old_median": 3.560374,
         "new_median": 3.643549,
-        "new_over_old": 1.023361310,
+        "new_over_old": 1.02336131,
         "known_optimum_matches_each_run": "11/11",
         "state_counts_equal_old_and_new": true,
         "passed": true
@@ -1006,7 +1545,7 @@
     },
     "maximum_repeated_panel_regression": {
       "panel": "steinlib_enhanced",
-      "new_over_old": 1.023361310,
+      "new_over_old": 1.02336131,
       "threshold": 1.03
     },
     "evidence_directories": [
@@ -1021,7 +1560,7 @@
     "status": "ACTIVE LOCAL PREREQUISITE; whole-binary current evidence is experiments/correctness_audit.json#auxiliary_half_adjoint_gate",
     "result": "PASS",
     "extends": "distance_root_initialization_gate_20260725; all earlier common-operation and replacement contracts remain active",
-    "contract": "Every legal configuration uses the same A1 continuation max(farthest, endpoint-floor), the same cone and the same positive fallback; the builder has no configuration, graph-name or empirical group-count branch.",
+    "contract": "Every legal configuration uses the same A1 continuation max(farthest, endpoint-floor), the same cone and the same nonnegative fallback; the builder has no configuration, graph-name or empirical group-count branch.",
     "implementation": "TourLowerBound reuses its fixed-endpoint Hamilton-path table, selects one maximum endpoint-free start per remaining mask in O(g^2 2^g) additional preprocessing and stores O(2^g) values; each A1 continuation query adds one constant-time group-distance read.",
     "source_sha256": {
       "core_cpp": "2b783f9d6a8af994b416fda58054cc008f9920884dbe4e0af391f8eb7b781bda",
@@ -1049,7 +1588,7 @@
       "p2_dblp_fastest_abhss_wins": "10/12 samples; only g=5 and g=6 lose slightly",
       "rejected_lazy_endpoint_read": "DBLP-Mono two-query three-round aggregate was 3.80% slower with identical states; reverted"
     },
-    "report": "docs/archive/communication/TEN_HOUR_OURS_ONLY_YOUTUBE_PROBE.md"
+    "report": "docs/archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-communication-ten-hour-ours-only-youtube-probe"
   },
   "graph_loading": {
     "implementation": "8 MiB buffered numeric scan; first pass stores edges and counts exact degrees; second pass reserves once and builds bidirectional adjacency in original order",
@@ -1071,7 +1610,7 @@
       "final_binary_spot_check": {
         "base": {
           "graph_load_seconds": 28.079482,
-          "query_seconds": 24.446510,
+          "query_seconds": 24.44651,
           "weight": 11,
           "new_over_old_query_time": 1.000012435
         },
@@ -1106,5 +1645,7 @@
       },
       "conclusion": "approximately 16x lower load latency, with both solver-time panels passing"
     }
-  }
+  },
+  "artifact_status": "historical stage-gate evidence; the current whole-binary identity and final exactness/performance gates are in experiments/correctness_audit.json",
+  "historical_endpoint_gate_binary_sha256": "bbab71a3e000c736ba087adaf739e6fcb3816758680df1c389859a876c8fce98"
 }

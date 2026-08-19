@@ -1,7 +1,7 @@
 {
   "schema_version": 10,
-  "audited_at": "2026-08-19",
-  "weight_tolerance": 1e-6,
+  "audited_at": "2026-08-20",
+  "weight_tolerance": 1e-06,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
@@ -18,23 +18,31 @@
     "configuration_panel_comparisons": "the active endpoint-floor extension adds YouTube P1 full, 12-graph same-machine P1 samples and YouTube/DBLP P2 samples to the retained distance-root, witness-scheduler and strict-common-A1 gates",
     "objective_mismatches": 0,
     "timeout_or_feasibility_regressions": 0,
-    "maximum_new_over_old_panel_time": 1.023361310,
+    "maximum_new_over_old_panel_time": 1.02336131,
     "threshold": 1.03,
     "result": "PASS"
   },
   "repository_consistency_audit": {
     "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
-    "github_markdown": "PASS: all 97 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub's official fenced math syntax for every display equation, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, the GitHub-rejected operatorname macro, the repository-rejected cases environment or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; tools/experiments/validate_markdown.py and the make release/Linux CI path prevent known regressions, while post-push review must require one MathML child per display and inline renderer plus zero visible math-renderer error/source-fallback nodes",
-    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 143 cases and exactly 27,564 performance tasks (P1=8,318, P2=720, S2=150 queries across three methods)",
+    "github_markdown": "PASS: all 15 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub fenced math syntax for display equations, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, GitHub-rejected operatorname macros, repository-rejected cases environments or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; post-push browser review must still require one MathML child per display and inline renderer plus zero visible renderer error/source-fallback nodes",
+    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 137 cases and exactly 27,384 performance tasks (P1=8,318, P2=660, S2=150 queries across three methods); the separate ablation plan adds 135 preregistered variant tasks without changing the main matrix",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
-    "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 72 cells and 720 queries in a temporary directory; every query, group-id, selected-query JSON/CSV file was byte-identical, and cells.json was identical after removing only the two output-location fields",
-    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts and source limitations as the code and machine manifests"
+    "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 66 cells and 660 queries in a temporary directory; all 132 panel/group-ID files and selected-query JSON/CSV were byte-identical, and cells.json was identical after removing only the two output-location fields; retained g=5..15 panel files are unchanged from the prior matrix",
+    "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts, preregistered minimal ablations and source limitations as the code and machine manifests",
+    "current_paper_matrix_sha256": "9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7",
+    "current_query_feasibility_audit": "PASS: 26 graphs, 137 unique graph/query files, 9,140 query records, 9,085 feasible and the 55 published natural-query infeasible records retained; zero generated/gate infeasible records"
   },
   "dual_process_calibration": {
     "purpose": "measure concurrent-process interference only; these historical solver binaries do not replace the current release performance gate",
     "machine": "test-PowerEdge-R630",
-    "calibration_cpus": [0, 1],
-    "formal_cpus": [4, 5],
+    "calibration_cpus": [
+      0,
+      1
+    ],
+    "formal_cpus": [
+      4,
+      5
+    ],
     "topology": "both CPU pairs use distinct physical cores on distinct sockets",
     "abhss": {
       "single_records": 80,
@@ -62,7 +70,7 @@
       "dual_over_single": 0.9893573673,
       "four_over_single": 1.0784309723,
       "single_peak_mib": 505.395,
-      "dual_peak_mib": 505.770,
+      "dual_peak_mib": 505.77,
       "total_mask_vertex_states": 92077,
       "single_dual_pairwise_mismatches": {
         "task_identity": 0,
@@ -113,19 +121,201 @@
       "feasibility_mismatches": 0,
       "expected_status_mismatches": 0,
       "graph_rows": [
-        {"graph": "DBLP-GPU4GST", "queries": 900, "base_seconds": 8035.298626, "base_peak_mib": 333.973, "base_states": 299668791, "enhanced_seconds": 9694.386584, "enhanced_peak_mib": 614.207, "enhanced_states": 230338803, "pruneddp_seconds": 13683.019266, "pruneddp_peak_mib": 1746.500, "pruneddp_states": 342635750, "fastest_abhss": "base", "fastest_over_pruneddp": 0.5872460215},
-        {"graph": "DBLP-MonoGSTPlus", "queries": 160, "base_seconds": 3766.660197, "base_peak_mib": 722.949, "base_states": 667306185, "enhanced_seconds": 3160.482913, "enhanced_peak_mib": 678.297, "enhanced_states": 293343923, "pruneddp_seconds": 29049.935233, "pruneddp_peak_mib": 7112.348, "pruneddp_states": 1106115160, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.1087948351},
-        {"graph": "DBpedia-MonoGSTPlus", "queries": 438, "base_seconds": 8386.673769, "base_peak_mib": 1322.848, "base_states": 365248307, "enhanced_seconds": 7593.173712, "enhanced_peak_mib": 2333.750, "enhanced_states": 285581028, "pruneddp_seconds": 20288.407653, "pruneddp_peak_mib": 13451.219, "pruneddp_states": 400984226, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.3742616888},
-        {"graph": "Github-GPU4GST", "queries": 900, "base_seconds": 90.899879, "base_peak_mib": 9.562, "base_states": 21383350, "enhanced_seconds": 76.562486, "enhanced_peak_mib": 20.660, "enhanced_states": 16002423, "pruneddp_seconds": 338.435806, "pruneddp_peak_mib": 161.324, "pruneddp_states": 39874418, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2262245443},
-        {"graph": "LinkedMDB-MonoGSTPlus", "queries": 200, "base_seconds": 611.420574, "base_peak_mib": 646.016, "base_states": 197480559, "enhanced_seconds": 491.172415, "enhanced_peak_mib": 332.176, "enhanced_states": 89326477, "pruneddp_seconds": 6612.576943, "pruneddp_peak_mib": 10126.340, "pruneddp_states": 258789081, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.0742785179},
-        {"graph": "LiveJournal-GPU4GST", "queries": 900, "base_seconds": 14080.989000, "base_peak_mib": 442.316, "base_states": 197337482, "enhanced_seconds": 24257.869463, "enhanced_peak_mib": 1145.863, "enhanced_states": 172752139, "pruneddp_seconds": 27535.664202, "pruneddp_peak_mib": 1127.133, "pruneddp_states": 160626901, "fastest_abhss": "base", "fastest_over_pruneddp": 0.5113727745},
-        {"graph": "MovieLens-MonoGSTPlus", "queries": 160, "base_seconds": 1090.124015, "base_peak_mib": 46.129, "base_states": 1134768, "enhanced_seconds": 869.354658, "enhanced_peak_mib": 562.117, "enhanced_states": 153418, "pruneddp_seconds": 3041.379210, "pruneddp_peak_mib": 173.492, "pruneddp_states": 2247152, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2858422439},
-        {"graph": "Musae-GPU4GST", "queries": 900, "base_seconds": 61.145893, "base_peak_mib": 4.500, "base_states": 7161062, "enhanced_seconds": 38.497045, "enhanced_peak_mib": 11.480, "enhanced_states": 4529006, "pruneddp_seconds": 186.900535, "pruneddp_peak_mib": 73.805, "pruneddp_states": 18424783, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2059761092},
-        {"graph": "Orkut-GPU4GST", "queries": 900, "base_seconds": 30744.396647, "base_peak_mib": 507.406, "base_states": 1001249923, "enhanced_seconds": 45405.709329, "enhanced_peak_mib": 2661.902, "enhanced_states": 712638167, "pruneddp_seconds": 120913.769628, "pruneddp_peak_mib": 3001.832, "pruneddp_states": 1140199706, "fastest_abhss": "base", "fastest_over_pruneddp": 0.2542671256},
-        {"graph": "Reddit-GPU4GST", "queries": 900, "base_seconds": 6246.078082, "base_peak_mib": 396.719, "base_states": 1882349, "enhanced_seconds": 6150.120640, "enhanced_peak_mib": 882.809, "enhanced_states": 1975393, "pruneddp_seconds": 7294.955789, "pruneddp_peak_mib": 634.125, "pruneddp_states": 2656110, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.8430648270},
-        {"graph": "Toronto-MonoGSTPlus", "queries": 160, "base_seconds": 10.373746, "base_peak_mib": 6.410, "base_states": 915047, "enhanced_seconds": 16.916189, "enhanced_peak_mib": 10.734, "enhanced_states": 563556, "pruneddp_seconds": 16.241259, "pruneddp_peak_mib": 26.438, "pruneddp_states": 1866233, "fastest_abhss": "base", "fastest_over_pruneddp": 0.6387279459},
-        {"graph": "Twitch-GPU4GST", "queries": 900, "base_seconds": 77.348864, "base_peak_mib": 10.125, "base_states": 20964233, "enhanced_seconds": 81.723221, "enhanced_peak_mib": 15.980, "enhanced_states": 10710978, "pruneddp_seconds": 448.325978, "pruneddp_peak_mib": 147.320, "pruneddp_states": 40520002, "fastest_abhss": "base", "fastest_over_pruneddp": 0.1725281777},
-        {"graph": "Youtube-GPU4GST", "queries": 900, "base_seconds": 2804.511185, "base_peak_mib": 122.812, "base_states": 80248354, "enhanced_seconds": 3603.514030, "enhanced_peak_mib": 221.379, "enhanced_states": 73109126, "pruneddp_seconds": 3004.472131, "pruneddp_peak_mib": 408.125, "pruneddp_states": 12450269, "fastest_abhss": "base", "fastest_over_pruneddp": 0.9334455647}
+        {
+          "graph": "DBLP-GPU4GST",
+          "queries": 900,
+          "base_seconds": 8035.298626,
+          "base_peak_mib": 333.973,
+          "base_states": 299668791,
+          "enhanced_seconds": 9694.386584,
+          "enhanced_peak_mib": 614.207,
+          "enhanced_states": 230338803,
+          "pruneddp_seconds": 13683.019266,
+          "pruneddp_peak_mib": 1746.5,
+          "pruneddp_states": 342635750,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.5872460215
+        },
+        {
+          "graph": "DBLP-MonoGSTPlus",
+          "queries": 160,
+          "base_seconds": 3766.660197,
+          "base_peak_mib": 722.949,
+          "base_states": 667306185,
+          "enhanced_seconds": 3160.482913,
+          "enhanced_peak_mib": 678.297,
+          "enhanced_states": 293343923,
+          "pruneddp_seconds": 29049.935233,
+          "pruneddp_peak_mib": 7112.348,
+          "pruneddp_states": 1106115160,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.1087948351
+        },
+        {
+          "graph": "DBpedia-MonoGSTPlus",
+          "queries": 438,
+          "base_seconds": 8386.673769,
+          "base_peak_mib": 1322.848,
+          "base_states": 365248307,
+          "enhanced_seconds": 7593.173712,
+          "enhanced_peak_mib": 2333.75,
+          "enhanced_states": 285581028,
+          "pruneddp_seconds": 20288.407653,
+          "pruneddp_peak_mib": 13451.219,
+          "pruneddp_states": 400984226,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.3742616888
+        },
+        {
+          "graph": "Github-GPU4GST",
+          "queries": 900,
+          "base_seconds": 90.899879,
+          "base_peak_mib": 9.562,
+          "base_states": 21383350,
+          "enhanced_seconds": 76.562486,
+          "enhanced_peak_mib": 20.66,
+          "enhanced_states": 16002423,
+          "pruneddp_seconds": 338.435806,
+          "pruneddp_peak_mib": 161.324,
+          "pruneddp_states": 39874418,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.2262245443
+        },
+        {
+          "graph": "LinkedMDB-MonoGSTPlus",
+          "queries": 200,
+          "base_seconds": 611.420574,
+          "base_peak_mib": 646.016,
+          "base_states": 197480559,
+          "enhanced_seconds": 491.172415,
+          "enhanced_peak_mib": 332.176,
+          "enhanced_states": 89326477,
+          "pruneddp_seconds": 6612.576943,
+          "pruneddp_peak_mib": 10126.34,
+          "pruneddp_states": 258789081,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.0742785179
+        },
+        {
+          "graph": "LiveJournal-GPU4GST",
+          "queries": 900,
+          "base_seconds": 14080.989,
+          "base_peak_mib": 442.316,
+          "base_states": 197337482,
+          "enhanced_seconds": 24257.869463,
+          "enhanced_peak_mib": 1145.863,
+          "enhanced_states": 172752139,
+          "pruneddp_seconds": 27535.664202,
+          "pruneddp_peak_mib": 1127.133,
+          "pruneddp_states": 160626901,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.5113727745
+        },
+        {
+          "graph": "MovieLens-MonoGSTPlus",
+          "queries": 160,
+          "base_seconds": 1090.124015,
+          "base_peak_mib": 46.129,
+          "base_states": 1134768,
+          "enhanced_seconds": 869.354658,
+          "enhanced_peak_mib": 562.117,
+          "enhanced_states": 153418,
+          "pruneddp_seconds": 3041.37921,
+          "pruneddp_peak_mib": 173.492,
+          "pruneddp_states": 2247152,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.2858422439
+        },
+        {
+          "graph": "Musae-GPU4GST",
+          "queries": 900,
+          "base_seconds": 61.145893,
+          "base_peak_mib": 4.5,
+          "base_states": 7161062,
+          "enhanced_seconds": 38.497045,
+          "enhanced_peak_mib": 11.48,
+          "enhanced_states": 4529006,
+          "pruneddp_seconds": 186.900535,
+          "pruneddp_peak_mib": 73.805,
+          "pruneddp_states": 18424783,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.2059761092
+        },
+        {
+          "graph": "Orkut-GPU4GST",
+          "queries": 900,
+          "base_seconds": 30744.396647,
+          "base_peak_mib": 507.406,
+          "base_states": 1001249923,
+          "enhanced_seconds": 45405.709329,
+          "enhanced_peak_mib": 2661.902,
+          "enhanced_states": 712638167,
+          "pruneddp_seconds": 120913.769628,
+          "pruneddp_peak_mib": 3001.832,
+          "pruneddp_states": 1140199706,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.2542671256
+        },
+        {
+          "graph": "Reddit-GPU4GST",
+          "queries": 900,
+          "base_seconds": 6246.078082,
+          "base_peak_mib": 396.719,
+          "base_states": 1882349,
+          "enhanced_seconds": 6150.12064,
+          "enhanced_peak_mib": 882.809,
+          "enhanced_states": 1975393,
+          "pruneddp_seconds": 7294.955789,
+          "pruneddp_peak_mib": 634.125,
+          "pruneddp_states": 2656110,
+          "fastest_abhss": "enhanced",
+          "fastest_over_pruneddp": 0.843064827
+        },
+        {
+          "graph": "Toronto-MonoGSTPlus",
+          "queries": 160,
+          "base_seconds": 10.373746,
+          "base_peak_mib": 6.41,
+          "base_states": 915047,
+          "enhanced_seconds": 16.916189,
+          "enhanced_peak_mib": 10.734,
+          "enhanced_states": 563556,
+          "pruneddp_seconds": 16.241259,
+          "pruneddp_peak_mib": 26.438,
+          "pruneddp_states": 1866233,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.6387279459
+        },
+        {
+          "graph": "Twitch-GPU4GST",
+          "queries": 900,
+          "base_seconds": 77.348864,
+          "base_peak_mib": 10.125,
+          "base_states": 20964233,
+          "enhanced_seconds": 81.723221,
+          "enhanced_peak_mib": 15.98,
+          "enhanced_states": 10710978,
+          "pruneddp_seconds": 448.325978,
+          "pruneddp_peak_mib": 147.32,
+          "pruneddp_states": 40520002,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.1725281777
+        },
+        {
+          "graph": "Youtube-GPU4GST",
+          "queries": 900,
+          "base_seconds": 2804.511185,
+          "base_peak_mib": 122.812,
+          "base_states": 80248354,
+          "enhanced_seconds": 3603.51403,
+          "enhanced_peak_mib": 221.379,
+          "enhanced_states": 73109126,
+          "pruneddp_seconds": 3004.472131,
+          "pruneddp_peak_mib": 408.125,
+          "pruneddp_states": 12450269,
+          "fastest_abhss": "base",
+          "fastest_over_pruneddp": 0.9334455647
+        }
       ],
       "result": "PASS: 13/13 graphs satisfy min(Base, Enhanced) <= PrunedDP++; the tightest graph is Youtube-GPU4GST"
     },
@@ -137,16 +327,86 @@
       "watcher_audit": "results/paper_runs/final_793d4e_orkut_g15_audit.json",
       "query_panel_sha256": "715ee781b2c2c189682a332eac7ed9b5c5f2c0e0bd4d7323205b4e65dab0f83c",
       "records": [
-        {"query_index": 1, "cpu": 4, "weight": 21, "solver_seconds": 1988.313495, "peak_mib": 3270.918, "states": 95833201},
-        {"query_index": 2, "cpu": 4, "weight": 32, "solver_seconds": 1725.782615, "peak_mib": 3762.445, "states": 162834196},
-        {"query_index": 3, "cpu": 5, "weight": 38, "solver_seconds": 274.595117, "peak_mib": 2690.477, "states": 30571329},
-        {"query_index": 4, "cpu": 5, "weight": 28, "solver_seconds": 291.362685, "peak_mib": 2995.301, "states": 12586184},
-        {"query_index": 5, "cpu": 5, "weight": 32, "solver_seconds": 4135.305343, "peak_mib": 6341.828, "states": 475605896},
-        {"query_index": 6, "cpu": 5, "weight": 36, "solver_seconds": 2033.287366, "peak_mib": 5990.352, "states": 201117345},
-        {"query_index": 7, "cpu": 5, "weight": 38, "solver_seconds": 2303.644412, "peak_mib": 5990.352, "states": 265320212},
-        {"query_index": 8, "cpu": 5, "weight": 18, "solver_seconds": 210.787497, "peak_mib": 5990.352, "states": 394894},
-        {"query_index": 9, "cpu": 5, "weight": 35, "solver_seconds": 1070.935643, "peak_mib": 5990.352, "states": 96019704},
-        {"query_index": 10, "cpu": 4, "weight": 54, "solver_seconds": 9544.561375, "peak_mib": 18318.238, "states": 1459398194}
+        {
+          "query_index": 1,
+          "cpu": 4,
+          "weight": 21,
+          "solver_seconds": 1988.313495,
+          "peak_mib": 3270.918,
+          "states": 95833201
+        },
+        {
+          "query_index": 2,
+          "cpu": 4,
+          "weight": 32,
+          "solver_seconds": 1725.782615,
+          "peak_mib": 3762.445,
+          "states": 162834196
+        },
+        {
+          "query_index": 3,
+          "cpu": 5,
+          "weight": 38,
+          "solver_seconds": 274.595117,
+          "peak_mib": 2690.477,
+          "states": 30571329
+        },
+        {
+          "query_index": 4,
+          "cpu": 5,
+          "weight": 28,
+          "solver_seconds": 291.362685,
+          "peak_mib": 2995.301,
+          "states": 12586184
+        },
+        {
+          "query_index": 5,
+          "cpu": 5,
+          "weight": 32,
+          "solver_seconds": 4135.305343,
+          "peak_mib": 6341.828,
+          "states": 475605896
+        },
+        {
+          "query_index": 6,
+          "cpu": 5,
+          "weight": 36,
+          "solver_seconds": 2033.287366,
+          "peak_mib": 5990.352,
+          "states": 201117345
+        },
+        {
+          "query_index": 7,
+          "cpu": 5,
+          "weight": 38,
+          "solver_seconds": 2303.644412,
+          "peak_mib": 5990.352,
+          "states": 265320212
+        },
+        {
+          "query_index": 8,
+          "cpu": 5,
+          "weight": 18,
+          "solver_seconds": 210.787497,
+          "peak_mib": 5990.352,
+          "states": 394894
+        },
+        {
+          "query_index": 9,
+          "cpu": 5,
+          "weight": 35,
+          "solver_seconds": 1070.935643,
+          "peak_mib": 5990.352,
+          "states": 96019704
+        },
+        {
+          "query_index": 10,
+          "cpu": 4,
+          "weight": 54,
+          "solver_seconds": 9544.561375,
+          "peak_mib": 18318.238,
+          "states": 1459398194
+        }
       ],
       "maximum_solver_seconds": 9544.561375,
       "q10_margin_to_timeout_seconds": 455.438625,
@@ -174,27 +434,114 @@
       "field_mismatches_against_formal_p1": 0,
       "individual_solver_seconds": 816.198581,
       "individual": [
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__DBLP-GPU4GST_g7|abhss_base|q35", "weight": 1157, "solver_seconds": 34.841308, "peak_mib": 331.883, "states": 7725123},
-        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__DBLP-MonoGSTPlus_all|abhss_enhanced|q132", "weight": 8.2540182703, "solver_seconds": 49.115068, "peak_mib": 644.363, "states": 10397175},
-        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__DBpedia-MonoGSTPlus_all|abhss_enhanced|q58", "weight": 208.3648317934, "solver_seconds": 245.910420, "peak_mib": 2355.992, "states": 35934074},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Github-GPU4GST_g7|abhss_enhanced|q271", "weight": 946, "solver_seconds": 0.523495, "peak_mib": 20.469, "states": 305549},
-        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__LinkedMDB-MonoGSTPlus_all|abhss_enhanced|q105", "weight": 205.5166429146, "solver_seconds": 15.958913, "peak_mib": 327.492, "states": 6153951},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__LiveJournal-GPU4GST_g7|abhss_base|q283", "weight": 171, "solver_seconds": 64.867412, "peak_mib": 400.805, "states": 2446900},
-        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__MovieLens-MonoGSTPlus_all|abhss_enhanced|q158", "weight": 0.0011808771, "solver_seconds": 9.036942, "peak_mib": 561.422, "states": 524},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Musae-GPU4GST_g7|abhss_enhanced|q113", "weight": 807, "solver_seconds": 0.157555, "peak_mib": 10.926, "states": 73341},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_base|q175", "weight": 33, "solver_seconds": 167.252474, "peak_mib": 497.121, "states": 17079251},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Reddit-GPU4GST_g7|abhss_enhanced|q220", "weight": 600, "solver_seconds": 21.777458, "peak_mib": 881.652, "states": 101},
-        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__Toronto-MonoGSTPlus_all|abhss_base|q125", "weight": 0.5478016011, "solver_seconds": 0.146252, "peak_mib": 6.375, "states": 94164},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Twitch-GPU4GST_g7|abhss_base|q89", "weight": 780, "solver_seconds": 0.515109, "peak_mib": 9.750, "states": 369033},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Youtube-GPU4GST_g7|abhss_base|q101", "weight": 142, "solver_seconds": 9.241792, "peak_mib": 117.840, "states": 1082647},
-        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_enhanced|q175", "weight": 33, "solver_seconds": 196.854383, "peak_mib": 2660.195, "states": 11598909}
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__DBLP-GPU4GST_g7|abhss_base|q35",
+          "weight": 1157,
+          "solver_seconds": 34.841308,
+          "peak_mib": 331.883,
+          "states": 7725123
+        },
+        {
+          "task_key": "P1_monogstplus_published|P1_monogstplus_published__DBLP-MonoGSTPlus_all|abhss_enhanced|q132",
+          "weight": 8.2540182703,
+          "solver_seconds": 49.115068,
+          "peak_mib": 644.363,
+          "states": 10397175
+        },
+        {
+          "task_key": "P1_monogstplus_published|P1_monogstplus_published__DBpedia-MonoGSTPlus_all|abhss_enhanced|q58",
+          "weight": 208.3648317934,
+          "solver_seconds": 245.91042,
+          "peak_mib": 2355.992,
+          "states": 35934074
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Github-GPU4GST_g7|abhss_enhanced|q271",
+          "weight": 946,
+          "solver_seconds": 0.523495,
+          "peak_mib": 20.469,
+          "states": 305549
+        },
+        {
+          "task_key": "P1_monogstplus_published|P1_monogstplus_published__LinkedMDB-MonoGSTPlus_all|abhss_enhanced|q105",
+          "weight": 205.5166429146,
+          "solver_seconds": 15.958913,
+          "peak_mib": 327.492,
+          "states": 6153951
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__LiveJournal-GPU4GST_g7|abhss_base|q283",
+          "weight": 171,
+          "solver_seconds": 64.867412,
+          "peak_mib": 400.805,
+          "states": 2446900
+        },
+        {
+          "task_key": "P1_monogstplus_published|P1_monogstplus_published__MovieLens-MonoGSTPlus_all|abhss_enhanced|q158",
+          "weight": 0.0011808771,
+          "solver_seconds": 9.036942,
+          "peak_mib": 561.422,
+          "states": 524
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Musae-GPU4GST_g7|abhss_enhanced|q113",
+          "weight": 807,
+          "solver_seconds": 0.157555,
+          "peak_mib": 10.926,
+          "states": 73341
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_base|q175",
+          "weight": 33,
+          "solver_seconds": 167.252474,
+          "peak_mib": 497.121,
+          "states": 17079251
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Reddit-GPU4GST_g7|abhss_enhanced|q220",
+          "weight": 600,
+          "solver_seconds": 21.777458,
+          "peak_mib": 881.652,
+          "states": 101
+        },
+        {
+          "task_key": "P1_monogstplus_published|P1_monogstplus_published__Toronto-MonoGSTPlus_all|abhss_base|q125",
+          "weight": 0.5478016011,
+          "solver_seconds": 0.146252,
+          "peak_mib": 6.375,
+          "states": 94164
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Twitch-GPU4GST_g7|abhss_base|q89",
+          "weight": 780,
+          "solver_seconds": 0.515109,
+          "peak_mib": 9.75,
+          "states": 369033
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Youtube-GPU4GST_g7|abhss_base|q101",
+          "weight": 142,
+          "solver_seconds": 9.241792,
+          "peak_mib": 117.84,
+          "states": 1082647
+        },
+        {
+          "task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_enhanced|q175",
+          "weight": 33,
+          "solver_seconds": 196.854383,
+          "peak_mib": 2660.195,
+          "states": 11598909
+        }
       ],
       "fixed_cost_block": {
         "case_id": "P1_gpu4gst_published__Musae-GPU4GST_g5",
         "method": "abhss_enhanced",
-        "query_indices": [1, 100],
+        "query_indices": [
+          1,
+          100
+        ],
         "records": 100,
-        "solver_seconds": 4.199400,
+        "solver_seconds": 4.1994,
         "peak_mib": 10.312,
         "states": 76770
       },
@@ -244,7 +591,11 @@
     "final_binary_sha256": "af18f0d74b5ba2f00b4640c6b4920a585110317a6487b232e104665a8bb79c82",
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
-    "random_state_totals_base_directed_enhanced": [2772, 913, 913],
+    "random_state_totals_base_directed_enhanced": [
+      2772,
+      913,
+      913
+    ],
     "steinlib_final_build": "Base 11/11 in 13.115069 solver seconds and Enhanced 11/11 in 3.627557 solver seconds match known optima for g=11..16",
     "repeated_performance_panels": 3,
     "base_behavior_panels": 1,
@@ -265,7 +616,11 @@
     "final_binary_sha256": "85acbdca1618ea59b2c7bfa30400eeb318298c1651e744b5f4c28576452222bf",
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
-    "random_state_totals_base_directed_enhanced": [2815, 913, 913],
+    "random_state_totals_base_directed_enhanced": [
+      2815,
+      913,
+      913
+    ],
     "steinlib_final_build": "Base 11/11 in 9.823664 solver seconds and Enhanced 11/11 in 3.723920 solver seconds match known optima for g=11..16",
     "repeated_performance_panels": 2,
     "large_or_high_g_direction_panels": 3,
@@ -287,20 +642,27 @@
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
     "distance_root_contract_regression": "bounded exact entries equal complete distances, bounded placeholders remain lower-safe, both roots are valid and both upper bounds finite; a disconnected fixture also verifies recovery when canonical SPT roots fail but another component covers every group",
-    "steinlib_known_optimum_matches": {"base": "11/11", "enhanced": "11/11", "g_range": [11, 16]},
+    "steinlib_known_optimum_matches": {
+      "base": "11/11",
+      "enhanced": "11/11",
+      "g_range": [
+        11,
+        16
+      ]
+    },
     "repeated_performance_configuration_panels": 5,
     "large_graph_configuration_directions": 4,
     "objective_mismatches": 0,
     "state_count_mismatches": 0,
     "timeout_or_feasibility_regressions": 0,
-    "maximum_repeated_panel_new_over_old": 1.023361310,
+    "maximum_repeated_panel_new_over_old": 1.02336131,
     "threshold": 1.03,
     "result": "PASS"
   },
   "endpoint_floor_a1_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#endpoint_floor_a1_gate_20260802",
     "status": "ACTIVE prerequisite; current whole-binary evidence is auxiliary_half_adjoint_gate",
-    "contract": "all legal configurations use the same max(farthest, endpoint-floor) A1 continuation, cone, positive fallback, row representation and ownership transfer, without configuration, graph-name or empirical group-count branches",
+    "contract": "all legal configurations use the same max(farthest, endpoint-floor) A1 continuation, cone, nonnegative fallback, row representation and ownership transfer, without configuration, graph-name or empirical group-count branches",
     "historical_validated_binary_sha256": "a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86",
     "local_ctest": "5/5 PASS",
     "independent_random_exact_dp_cases": 144,
@@ -313,7 +675,7 @@
     "result": "PASS"
   },
   "monotone_certificate_frontier_gate": {
-    "evidence": "docs/archive/MONOTONE_CERTIFICATE_FRONTIER_PROBE_20260815.md",
+    "evidence": "docs/archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-monotone-certificate-frontier-probe-20260815",
     "status": "LOCAL OPTIMIZATION RETAINED; WHOLE-BINARY GATE SUPERSEDED BY auxiliary_half_adjoint_gate",
     "contract": "DirectedCut configurations factor candidate-independent future certificates into monotone stages and lazily materialize a row-local rejection frontier only after observed reuse; stage 0 derives a cutoff with the unchanged binary64 predicate, virtual values never enter the queue, settled row or state count, and Base remains on its flat same-role realization",
     "historical_binary_sha256": "a957bdcecafc486575cb7d78779dcbeda687eb0ea7283a0fc1104089dce83b86",
@@ -328,7 +690,10 @@
       "candidate_states": 67570613,
       "answer_mismatches": 0,
       "state_mismatches": 0,
-      "historical_seconds": [2117.447315, 2119.582756]
+      "historical_seconds": [
+        2117.447315,
+        2119.582756
+      ]
     },
     "historical_youtube_p1_base_performance": {
       "queries": 300,
@@ -343,10 +708,54 @@
     "historical_orkut_g15_invalid_exactness": {
       "query_panel_sha256": "715ee781b2c2c189682a332eac7ed9b5c5f2c0e0bd4d7323205b4e65dab0f83c",
       "queries": 10,
-      "query_seconds": [2270.861729, 2523.203538, 281.276293, 315.547937, 4568.638367, 3847.347995, 3451.310315, 204.234148, 1465.793602, 9934.602789],
-      "weights": [21, 32, 38, 28, 32, 36, 38, 18, 35, 54],
-      "peak_rss_mib": [3270.934, 3609.332, 2690.473, 2995.387, 7130.719, 6019.355, 4815.082, 2690.305, 3538.766, 19776.727],
-      "states": [105902192, 261581592, 31051638, 15061435, 560869444, 452486374, 364962795, 366330, 135705582, 1654690262],
+      "query_seconds": [
+        2270.861729,
+        2523.203538,
+        281.276293,
+        315.547937,
+        4568.638367,
+        3847.347995,
+        3451.310315,
+        204.234148,
+        1465.793602,
+        9934.602789
+      ],
+      "weights": [
+        21,
+        32,
+        38,
+        28,
+        32,
+        36,
+        38,
+        18,
+        35,
+        54
+      ],
+      "peak_rss_mib": [
+        3270.934,
+        3609.332,
+        2690.473,
+        2995.387,
+        7130.719,
+        6019.355,
+        4815.082,
+        2690.305,
+        3538.766,
+        19776.727
+      ],
+      "states": [
+        105902192,
+        261581592,
+        31051638,
+        15061435,
+        560869444,
+        452486374,
+        364962795,
+        366330,
+        135705582,
+        1654690262
+      ],
       "completed_with_query_seconds_below_10000": 10,
       "maximum_query": 10,
       "maximum_query_seconds": 9934.602789,
@@ -361,7 +770,7 @@
     "result": "LOCAL FRONTIER PROOF AND IMPLEMENTATION RETAINED; OLD P1/ORKUT WHOLE-BINARY RESULT INVALID"
   },
   "auxiliary_half_adjoint_gate": {
-    "evidence": "docs/archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md",
+    "evidence": "docs/archive/METHOD_EVOLUTION_AND_CORRECTNESS.md#history-auxiliary-half-adjoint-correctness-audit-20260815",
     "status": "HISTORICAL prerequisite extended by the split-completeness, minimal-forward-A1 and incremental certificate-support gates; current exactness and q10 single-query gate PASS",
     "contract": "Enhanced materializes ordinary D through q=h-1; physical H starts at auxiliary h=floor(g/2), exactly realizes omitted D(h), and descends by the complement-transposed ordinary recurrence. Every materialized lower-H target receives all necessary complete-D singleton/double terminals; successor reads all exact ordinary values; complementary auxiliary H completes the balanced even split.",
     "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
@@ -370,24 +779,72 @@
     "independent_exactness": "PASS: 5000 deterministic random connected cases g=2..10, 500 positive unique-terminal stress cases g=6..10, 160 omitted-half transpose cases g=7..16, and the fixed 12-vertex g=7 fixture with optimum 5.75; cumulative discovered states base=103878, directed-cut-only=31982, enhanced=33869",
     "known_production_counterexamples": {
       "count": 9,
-      "livejournal_queries": [44, 46],
-      "livejournal_weights": [22, 60],
-      "orkut_queries": [7, 16, 18, 22, 23, 27, 28],
-      "orkut_weights": [29, 31, 23, 29, 36, 30, 31],
+      "livejournal_queries": [
+        44,
+        46
+      ],
+      "livejournal_weights": [
+        22,
+        60
+      ],
+      "orkut_queries": [
+        7,
+        16,
+        18,
+        22,
+        23,
+        27,
+        28
+      ],
+      "orkut_weights": [
+        29,
+        31,
+        23,
+        29,
+        36,
+        30,
+        31
+      ],
       "result": "PASS: all current Enhanced weights match Base/exact references"
     },
     "steinlib_current_binary": {
       "suite": "S1_steinlib_exactness_gate",
-      "g_range": [11, 16],
-      "base": {"matches": "11/11", "solver_seconds": 1.390634, "states": 76383},
-      "enhanced": {"matches": "11/11", "solver_seconds": 4.578776, "states": 54477},
+      "g_range": [
+        11,
+        16
+      ],
+      "base": {
+        "matches": "11/11",
+        "solver_seconds": 1.390634,
+        "states": 76383
+      },
+      "enhanced": {
+        "matches": "11/11",
+        "solver_seconds": 4.578776,
+        "states": 54477
+      },
       "evidence_directory": "results/probes/auxiliary_half_current_steinlib"
     },
     "strict_dominance": "SUPERSEDED wording: removing all lower direct H terminals was incomplete. Current exactness requires the complete-D singleton/double terminals described by the active contract; only terms proved dominated under that complete seed set are omitted.",
     "current_extensions": {
-      "minimal_forward_a1": {"evidence": "docs/archive/MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md", "contract": "ell=min(1,q); A1 is common and H realizes logical layers 2..q", "q10_checkpoint_seconds": 9431.057},
-      "incremental_certificate_support_dp": {"evidence": "docs/archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md", "contract": "dirty-supermask recomputation is value-equivalent to a full rebuild and leaves scheduler purchases unchanged", "q10_final_seconds": 9250.911428, "q10_final_states": 1459398194},
-      "p1_g5_g7_history_risk_sample": {"evidence": "docs/archive/P1_G5_G7_HISTORY_REGRESSION_PROBE_20260818.md", "records": 104, "objective_mismatches": 0, "scope": "13 deliberately weak/heavy queries; not a replacement for full P1", "known_regression": "Orkut g7 q175 Enhanced current/history time=1.035 and peak memory +16.0%"}
+      "minimal_forward_a1": {
+        "evidence": "docs/archive/METHOD_EVOLUTION_AND_CORRECTNESS.md#history-minimal-forward-a1-adjoint-gate-20260818",
+        "contract": "ell=min(1,q); A1 is common and H realizes logical layers 2..q",
+        "q10_checkpoint_seconds": 9431.057
+      },
+      "incremental_certificate_support_dp": {
+        "evidence": "docs/archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-incremental-certificate-support-dp-gate-20260818",
+        "contract": "dirty-supermask recomputation is value-equivalent to a full rebuild and leaves scheduler purchases unchanged",
+        "q10_final_seconds": 9250.911428,
+        "q10_final_states": 1459398194
+      },
+      "p1_g5_g7_history_risk_sample": {
+        "evidence": "docs/archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-p1-g5-g7-history-regression-probe-20260818",
+        "records": 104,
+        "objective_mismatches": 0,
+        "scope": "13 deliberately weak/heavy queries; not a replacement for full P1",
+        "known_regression": "Orkut g7 q175 Enhanced current/history time=1.035 and peak memory +16.0%"
+      }
     },
     "orkut_g15_current": "PASS: the frozen production binary completed q1-q10 below 10000 seconds; q10 used 9544.561375 seconds, returned exact weight 54 and recorded 1459398194 states",
     "p1_current": "PASS: 16636 current ABHSS records and 8318 frozen PrunedDP++ records align on all 8318 query identities; every one of 13 graphs satisfies min(Base, Enhanced) <= PrunedDP++",
@@ -396,7 +853,10 @@
   "known_optimum_panel": {
     "suite": "E0_steinlib_wrp",
     "instances": 11,
-    "range_g": [11, 16],
+    "range_g": [
+      11,
+      16
+    ],
     "results": {
       "abhss_base": "11/11 match in the current source exactness regression",
       "abhss_enhanced": "11/11 match in the current source exactness regression",
@@ -407,9 +867,21 @@
       "pruneddp_strict": "8/11 match; 3 incorrect values"
     },
     "strict_counterexamples": [
-      {"instance": "wrp4-11", "known_optimum": 179, "pruneddp_strict": 180},
-      {"instance": "wrp4-15", "known_optimum": 405, "pruneddp_strict": 407},
-      {"instance": "wrp4-16", "known_optimum": 1190, "pruneddp_strict": 1213}
+      {
+        "instance": "wrp4-11",
+        "known_optimum": 179,
+        "pruneddp_strict": 180
+      },
+      {
+        "instance": "wrp4-15",
+        "known_optimum": 405,
+        "pruneddp_strict": 407
+      },
+      {
+        "instance": "wrp4-16",
+        "known_optimum": 1190,
+        "pruneddp_strict": 1213
+      }
     ],
     "evidence_directories": {
       "final_five_way_exact_gate": "results/paper_runs/smoke_final_wrp",

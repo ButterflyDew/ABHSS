@@ -75,10 +75,10 @@ Windows Visual Studio 构建将上述路径换为 `build/Release/abhss.exe`。�
 
 ```bash
 make tools JOBS=16
-./build/prepare_gpu4gst data_origin data all --seed 2025 --queries 300 --min-g 5 --max-g 16
+./build/prepare_gpu4gst data_origin data all --seed 2025 --queries 300 --min-g 5 --max-g 15
 ```
 
-Windows Visual Studio 构建使用 `build/Release/prepare_gpu4gst.exe`。该步同时生成 P1 的 `g={3,5,7}` 作者查询接口与 P2 每个 `g=5..16` 的 300 条 related-group 候选；文件名/manifest 始终区分 author 与 generated。
+Windows Visual Studio 构建使用 `build/Release/prepare_gpu4gst.exe`。该步同时生成 P1 的 `g={3,5,7}` 作者查询接口与 P2 每个 `g=5..15` 的 300 条 related-group 候选；文件名/manifest 始终区分 author 与 generated。
 
 ### 2.2 MonoGST+ 作者 workload
 
@@ -135,9 +135,9 @@ Windows 将 `python3` 换为 `python`。开发期若图与查询哈希完全不�
 |---|---:|---:|---:|
 | P1 MonoGST+ | 1,118 | 3 | 3,354 |
 | P1 GPU4GST | 7,200 | 3 | 21,600 |
-| P2 cross-`g` | 720 | 3 | 2,160 |
+| P2 cross-`g` | 660 | 3 | 1,980 |
 | S2 controlled $\langle g,f\rangle$ | 150 | 3 | 450 |
-| 性能矩阵合计 | 9,188 | 3 | 27,564 |
+| 性能矩阵合计 | 9,128 | 3 | 27,384 |
 
 可行性审计必须恰好保留 P1 中已知 55 条无解自然查询（LinkedMDB 46、DBpedia 9），并要求 P2、S2 与 gate 的新查询无一条不可行。
 
@@ -153,7 +153,7 @@ python3 tools/experiments/run_experiments.py --run-id gate --run-dir results/pap
 
 ### 4.2 SteinLib 外部 gate
 
-S1 的 DPBF 在仓库内；Basic+ 和 SCIP-Jack 需要锁定的第三方源码。详细 commit、许可与恢复步骤在 [`docs/archive/THIRD_PARTY.md`](docs/archive/THIRD_PARTY.md)。恢复 GroupSteinerTree/Boost 后重跑主构建；恢复 SCIP-Jack/SoPlex 后，Linux 可直接：
+S1 的 DPBF 在仓库内；Basic+ 和 SCIP-Jack 需要锁定的第三方源码。详细 commit、许可与恢复步骤在 [`docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-third-party`](docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-third-party)。恢复 GroupSteinerTree/Boost 后重跑主构建；恢复 SCIP-Jack/SoPlex 后，Linux 可直接：
 
 ```bash
 python3 tools/build_external_baselines.py --target scip-jack
@@ -228,7 +228,7 @@ python3 tools/experiments/run_parallel_campaign.py gf
 case ID 从 `--dry-run` 获得，`--case`、`--method`、`--query-index` 都是精确过滤：
 
 ```bash
-python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results/diagnose --case P2_cross_g__Musae-GPU4GST_16 --query-index 1 --method abhss_base --method pruneddp_safe
+python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results/diagnose --case P2_cross_g__Musae-GPU4GST_15 --query-index 1 --method abhss_base --method pruneddp_safe
 ```
 
 诊断运行不自动进入论文汇总。若 PrunedDP++ 明显更快或 ABHSS 超时，保留原数据，再同时检查图的 $n,m$、密度/分量、实现后组大小、双方状态数、上界收紧、row 密度与各 phase 时间，不得仅用“图更大”解释。

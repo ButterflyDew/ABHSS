@@ -195,10 +195,10 @@ def main() -> int:
     p2 = load_json("experiment_data/p2_cross_g/cells.json")
     p2_grid = {(row["dataset"], int(row["g"])) for row in p2}
     expected_p2_grid = {
-        (dataset, g) for dataset in P2_SIZE_CLASSES for g in range(5, 17)
+        (dataset, g) for dataset in P2_SIZE_CLASSES for g in range(5, 16)
     }
-    if len(p2) != 72 or p2_grid != expected_p2_grid:
-        failures.append("P2 must be the frozen six-dataset g=5..16 grid")
+    if len(p2) != 66 or p2_grid != expected_p2_grid:
+        failures.append("P2 must be the frozen six-dataset g=5..15 grid")
     if any(
         int(row["source_queries"]) != 300
         or int(row["selected_queries"]) != 10
@@ -220,6 +220,43 @@ def main() -> int:
             check_hash(
                 ROOT / row[path_field], row.get(hash_field), failures, label
             )
+
+    ablation = load_json("experiments/ablation_plan.json")
+    selection = ablation.get("selection", {})
+    expected_ablation_datasets = [
+        "Musae-GPU4GST",
+        "Youtube-GPU4GST",
+        "Orkut-GPU4GST",
+    ]
+    if (
+        ablation.get("schema_version") != 1
+        or ablation.get("source_suite") != "P2_cross_g"
+        or int(ablation.get("timeout_seconds_per_query", -1)) != 10_000
+        or selection.get("datasets") != expected_ablation_datasets
+        or selection.get("g") != [6, 10, 14]
+        or selection.get("panel_query_indices") != [1, 2, 3, 4, 5]
+        or int(selection.get("cells", -1)) != 9
+        or int(selection.get("queries", -1)) != 45
+        or int(ablation.get("total_new_tasks", -1)) != 135
+    ):
+        failures.append("minimal ablation selection or task count changed")
+    selected_ablation_cells = {
+        (dataset, g)
+        for dataset in expected_ablation_datasets
+        for g in (6, 10, 14)
+    }
+    if not selected_ablation_cells.issubset(p2_grid):
+        failures.append("ablation panel is not a subset of the frozen P2 grid")
+    panel_ids = [row.get("id") for row in ablation.get("panels", [])]
+    if panel_ids != ["configuration_chain", "common_a1_endpoint_floor"]:
+        failures.append("minimal ablation panels changed")
+    core_source = (ROOT / "src" / "abhss" / "core.cpp").read_text(encoding="utf-8")
+    endpoint_contract = (
+        "return std::max(FarthestRemaining(p, vertex, continuation), "
+        "p.tour.EndpointFloorAt(vertex, continuation, p.group_distance));"
+    )
+    if core_source.count(endpoint_contract) != 1:
+        failures.append("production endpoint-floor expression no longer matches the registered ablation")
 
     s2 = load_json("experiment_data/s1_controlled_gf/cells.json")
     expected_s2_grid = {
@@ -277,13 +314,13 @@ def main() -> int:
         failures.append("P1 MonoGST+ must expand to five executable blocks")
     if case_counts.get("P1_gpu4gst_published") != 24:
         failures.append("P1 GPU4GST must expand to 24 executable blocks")
-    if case_counts.get("P2_cross_g") != 72:
-        failures.append("P2 must expand to 72 cells")
+    if case_counts.get("P2_cross_g") != 66:
+        failures.append("P2 must expand to 66 cells")
     if case_counts.get("S2_controlled_gf") != 30:
         failures.append("S2 must expand to 30 cells")
-    if primary_query_tasks != 27_564:
+    if primary_query_tasks != 27_384:
         failures.append(
-            f"primary/secondary performance task total is {primary_query_tasks}, expected 27,564"
+            f"primary/secondary performance task total is {primary_query_tasks}, expected 27,384"
         )
 
     if args.require_binaries or args.require_performance_binaries:
@@ -318,7 +355,7 @@ def main() -> int:
             failures.append(
                 "the 55 audited infeasible MonoGST+ natural queries were changed or dropped"
             )
-        if int(totals.get("unique_query_records", -1)) != 9_200:
+        if int(totals.get("unique_query_records", -1)) != 9_140:
             failures.append("query-feasibility audit query total changed")
 
     for warning in warnings:
@@ -329,7 +366,7 @@ def main() -> int:
         return 1
     print(
         f"Validated {len(cases)} cases and {primary_query_tasks} performance tasks "
-        f"(P1=8,318, P2=720, S2=150 queries across three methods)"
+        f"(P1=8,318, P2=660, S2=150 queries across three methods)"
     )
     return 0
 

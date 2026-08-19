@@ -7,7 +7,13 @@
       "paper": "A Practical Sublinear Approximation for Group Steiner Tree",
       "paper_status": "accepted by VLDB 2026; not public at the 2026-07-23 freeze",
       "source_status": "private author-supplied processed graph/query interfaces; manuscript/source material is not Git-tracked",
-      "datasets": ["Toronto", "MovieLens", "DBLP", "LinkedMDB", "DBpedia"],
+      "datasets": [
+        "Toronto",
+        "MovieLens",
+        "DBLP",
+        "LinkedMDB",
+        "DBpedia"
+      ],
       "graph_policy": "exact processed author graph interfaces",
       "query_policy": "exact complete author query.txt files",
       "public_precursor_artifact": "https://github.com/YahuiSun/GroupSteinerTree",
@@ -21,7 +27,16 @@
       "paper": "Fast Optimal Group Steiner Tree Search using GPUs",
       "paper_doi": "https://doi.org/10.1145/3769792",
       "repository": "https://github.com/toziki/GPU4GST-sigmod",
-      "datasets": ["Musae", "Twitch", "Github", "Youtube", "DBLP", "Orkut", "LiveJournal", "Reddit"],
+      "datasets": [
+        "Musae",
+        "Twitch",
+        "Github",
+        "Youtube",
+        "DBLP",
+        "Orkut",
+        "LiveJournal",
+        "Reddit"
+      ],
       "graph_policy": "exact processed author .in and .g products converted without changing graph semantics",
       "query_policy": "all first 300 author CSV rows at each of g=3,5,7",
       "source_manifest": "data_origin/OFFICIAL_ONEDRIVE_MANIFEST.json",
@@ -35,8 +50,27 @@
       "id": "GPU4GST-cross-g-extension",
       "paper_protocol": "related-group co-occurrence BFS from Approximating Probabilistic Group Steiner Trees in Graphs",
       "protocol_paper": "https://www.vldb.org/pvldb/vol16/p343-sun.pdf",
-      "graphs": ["Musae", "Twitch", "Youtube", "DBLP", "Orkut", "Reddit"],
-      "g_values": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "graphs": [
+        "Musae",
+        "Twitch",
+        "Youtube",
+        "DBLP",
+        "Orkut",
+        "Reddit"
+      ],
+      "g_values": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
       "source_candidates_per_cell": 300,
       "selected_queries_per_cell": 10,
       "original_queries_per_cell": 5,
@@ -67,9 +101,22 @@
     },
     {
       "id": "controlled-gf",
-      "graphs": ["DBLP-MonoGSTPlus", "IMDb-latest-20260722"],
-      "g_values": [6, 10, 14],
-      "f_values": [200, 400, 800, 1600, 3200],
+      "graphs": [
+        "DBLP-MonoGSTPlus",
+        "IMDb-latest-20260722"
+      ],
+      "g_values": [
+        6,
+        10,
+        14
+      ],
+      "f_values": [
+        200,
+        400,
+        800,
+        1600,
+        3200
+      ],
       "queries_per_cell": 5,
       "base_seed": 20260723,
       "protocol": "MonoGST+: independent rounded N(f,(0.15f)^2) sizes clamped to [0.5f,1.5f], then uniform vertices without replacement within each group",

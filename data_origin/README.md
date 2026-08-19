@@ -10,7 +10,7 @@
 
 截至 2026-07-17，研究环境曾从作者 OneDrive 的 `GSTdata` 文件夹逐文件下载全部 64 个成品文件，总计 7,809,970,520 字节。下载时取得的 OneDrive 文件 ID、文件长度、修改时间和 QuickXorHash 保存在 `OFFICIAL_ONEDRIVE_MANIFEST.json`；全量 SHA-256 保存在 `SHA256SUMS.txt`。
 
-2026-07-23 仓库清理时，原始大文件已移入根目录归档 `ABHSS_ignored_data_before_workload_redesign_20260723.tar.gz`，本目录只保留来源元数据、作者 CSV 和核验脚本；当前正式求解接口位于 `data/GPU4GST_*`。需要逐文件重新核验时，先从归档恢复原始文件，再运行：
+2026-07-23 的原工作区清理曾生成过一个 Git 忽略的旧数据恢复包；该包不随仓库或当前服务器工作区提供，也不是当前矩阵输入。本目录保留来源元数据、作者 CSV 和核验脚本，当前正式求解接口位于 `data/GPU4GST_*`。需要逐文件重新核验时，应按下文官方来源重新取得原始文件，再运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File data_origin/verify_data.ps1
@@ -137,7 +137,7 @@ w(u,v)=\left\lfloor 100\left(1-\frac{|N(u)\cap N(v)|}{|N(u)\cup N(v)|}\right)\ri
 
 所以 `3.csv`、`5.csv`、`7.csv` 不是可以根据论文文字确定性重建的辅助文件，而是精确复现实验所必需的作者原始查询记录。
 
-引用 [61] 的原文给出了“相关组”的一般生成方法：构造候选组共现图，若两个组至少共享一个原图顶点则相邻；均匀随机选择根组，BFS 到能够找到足够近邻的最小深度，再从已找到的近邻中均匀抽样，并对不可行查询重新生成。当前仓库用这一定义生成独立的 `g=5..16` 扩展查询，每格从 300 条候选固定选 5 条；但由于 GPU4GST 没有公开实际种子和生成代码，扩展查询不能声称是作者原始输出。冻结包中的转换协议见 [`docs/archive/GPU4GST_DATA.md`](../docs/archive/GPU4GST_DATA.md)。引用 [61] 为：Shuang Yang et al., *Approximating Probabilistic Group Steiner Trees in Graphs*, PVLDB 16(2), 2022，<https://www.vldb.org/pvldb/vol16/p343-sun.pdf>。
+引用 [61] 的原文给出了“相关组”的一般生成方法：构造候选组共现图，若两个组至少共享一个原图顶点则相邻；均匀随机选择根组，BFS 到能够找到足够近邻的最小深度，再从已找到的近邻中均匀抽样，并对不可行查询重新生成。当前仓库用这一定义生成独立的 `g=5..15` 扩展查询，每格从 300 条候选按真实平均组大小分成五个等秩层，再以固定哈希分两轮各层选一条，共固定 10 条；但由于 GPU4GST 没有公开实际种子和生成代码，扩展查询不能声称是作者原始输出。冻结包中的转换协议见 [`docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-gpu4gst-data`](../docs/archive/DATA_BASELINES_AND_ARTIFACTS.md#history-gpu4gst-data)。引用 [61] 为：Shuang Yang et al., *Approximating Probabilistic Group Steiner Trees in Graphs*, PVLDB 16(2), 2022，<https://www.vldb.org/pvldb/vol16/p343-sun.pdf>。
 
 ## 7. 二进制生成
 

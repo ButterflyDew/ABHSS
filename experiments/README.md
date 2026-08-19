@@ -5,6 +5,7 @@
 | 文件 | 作用 |
 |---|---|
 | `paper_matrix.json` | 当前可执行矩阵：P1、P2、S2 与 correctness gates |
+| `ablation_plan.json` | 与主矩阵分离的最小消融面板、固定查询和唯一允许的 build-time 差异 |
 | `data_sources.json` | MonoGST+、GPU4GST、IMDb 和查询生成的来源总表 |
 | `official_sources.json` | 仅 IMDb 2026-07-22 官方冻结的下载与转换定义 |
 | `query_feasibility_audit.json` | 当前矩阵每个图/查询对的共同分量审计 |
@@ -16,13 +17,13 @@
 当前正式性能矩阵：
 
 - P1：MonoGST+ 五图与 GPU4GST 八图的完整作者 workload，13 个图身份、8,318 条查询；
-- P2：六张 GPU4GST 作者图上的 `g=5..16`，每格 10 条，共 720 条；原 q1--q5 保留，q6--q10 从相同五分层各追加一条；
+- P2：六张 GPU4GST 作者图上的 `g=5..15`，每格 10 条，共 660 条；原 q1--q5 保留，q6--q10 从相同五分层各追加一条；
 - S2：DBLP-MonoGSTPlus 与 IMDb-latest-20260722 上的 `<g,f>`，共 150 条；
 - 计时项：同一 `abhss` 二进制的 Base、全增强配置，以及 PrunedDP++-Safe，均为单计算线程、每查询 10,000 秒。
 
 两个正式二进制的每条完成查询还报告 `mask_vertex_states`：ABHSS 汇总首次进入 $D$、 $A$、 $H$ 行的状态，PrunedDP++ 统计实际 StateStore 项；辅助预处理、重复队列项和完整解候选不计入。runner 将该值保存在任务 JSON，timeout 不补造计数。
 
-消融、近似解质量、GPU/异构速度和旧 15 小时探针不属于当前冻结。改变矩阵、图、查询或生成器后，必须重建所有对应 manifest 与 `query_feasibility_audit.json`。Linux 正式性能环境先运行：
+消融按 `ablation_plan.json` 单独预登记，不计入主矩阵任务数；近似解质量、GPU/异构速度和旧 15 小时探针不属于当前冻结。改变矩阵、图、查询或生成器后，必须重建所有对应 manifest 与 `query_feasibility_audit.json`。Linux 正式性能环境先运行：
 
 ```bash
 make validate-paper-binaries

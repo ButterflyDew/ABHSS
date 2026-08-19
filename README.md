@@ -5,7 +5,7 @@
 当前冻结性能矩阵包含三类实验：
 
 - P1：MonoGST+ 的 5 张作者图与 GPU4GST 的 8 张作者图，共 13 个独立图身份、29 个 query blocks 和全部 8,318 条作者查询；两个 DBLP 保持为不同图，论文主表每图每方法一行。
-- P2：在 Musae、Twitch、YouTube、DBLP-GPU4GST、Orkut、Reddit 上做 `g=5..16` related-group 扩展；每个 `(graph,g)` 从 300 条候选中按输入平均组大小分为五个等秩层，以稳定哈希分两轮、每层各选 1 条。第二轮只追加 q6--q10，不改变原 q1--q5，共 10 条/格、720 条。
+- P2：在 Musae、Twitch、YouTube、DBLP-GPU4GST、Orkut、Reddit 上做 `g=5..15` related-group 扩展；每个 `(graph,g)` 从 300 条候选中按输入平均组大小分为五个等秩层，以稳定哈希分两轮、每层各选 1 条。第二轮只追加 q6--q10，不改变原 q1--q5，共 10 条/格、660 条。
 - S2：在 DBLP-MonoGSTPlus 与 `IMDb-latest-20260722` 上做受控 $\langle g,f\rangle$ 敏感性；`g={6,10,14}`、`f={200,400,800,1600,3200}`、每格 5 条，共 150 条。
 
 三个正式计时项为 ABHSS Base、ABHSS 全增强和 PrunedDP++-Safe，但只需两个性能二进制 `abhss`/`pruneddp`。逐查询 timeout 为 10,000 秒。准确的数据来源、查询数、报告方式与风险见 [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)。
@@ -50,8 +50,9 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `docs` | 仅保留当前实验方案、代码导读和详细方法三份活文档 | 是，人类可读真值 |
 | `docs/archive` | 旧的配置重构、baseline、数据沿革和第三方恢复细节 | 否，只作历史证据，冲突时以活文档/机器矩阵为准 |
 | `experiment_data` | 由来源接口派生的冻结查询 panel、身份清单和正确性实例 | 是，正式 workload 控制层 |
+| `paper` | 面向 SIGMOD/VLDB 的章节初稿、版面取舍和伪代码设计 | 写作工作区；算法事实仍以 `docs/METHOD.md` 与源码为准 |
 | `experiment_data/p1_published_workloads` | 13 图、29 query blocks、8,318 查询的路径、哈希、查询分布与已知无解索引 | P1 输入身份真值 |
-| `experiment_data/p2_cross_g` | 72 个 `(graph,g)` cell、每格 10 条 panel 和选择证据；q1--q5 为原 panel，q6--q10 为追加 tranche | P2 输入身份真值 |
+| `experiment_data/p2_cross_g` | 66 个 `(graph,g)` cell、每格 10 条 panel 和选择证据；q1--q5 为原 panel，q6--q10 为追加 tranche | P2 输入身份真值 |
 | `experiment_data/s1_controlled_gf` | 30 个 $\langle graph,g,f\rangle$ cell、查询、seed 和实现后组大小 | S2 输入身份真值；目录名保留历史 `s1`，矩阵 suite 名为 `S2_controlled_gf` |
 | `experiment_data/steinlib` | SteinLib 转换后的图/查询与已知最优 index | 正确性真值 |
 | `experiments` | `paper_matrix.json`、来源/环境锁、可行性审计、正确性证据和报告设置 | 是，正式实验机器可读控制面 |
@@ -78,7 +79,6 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `run_p1_full.sh` | Linux 上完整 P1 的构建、深度校验、分片与断点续跑入口 |
 | `RUN.md` | 从恢复数据到正式分片、续跑、诊断和汇总的命令手册 |
 | `.gitignore` | 排除大图、展开查询、结果、编译产物和未授权第三方源码 |
-| `ABHSS_ignored_data_before_workload_redesign_20260723.tar.gz` | 工作区本地的旧忽略数据恢复包；不是当前矩阵输入，不应上传或用于正式运行 |
 
 ## 正确性与声称边界
 

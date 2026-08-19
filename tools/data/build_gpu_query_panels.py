@@ -38,7 +38,7 @@ SIZE_CLASS = {
     "GPU4GST_Orkut": "large",
     "GPU4GST_Reddit": "large",
 }
-ALL_G = tuple(range(5, 17))
+ALL_G = tuple(range(5, 16))
 SIZE_STRATA = 5
 QUERIES_PER_CELL = 10
 ORIGINAL_QUERIES_PER_CELL = 5

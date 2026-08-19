@@ -1,6 +1,6 @@
 {
   "schema_version": 5,
-  "frozen_at": "2026-07-25",
+  "frozen_at": "2026-08-20",
   "data_freeze": "published-workloads-plus-imdb-20260722",
   "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
   "paper_timeout_seconds_per_instance": 10000,
@@ -13,30 +13,40 @@
   "formal_policy": {
     "P1_graphs": "use the exact processed graph interfaces used by MonoGST+ and GPU4GST",
     "P1_queries": "use every author query; no subsampling; preserve query blocks internally but report one aggregate row per graph",
-    "P2_queries": "related-group BFS candidates on six GPU4GST author graphs; select five per graph/g cell from five input-size rank strata without solver feedback",
+    "P2_queries": "related-group BFS candidates on six GPU4GST author graphs for g=5..15; select ten per graph/g cell from five input-size rank strata in two fixed-hash tranches without solver feedback",
     "controlled_queries": "MonoGST+ Gaussian-size and uniform-vertex protocol on DBLP-MonoGSTPlus and IMDb-latest-20260722",
     "query_validity": "generated P2/S2 and gate queries must have a common intersecting component; published P1 queries are retained in full and known-infeasible rows are audited explicitly",
     "same_name_graphs": "DBLP-MonoGSTPlus and DBLP-GPU4GST remain separate identities regardless of similar counts",
     "method_selection": "ABHSS base and enhanced are fixed configurations of one executable; configuration is frozen before a query batch and no per-query oracle is allowed",
-    "future_experiments": "ablations and approximation-quality comparisons are not enabled in this freeze"
+    "future_experiments": "the minimal ablations are preregistered separately in experiments/ablation_plan.json and do not enter the formal P1/P2/S2 task count; approximation-quality comparisons are not enabled"
   },
   "abhss_configuration": {
     "executable": "build/abhss (Linux) or build/Release/abhss.exe (Windows multi-config)",
-    "base_arguments": ["--enhancements=none"],
-    "enhanced_arguments": ["--enhancements=all"],
-    "enhancement_order": ["directed-cut", "adjoint-completion"],
+    "base_arguments": [
+      "--enhancements=none"
+    ],
+    "enhanced_arguments": [
+      "--enhancements=all"
+    ],
+    "enhancement_order": [
+      "directed-cut",
+      "adjoint-completion"
+    ],
     "dependency": "adjoint-completion requires directed-cut",
     "execution_relation": "the profiles share common A1/D/low-A operations; every remaining difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
     "common_operations": {
-      "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest + endpoint-floor cone, positive fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
+      "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest + endpoint-floor cone, nonnegative fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
       "witness_scheduler": "after preprocessing, every legal configuration constructs the same scheduler with rent=0; A1 and ordinary D continuously pay queue-pop/edge-relax rent, each profile substitutes only its own witness vertex count into the same buy formula t*((3^k-1)/2+3^k), and every buy calls the same EvaluateWitnessTree implementation"
     },
     "same_role_replacements": {
       "distance_root_initialization": "BootstrappedBounded -> CompletePotential; both are selected realizations of one BuildDistanceRootInitialization call and return the same {group_distance, root, feasible upper} contract. The canonical SPT union is private cutoff bootstrap work inside the bounded realization, while full-distance expansion is private work inside the complete realization.",
       "upper_witness": "root-path tree -> primal upper plus dual-primal tree; both preprocessing paths only construct their witness and do not unconditionally evaluate it, then enter the common zero-rent scheduler, common buy formula and common tree-DP implementation; common root-star and root-path-union uppers remain shared",
-      "high_completion_after_A1": "forward high A -> common A1/low A plus adjoint high H; when q>0, ell=max(1,floor(q/2)) keeps A1 in the forward prefix"
+      "high_completion_after_A1": "forward high A -> common A1 plus adjoint high H; when q>0, ell=min(1,q) keeps only the required common A1 forward prefix and H realizes logical layers 2..q"
     },
-    "safe_additions": ["directed-cut dual-feasibility certificate outside A1 in the ordinary max stack and adjoint reduced/prefix checks", "facility feasible upper bound"],
+    "safe_additions": [
+      "directed-cut dual-feasibility certificate outside A1 in the ordinary max stack and adjoint reduced/prefix checks",
+      "facility feasible upper bound"
+    ],
     "contract_evidence": "experiments/abhss_configuration_refactor_gate.json",
     "runtime_switching": "forbidden"
   },
@@ -44,7 +54,10 @@
     "implementation": "shared 8 MiB buffered numeric scanner; solver then performs exact-degree adjacency reservation and one O(n+m) connected-component index build, while the offline feasibility audit streams edges into a DSU",
     "semantic_contract": "preserve original edge order, edge_id, per-vertex adjacency insertion order and finite-double conversion; reject trailing graph tokens",
     "query_feasibility": "reuse the immutable component index; connected graphs cost O(total query memberships), disconnected graphs intersect sorted per-group component sets",
-    "result_fields": ["graph_load_seconds", "query_load_seconds"],
+    "result_fields": [
+      "graph_load_seconds",
+      "query_load_seconds"
+    ],
     "timing_policy": "engineering metrics only; excluded from solver query time and algorithmic speedup",
     "regression_gate": "tests/graph_io_regression.cpp"
   },
@@ -57,8 +70,17 @@
     "native_linux_evidence_required_before_formal_run": true
   },
   "solver_output_contract": {
-    "returns": ["exact objective weight", "feasibility", "mask_vertex_states"],
-    "native_result_columns": ["query_seconds", "weight", "query_peak_rss_mib", "mask_vertex_states"],
+    "returns": [
+      "exact objective weight",
+      "feasibility",
+      "mask_vertex_states"
+    ],
+    "native_result_columns": [
+      "query_seconds",
+      "weight",
+      "query_peak_rss_mib",
+      "mask_vertex_states"
+    ],
     "mask_vertex_states": "ABHSS counts D/A/H row entries when first admitted to a workspace, with the state family included in the key, so equal numeric (mask,v) pairs in different families count separately; common A1 is counted before D exactly once in every legal profile and is not recounted on transfer; PrunedDP++ counts distinct (mask,v) entries actually inserted into StateStore; both exclude group-distance/route/tour/dual preprocessing, duplicate queue items and full-mask completion candidates",
     "unavailable_integer_metric": -1,
     "does_not_currently_serialize": "optimal tree edge set",
@@ -116,5 +138,6 @@
     "P2/S2: solved count, PAR-2, mutually solved speedup, timeout direction, objective agreement, peak RSS and completed-query mask_vertex_states",
     "state-count ratios use mutually solved pairs with positive counts; do not impute counts for timeout/error queries",
     "all available exact methods must agree on objective value before a performance claim is used"
-  ]
+  ],
+  "ablation_plan": "experiments/ablation_plan.json"
 }

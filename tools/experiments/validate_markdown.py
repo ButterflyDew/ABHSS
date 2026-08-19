@@ -24,6 +24,7 @@ MARKDOWN_ROOTS = (
     ROOT / "data_origin",
     ROOT / "data_sources",
     ROOT / "experiments",
+    ROOT / "paper",
     ROOT / "tools" / "gpu4gst_data",
 )
 FENCE_OPEN = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")

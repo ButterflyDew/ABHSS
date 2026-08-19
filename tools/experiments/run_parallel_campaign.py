@@ -254,8 +254,8 @@ def campaign_p2() -> None:
     p2_dir = ROOT / "results" / "paper_runs" / p2_name
     write_policy(p2_dir, {"campaign": "P2 full Enhanced plus adaptive Base/PrunedDP++ frontier", "created_at": now(), "cpus": cpus, "formal_timeout_seconds_per_query": FORMAL_TIMEOUT, "phase": "enhanced_running"})
     run_p2_enhanced_graph_lanes(p2_dir, p2_name)
-    p2_timeout = freeze_probe_timeout(p2_dir, P2_SUITE, "abhss_enhanced", 720)
-    write_policy(p2_dir, {"campaign": "P2 full Enhanced plus adaptive Base/PrunedDP++ frontier", "created_at": now(), "cpus": cpus, "formal_timeout_seconds_per_query": FORMAL_TIMEOUT, "exploratory_frontier_timeout_seconds": p2_timeout, "frontier_rule": "for each graph and method, run g=5..16 and stop after the first cell containing a timeout; larger g are explicitly not run", "timeout_freeze_rule": "min(10000, ceil(2 * maximum Enhanced solver_seconds)); use 10000 if Enhanced timed out", "phase": "base_pruned_frontier_running"})
+    p2_timeout = freeze_probe_timeout(p2_dir, P2_SUITE, "abhss_enhanced", 660)
+    write_policy(p2_dir, {"campaign": "P2 full Enhanced plus adaptive Base/PrunedDP++ frontier", "created_at": now(), "cpus": cpus, "formal_timeout_seconds_per_query": FORMAL_TIMEOUT, "exploratory_frontier_timeout_seconds": p2_timeout, "frontier_rule": "for each graph and method, run g=5..15 and stop after the first cell containing a timeout; larger g are explicitly not run", "timeout_freeze_rule": "min(10000, ceil(2 * maximum Enhanced solver_seconds)); use 10000 if Enhanced timed out", "phase": "base_pruned_frontier_running"})
     skipped = run_p2_frontier(p2_dir, p2_name, cpus, p2_timeout)
     consolidate(p2_dir)
     policy = json.loads((p2_dir / "campaign_policy.json").read_text(encoding="utf-8"))
