@@ -2,6 +2,8 @@
 
 > **状态：局部等价优化保留，旧 q10 整体门失效。** 本文记录的证书因子化、缓存与单调拒绝前沿仍是输入无关的安全工作消除；但最终长测二进制继承了缺失辅助 $H(h)$ 的精确性错误。文末 9,934.603 秒只作当前复跑风险估计，不能作为当前答案、状态或 10,000 秒门禁。修复见 [辅助半层 Adjoint 正确性审计](AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)。
 
+> **后续状态（2026-08-19）。** 修复后的冻结生产二进制已完成 Orkut g15 q1--q10，q10 为 9,544.561 秒、精确值 54、状态数 1,459,398,194；13 图 P1 逐图底线也全部通过。本文其余时间仍按原意保留为错误旧版或中间候选的历史数据，不能替换最终表。最终身份见 [全实验方案](../EXPERIMENT_PLAN.md#710-冻结版最终-p1orkut-硬门与哨兵基准)。
+
 ## 1. 问题定位
 
 P2 扩样后的 Orkut `cross_g15.txt` q6--q10 使用提交 `589894be3774ff6658e1120f9a9e899a53377ab1` 的 Enhanced、每查询 10,000 秒。q6、q7、q8、q9 均完成，q10 timeout。q10 的输入侧统计为 `mean_f=309.8`、`min_f=56`、`max_f=793`；它并不是追加五条中平均组最大的查询。
@@ -63,7 +65,7 @@ residual closure 后的转置查询先以缓存全势减去已覆盖组势，得
 
 拆分因子化、阶段证书缓存、完整 dual fallback 复用与无深度的最远组 oracle 快路径均是输入无关的等价工作消除：它们不改变上界、下界、状态定义、浮点语义或渐近复杂度。前三者适合统一表述为 candidate-independent certificate factorization；后者是同一组距离 oracle 的布局专门化与唯一 argmax 线性构造。Base 继续使用同职责的 flat realization；Enhanced 只因新增 directed-cut 证书而采用 staged realization，没有产生 Base 独占逻辑操作。
 
-最终接入仍以三项证据为硬门：q10 的 `query_seconds` 严格小于 10,000；Orkut g15 q1--q10 的最终二进制结果全部完成；P1 Base/Enhanced 不退化。若 q10 最终门仍失败，不得删除该查询、延长该条专属 TL、按 `f` 或图名加开关，也不得把本节的阶段吞吐冒充完成结果。
+当时的最终接入以三项证据为硬门：q10 的 `query_seconds` 严格小于 10,000；Orkut g15 q1--q10 的最终二进制结果全部完成；P1 Base/Enhanced 不退化。这三项后续已由文首冻结生产版通过。禁止项仍有效：不得删除 q10、延长该条专属 TL、按 `f` 或图名加开关，也不得把本节的阶段吞吐冒充完成结果。
 
 后续把 staged cache 的 row epoch、stage 与 exact 标志合并为单一 32-bit 元数据字，属于同一证书 realization 的物理局部性优化；证明、空间账、两轮交换 CPU 的固定窗口结果及当前严格门见 `PACKED_CERTIFICATE_ROW_STATE_PROBE_20260814.md`。该严格门必须使用追加面板 `experiment_data/p2_cross_g/GPU4GST_Orkut/cross_g15.txt`，不能误用图目录下含 300 条询问的 `query_g15.txt`。
 

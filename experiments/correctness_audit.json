@@ -1,6 +1,6 @@
 {
-  "schema_version": 9,
-  "audited_at": "2026-08-18",
+  "schema_version": 10,
+  "audited_at": "2026-08-19",
   "weight_tolerance": 1e-6,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
@@ -29,6 +29,183 @@
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
     "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 72 cells and 720 queries in a temporary directory; every query, group-id, selected-query JSON/CSV file was byte-identical, and cells.json was identical after removing only the two output-location fields",
     "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts and source limitations as the code and machine manifests"
+  },
+  "dual_process_calibration": {
+    "purpose": "measure concurrent-process interference only; these historical solver binaries do not replace the current release performance gate",
+    "machine": "test-PowerEdge-R630",
+    "calibration_cpus": [0, 1],
+    "formal_cpus": [4, 5],
+    "topology": "both CPU pairs use distinct physical cores on distinct sockets",
+    "abhss": {
+      "single_records": 80,
+      "dual_records": 80,
+      "single_solver_seconds": 290.232177,
+      "dual_solver_seconds": 289.247931,
+      "dual_over_single": 0.9966087633,
+      "single_peak_mib": 555.383,
+      "dual_peak_mib": 555.418,
+      "total_mask_vertex_states": 1034326,
+      "single_dual_pairwise_mismatches": {
+        "task_identity": 0,
+        "weight": 0,
+        "solution_status": 0,
+        "mask_vertex_states": 0
+      }
+    },
+    "pruneddp_safe": {
+      "single_records": 82,
+      "dual_records": 82,
+      "four_process_records": 82,
+      "single_solver_seconds": 395.350486,
+      "dual_solver_seconds": 391.142916,
+      "four_process_solver_seconds": 426.358209,
+      "dual_over_single": 0.9893573673,
+      "four_over_single": 1.0784309723,
+      "single_peak_mib": 505.395,
+      "dual_peak_mib": 505.770,
+      "total_mask_vertex_states": 92077,
+      "single_dual_pairwise_mismatches": {
+        "task_identity": 0,
+        "weight": 0,
+        "solution_status": 0,
+        "mask_vertex_states": 0
+      },
+      "single_four_pairwise_mismatches": {
+        "task_identity": 0,
+        "weight": 0,
+        "solution_status": 0,
+        "mask_vertex_states": 0
+      }
+    },
+    "server_local_evidence": [
+      "results/paper_runs/parallel1_calibration_abhss_672bd253cdde_20260802",
+      "results/paper_runs/parallel2_calibration_abhss_672bd253cdde_20260802",
+      "results/paper_runs/parallel1_calibration_pruneddp_672bd253cdde_20260802",
+      "results/paper_runs/parallel2_calibration_pruneddp_672bd253cdde_20260802",
+      "results/paper_runs/parallel4_calibration_pruneddp_672bd253cdde_20260802"
+    ],
+    "decision": "PASS: use at most two pinned single-thread solver processes; four-way execution is rejected"
+  },
+  "final_dominated_operation_gate": {
+    "status": "PASS",
+    "solver_source_commit": "12d6adb9bd4e5e90731627a3a8b85696fd5c4acb",
+    "release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
+    "pruneddp_safe_sha256": "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2",
+    "paper_matrix_sha256": "aed5db1ed83d134f5882f4c9d4544bf26549e9ee5a5392d74c3066b96c273162",
+    "machine": "test-PowerEdge-R630",
+    "platform": "Linux-6.14.0-24-generic-x86_64-with-glibc2.39",
+    "timeout_seconds": 10000,
+    "live_hash_check": "PASS on 2026-08-19: build/abhss and experiments/paper_matrix.json still match the frozen hashes",
+    "formal_p1": {
+      "current_result_directories": [
+        "results/paper_runs/final_793d4e_p1_w0_cpu4_20260818",
+        "results/paper_runs/final_793d4e_p1_w1_cpu5_20260818"
+      ],
+      "archived_pruneddp_result_directory": "results/paper_runs/p1_full",
+      "watcher_audit": "results/paper_runs/final_793d4e_p1_audit.json",
+      "baseline_reuse_fairness": "PrunedDP++ was not rebuilt or changed after p1_full; its frozen records use the same machine, paper-matrix hash, 10000-second timeout and pruneddp_safe binary hash. Reusing them avoids an unnecessary baseline rerun while preserving task-level comparability.",
+      "current_records": 16636,
+      "pruneddp_records": 8318,
+      "unique_current_task_keys": 16636,
+      "aligned_query_identities_per_method": 8318,
+      "infeasible_query_identities": 55,
+      "objective_mismatches": 0,
+      "feasibility_mismatches": 0,
+      "expected_status_mismatches": 0,
+      "graph_rows": [
+        {"graph": "DBLP-GPU4GST", "queries": 900, "base_seconds": 8035.298626, "base_peak_mib": 333.973, "base_states": 299668791, "enhanced_seconds": 9694.386584, "enhanced_peak_mib": 614.207, "enhanced_states": 230338803, "pruneddp_seconds": 13683.019266, "pruneddp_peak_mib": 1746.500, "pruneddp_states": 342635750, "fastest_abhss": "base", "fastest_over_pruneddp": 0.5872460215},
+        {"graph": "DBLP-MonoGSTPlus", "queries": 160, "base_seconds": 3766.660197, "base_peak_mib": 722.949, "base_states": 667306185, "enhanced_seconds": 3160.482913, "enhanced_peak_mib": 678.297, "enhanced_states": 293343923, "pruneddp_seconds": 29049.935233, "pruneddp_peak_mib": 7112.348, "pruneddp_states": 1106115160, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.1087948351},
+        {"graph": "DBpedia-MonoGSTPlus", "queries": 438, "base_seconds": 8386.673769, "base_peak_mib": 1322.848, "base_states": 365248307, "enhanced_seconds": 7593.173712, "enhanced_peak_mib": 2333.750, "enhanced_states": 285581028, "pruneddp_seconds": 20288.407653, "pruneddp_peak_mib": 13451.219, "pruneddp_states": 400984226, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.3742616888},
+        {"graph": "Github-GPU4GST", "queries": 900, "base_seconds": 90.899879, "base_peak_mib": 9.562, "base_states": 21383350, "enhanced_seconds": 76.562486, "enhanced_peak_mib": 20.660, "enhanced_states": 16002423, "pruneddp_seconds": 338.435806, "pruneddp_peak_mib": 161.324, "pruneddp_states": 39874418, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2262245443},
+        {"graph": "LinkedMDB-MonoGSTPlus", "queries": 200, "base_seconds": 611.420574, "base_peak_mib": 646.016, "base_states": 197480559, "enhanced_seconds": 491.172415, "enhanced_peak_mib": 332.176, "enhanced_states": 89326477, "pruneddp_seconds": 6612.576943, "pruneddp_peak_mib": 10126.340, "pruneddp_states": 258789081, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.0742785179},
+        {"graph": "LiveJournal-GPU4GST", "queries": 900, "base_seconds": 14080.989000, "base_peak_mib": 442.316, "base_states": 197337482, "enhanced_seconds": 24257.869463, "enhanced_peak_mib": 1145.863, "enhanced_states": 172752139, "pruneddp_seconds": 27535.664202, "pruneddp_peak_mib": 1127.133, "pruneddp_states": 160626901, "fastest_abhss": "base", "fastest_over_pruneddp": 0.5113727745},
+        {"graph": "MovieLens-MonoGSTPlus", "queries": 160, "base_seconds": 1090.124015, "base_peak_mib": 46.129, "base_states": 1134768, "enhanced_seconds": 869.354658, "enhanced_peak_mib": 562.117, "enhanced_states": 153418, "pruneddp_seconds": 3041.379210, "pruneddp_peak_mib": 173.492, "pruneddp_states": 2247152, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2858422439},
+        {"graph": "Musae-GPU4GST", "queries": 900, "base_seconds": 61.145893, "base_peak_mib": 4.500, "base_states": 7161062, "enhanced_seconds": 38.497045, "enhanced_peak_mib": 11.480, "enhanced_states": 4529006, "pruneddp_seconds": 186.900535, "pruneddp_peak_mib": 73.805, "pruneddp_states": 18424783, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.2059761092},
+        {"graph": "Orkut-GPU4GST", "queries": 900, "base_seconds": 30744.396647, "base_peak_mib": 507.406, "base_states": 1001249923, "enhanced_seconds": 45405.709329, "enhanced_peak_mib": 2661.902, "enhanced_states": 712638167, "pruneddp_seconds": 120913.769628, "pruneddp_peak_mib": 3001.832, "pruneddp_states": 1140199706, "fastest_abhss": "base", "fastest_over_pruneddp": 0.2542671256},
+        {"graph": "Reddit-GPU4GST", "queries": 900, "base_seconds": 6246.078082, "base_peak_mib": 396.719, "base_states": 1882349, "enhanced_seconds": 6150.120640, "enhanced_peak_mib": 882.809, "enhanced_states": 1975393, "pruneddp_seconds": 7294.955789, "pruneddp_peak_mib": 634.125, "pruneddp_states": 2656110, "fastest_abhss": "enhanced", "fastest_over_pruneddp": 0.8430648270},
+        {"graph": "Toronto-MonoGSTPlus", "queries": 160, "base_seconds": 10.373746, "base_peak_mib": 6.410, "base_states": 915047, "enhanced_seconds": 16.916189, "enhanced_peak_mib": 10.734, "enhanced_states": 563556, "pruneddp_seconds": 16.241259, "pruneddp_peak_mib": 26.438, "pruneddp_states": 1866233, "fastest_abhss": "base", "fastest_over_pruneddp": 0.6387279459},
+        {"graph": "Twitch-GPU4GST", "queries": 900, "base_seconds": 77.348864, "base_peak_mib": 10.125, "base_states": 20964233, "enhanced_seconds": 81.723221, "enhanced_peak_mib": 15.980, "enhanced_states": 10710978, "pruneddp_seconds": 448.325978, "pruneddp_peak_mib": 147.320, "pruneddp_states": 40520002, "fastest_abhss": "base", "fastest_over_pruneddp": 0.1725281777},
+        {"graph": "Youtube-GPU4GST", "queries": 900, "base_seconds": 2804.511185, "base_peak_mib": 122.812, "base_states": 80248354, "enhanced_seconds": 3603.514030, "enhanced_peak_mib": 221.379, "enhanced_states": 73109126, "pruneddp_seconds": 3004.472131, "pruneddp_peak_mib": 408.125, "pruneddp_states": 12450269, "fastest_abhss": "base", "fastest_over_pruneddp": 0.9334455647}
+      ],
+      "result": "PASS: 13/13 graphs satisfy min(Base, Enhanced) <= PrunedDP++; the tightest graph is Youtube-GPU4GST"
+    },
+    "formal_orkut_g15": {
+      "result_directories": [
+        "results/paper_runs/final_793d4e_orkut_g15_w0_cpu4",
+        "results/paper_runs/final_793d4e_orkut_g15_w1_cpu5"
+      ],
+      "watcher_audit": "results/paper_runs/final_793d4e_orkut_g15_audit.json",
+      "query_panel_sha256": "715ee781b2c2c189682a332eac7ed9b5c5f2c0e0bd4d7323205b4e65dab0f83c",
+      "records": [
+        {"query_index": 1, "cpu": 4, "weight": 21, "solver_seconds": 1988.313495, "peak_mib": 3270.918, "states": 95833201},
+        {"query_index": 2, "cpu": 4, "weight": 32, "solver_seconds": 1725.782615, "peak_mib": 3762.445, "states": 162834196},
+        {"query_index": 3, "cpu": 5, "weight": 38, "solver_seconds": 274.595117, "peak_mib": 2690.477, "states": 30571329},
+        {"query_index": 4, "cpu": 5, "weight": 28, "solver_seconds": 291.362685, "peak_mib": 2995.301, "states": 12586184},
+        {"query_index": 5, "cpu": 5, "weight": 32, "solver_seconds": 4135.305343, "peak_mib": 6341.828, "states": 475605896},
+        {"query_index": 6, "cpu": 5, "weight": 36, "solver_seconds": 2033.287366, "peak_mib": 5990.352, "states": 201117345},
+        {"query_index": 7, "cpu": 5, "weight": 38, "solver_seconds": 2303.644412, "peak_mib": 5990.352, "states": 265320212},
+        {"query_index": 8, "cpu": 5, "weight": 18, "solver_seconds": 210.787497, "peak_mib": 5990.352, "states": 394894},
+        {"query_index": 9, "cpu": 5, "weight": 35, "solver_seconds": 1070.935643, "peak_mib": 5990.352, "states": 96019704},
+        {"query_index": 10, "cpu": 4, "weight": 54, "solver_seconds": 9544.561375, "peak_mib": 18318.238, "states": 1459398194}
+      ],
+      "maximum_solver_seconds": 9544.561375,
+      "q10_margin_to_timeout_seconds": 455.438625,
+      "result": "PASS: 10/10 exact queries completed below 10000 seconds"
+    },
+    "independent_recomputation": {
+      "current_records": 16636,
+      "pruneddp_records": 8318,
+      "aligned_query_identities": 8318,
+      "infeasible_identities": 55,
+      "orkut_records": 10,
+      "hash_mismatches": 0,
+      "task_identity_mismatches": 0,
+      "objective_mismatches": 0,
+      "status_mismatches": 0,
+      "state_count_mismatches": 0,
+      "result": "PASS: independently parsed raw JSONL records rather than trusting only the watcher summaries"
+    },
+    "post_freeze_sentinel": {
+      "selection_rule": "Before observing any candidate, choose the largest-solver-time query from the frozen fastest aggregate ABHSS configuration on each of 13 P1 graphs; add the historical reverse-direction Orkut g7 q175 Enhanced query; add the fixed-cost Musae g5 q1-q100 Enhanced block.",
+      "run_directory": "results/paper_runs/post_freeze_p1_sentinel_793d_cpu5_20260819",
+      "cpu": 5,
+      "binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
+      "records": 114,
+      "field_mismatches_against_formal_p1": 0,
+      "individual_solver_seconds": 816.198581,
+      "individual": [
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__DBLP-GPU4GST_g7|abhss_base|q35", "weight": 1157, "solver_seconds": 34.841308, "peak_mib": 331.883, "states": 7725123},
+        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__DBLP-MonoGSTPlus_all|abhss_enhanced|q132", "weight": 8.2540182703, "solver_seconds": 49.115068, "peak_mib": 644.363, "states": 10397175},
+        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__DBpedia-MonoGSTPlus_all|abhss_enhanced|q58", "weight": 208.3648317934, "solver_seconds": 245.910420, "peak_mib": 2355.992, "states": 35934074},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Github-GPU4GST_g7|abhss_enhanced|q271", "weight": 946, "solver_seconds": 0.523495, "peak_mib": 20.469, "states": 305549},
+        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__LinkedMDB-MonoGSTPlus_all|abhss_enhanced|q105", "weight": 205.5166429146, "solver_seconds": 15.958913, "peak_mib": 327.492, "states": 6153951},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__LiveJournal-GPU4GST_g7|abhss_base|q283", "weight": 171, "solver_seconds": 64.867412, "peak_mib": 400.805, "states": 2446900},
+        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__MovieLens-MonoGSTPlus_all|abhss_enhanced|q158", "weight": 0.0011808771, "solver_seconds": 9.036942, "peak_mib": 561.422, "states": 524},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Musae-GPU4GST_g7|abhss_enhanced|q113", "weight": 807, "solver_seconds": 0.157555, "peak_mib": 10.926, "states": 73341},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_base|q175", "weight": 33, "solver_seconds": 167.252474, "peak_mib": 497.121, "states": 17079251},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Reddit-GPU4GST_g7|abhss_enhanced|q220", "weight": 600, "solver_seconds": 21.777458, "peak_mib": 881.652, "states": 101},
+        {"task_key": "P1_monogstplus_published|P1_monogstplus_published__Toronto-MonoGSTPlus_all|abhss_base|q125", "weight": 0.5478016011, "solver_seconds": 0.146252, "peak_mib": 6.375, "states": 94164},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Twitch-GPU4GST_g7|abhss_base|q89", "weight": 780, "solver_seconds": 0.515109, "peak_mib": 9.750, "states": 369033},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Youtube-GPU4GST_g7|abhss_base|q101", "weight": 142, "solver_seconds": 9.241792, "peak_mib": 117.840, "states": 1082647},
+        {"task_key": "P1_gpu4gst_published|P1_gpu4gst_published__Orkut-GPU4GST_g7|abhss_enhanced|q175", "weight": 33, "solver_seconds": 196.854383, "peak_mib": 2660.195, "states": 11598909}
+      ],
+      "fixed_cost_block": {
+        "case_id": "P1_gpu4gst_published__Musae-GPU4GST_g5",
+        "method": "abhss_enhanced",
+        "query_indices": [1, 100],
+        "records": 100,
+        "solver_seconds": 4.199400,
+        "peak_mib": 10.312,
+        "states": 76770
+      },
+      "result": "PASS: all 114 reference records match formal P1 identity, status, weight and state count"
+    },
+    "future_rerun_policy": {
+      "byte_identical_or_documentation_only": "run static, correctness and Markdown checks only",
+      "small_input_independent_single_hot_stage_change": "run the frozen CPU5 P1 sentinel and only Orkut g15 q10 on its calibrated separate core; do not rerun q1-q9",
+      "broad_semantic_change": "consider full P1 only if state domain, recurrence dependencies, row publication, certificate admissibility or upper-bound witness semantics change across multiple hot stages",
+      "acceptance": "status, objective and states must match exactly; timing must be clearly no worse, otherwise reject the deletion rather than introduce a tolerance or data-dependent switch"
+    }
   },
   "configuration_inclusion_clarification_gate": {
     "evidence": "experiments/abhss_configuration_refactor_gate.json#inclusion_clarification_gate_20260724",
@@ -212,9 +389,9 @@
       "incremental_certificate_support_dp": {"evidence": "docs/archive/INCREMENTAL_CERTIFICATE_SUPPORT_DP_GATE_20260818.md", "contract": "dirty-supermask recomputation is value-equivalent to a full rebuild and leaves scheduler purchases unchanged", "q10_final_seconds": 9250.911428, "q10_final_states": 1459398194},
       "p1_g5_g7_history_risk_sample": {"evidence": "docs/archive/P1_G5_G7_HISTORY_REGRESSION_PROBE_20260818.md", "records": 104, "objective_mismatches": 0, "scope": "13 deliberately weak/heavy queries; not a replacement for full P1", "known_regression": "Orkut g7 q175 Enhanced current/history time=1.035 and peak memory +16.0%"}
     },
-    "orkut_g15_current": "PARTIAL PASS: solver-source commit 12d6adb q10 completed in 9250.911428 seconds with exact weight 54 and 1459398194 states; q1-q9 plus q10 as a frozen ten-query run remain pending",
-    "p1_current": "PENDING full rerun: the g=5/g=7 targeted history-risk sample has 104/104 successful records and zero objective mismatches, but Orkut g7 q175 Enhanced is 3.5% slower and 16.0% larger than 672bd25",
-    "result": "EXACTNESS AND FINAL-Q10 SINGLE GATE PASS; FULL P1 AND ORKUT Q1-Q10 PERFORMANCE GATES PENDING"
+    "orkut_g15_current": "PASS: the frozen production binary completed q1-q10 below 10000 seconds; q10 used 9544.561375 seconds, returned exact weight 54 and recorded 1459398194 states",
+    "p1_current": "PASS: 16636 current ABHSS records and 8318 frozen PrunedDP++ records align on all 8318 query identities; every one of 13 graphs satisfies min(Base, Enhanced) <= PrunedDP++",
+    "result": "PASS: EXACTNESS, FULL P1 AND ORKUT Q1-Q10 PERFORMANCE GATES"
   },
   "known_optimum_panel": {
     "suite": "E0_steinlib_wrp",

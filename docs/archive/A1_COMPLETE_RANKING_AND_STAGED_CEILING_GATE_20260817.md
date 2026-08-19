@@ -1,5 +1,7 @@
 # A1 完整排名、精确租金因子化与 ceiling 负向门禁（2026-08-17）
 
+> **后续状态（2026-08-19）。** 本文保留实现与失败候选的局部门禁不变；当时尚未完成的生产版性能门后续已经通过：Orkut g15 q1--q10 全部低于 10,000 秒，13 图 P1 均满足最快 ABHSS 配置不劣于 PrunedDP++。最终值与哈希见 [全实验方案](../EXPERIMENT_PLAN.md#710-冻结版最终-p1orkut-硬门与哨兵基准)。
+
 ## 1. 当前结论与发布边界
 
 本记录接续 [A1 top-two 自适应物化门禁](ADAPTIVE_A1_TOP_TWO_MATERIALIZATION_GATE_20260816.md)。前一阶段只在 `first/second/cached_locator_pair` 中切换 lazy 二分和 top-two 顺序物化；本阶段处理 top-two 都已被 remaining mask 排除时的 tail 查找。
@@ -13,7 +15,7 @@
 三者都不读取配置、图名、查询编号、时间、状态数、row 密度或固定组数阈值。Base、DirectedCutOnly 与 Enhanced 调用同一 `AnchoredSingletonFuture::Future`。排名没有压缩 `double`，也不是固定 top-k。
 `Future` 始终返回“row 内真实 A1、row 外非负 fallback”统一视图的精确最大值；无条件和 staged second-rank ceiling 均已因 P1/归一化进度证据回退。
 
-保留实现此前已通过两种构建各 5/5 CTest；本轮又加入全部 mask 的租金表直接断言。冷边界 pre-reduction 二进制已通过 Musae g7 Base 全 300 条两轮小门，但 Orkut g15 q10 在 10001.768655 秒被 watchdog 终止且没有写出权值。后续发布屏障 ready 减空与 ranked-buy 恒正减空已通过独立交换轮，详见 [A1 发布屏障与恒真检查减空门禁](A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md)。加入 Adjoint split 完备性修复后的完整 q10 在 11,178.235 秒返回精确值 54，仍未通过 10,000 秒硬门；完整 P1 也尚未复跑，因此不得提前宣称总目标完成。
+保留实现此前已通过两种构建各 5/5 CTest；本轮又加入全部 mask 的租金表直接断言。冷边界 pre-reduction 二进制已通过 Musae g7 Base 全 300 条两轮小门，但 Orkut g15 q10 在 10001.768655 秒被 watchdog 终止且没有写出权值。后续发布屏障 ready 减空与 ranked-buy 恒正减空已通过独立交换轮，详见 [A1 发布屏障与恒真检查减空门禁](A1_PUBLICATION_BARRIER_REDUCTION_GATE_20260817.md)。加入 Adjoint split 完备性修复后的当时完整 q10 在 11,178.235 秒返回精确值 54，仍未通过 10,000 秒硬门；该历史构建当时也尚未复跑完整 P1，不能据此提前宣称总目标完成。后续生产版状态以文首更新为准。
 
 ## 2. 完整排名的结构购买
 

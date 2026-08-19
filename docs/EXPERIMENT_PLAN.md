@@ -19,6 +19,7 @@
 - 计算资源：每个 solver process 只允许一个计算线程；监控线程只采样 RSS。
 - 构建：同一编译器、Release、相同 IPO/优化规则。
 - 计时：图在一个 query block 中加载一次；逐查询 timer 在 `[Ready]` 之后开始，包含该方法的查询预处理与求解，不包含共同图加载。
+- 运行监控：native solver 在同一个 query block 内常驻并连续处理多条查询，因此 `ps etime`、tmux pane 存活时间和 native 进程启动时间都只是整个 block 的累计墙钟，不能解释为当前单条查询耗时。单条时间与 timeout 状态只能读取 supervisor 的任务记录、已完成的 `[Query i]` 行或 watchdog 当前 deadline；没有这些直接证据时只报告“当前查询尚未完成”。
 - 预处理公平性：若采用 2-core、叶剥离、度二压缩等改变共同输入图的 kernel，必须对 ABHSS 与 PrunedDP++ 使用同一实现并计入同一口径；不得只替本文方法缩图。endpoint-floor 属于 ABHSS 的算法内部下界，Base/Enhanced 都执行且其构造时间计入各自 query timer，不要求 baseline 实现本文下界。
 - I/O 审计：`graph_load_seconds` 与 `query_load_seconds` 单独写入 header；它们用于发现 artifact 工程瓶颈，不并入算法 speedup。图加载包含 8 MiB 数字扫描、精确邻接容量预留和一次 $O(n+m)$ 连通分量建索引；逐查询可行性检查只按组成员求分量交，不重复扫描整图。
 - timeout：每条查询 10,000 秒；图加载 watchdog 1,800 秒。
@@ -167,7 +168,7 @@ P2 的核心 claim 是从 `g=5` 到 16 的趋势和转折位置，而不是六�
 
 最小共同 A1 checkpoint `e9eee92` 令逻辑层 $2,\ldots,q$ 全由已经证明等价的 H realization 承担。其诊断二进制 SHA-256 `067620fbac9b16a661b74d2c1071a1ea15648f01034a893f5de7e06b09ab11d2` 在同一 Orkut q10 上得到精确权值 54，solver 时间为 9,431.057 秒，低于正式 TL 568.943 秒；查询峰值 18,305.023 MiB，watchdog 总 RSS 峰值 24,696.602 MiB，累计状态 1,459,398,194。相对上述历史完备版分别减少 15.63% 时间、14.21% 查询峰值和 17.16% 状态。该 checkpoint 的 ordinary 为 6,710.250 秒，A1 移交后的共同前向结算只有 8.766 秒；代价是最终上界从旧路径的 H6 延后到 H2 才由 56 收紧为 54。该对照的旧二进制含后来回退的代码，不能把每个 wall-time 差值都归因于层边界；交换绑核的 Musae $g=14$ 对照则逐条保持答案并把状态减少 12.82%，两轮时间分别改善 11.33% 和 13.71%。后续最终工作树又加入 adjoint 空域扫描减除与 certificate-support 增量求值；最终生产二进制不能继承该 checkpoint 的时间，但已经用自身二进制完成 q10 单条硬门，见第 7.6 节。详细演进见 [最小共同 A1 与 q10 门禁](archive/MINIMAL_FORWARD_A1_ADJOINT_GATE_20260818.md)。
 
-`mean_f` 仍不是难度的单调解释变量：q10 属于最低 size stratum，却远慢于组更大的 q8；因此不能按平均组大小删除 q10 或设置经验超参数。正式复跑仍对每条查询使用固定 10,000 秒，并以冻结机器、当前 commit、当前二进制哈希和新结果行为准。为了保留完整轨迹，冻结求解器源码提交 `12d6adb` 的诊断构建对 q10 使用大于正式 TL 的 86,400 秒外层预算，但该查询在 9,250.911 秒自然完成，结果行本身满足 `solver_seconds < 10000`；精确权值 54，状态数 1,459,398,194。外层诊断预算不得改写成正式 TL。由此，最终 SHA 的 q10 单条门已经通过；最终 SHA 的 q1--q9 与 q10 组成的十条全门以及 13 图 P1 全量仍须重跑。P1 中 GPU4GST 全部查询及绝大多数自然查询的层计划不变；受影响的 LinkedMDB 15 条 $g=10$ 与 DBpedia 2 条 $g=10$ 已完成两轮交换绑核定向 gate 并逐条保持答案，最终仍按完整 P1 聚合验收。事故演进与正确性修复见 [辅助半层 Adjoint 审计](archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)和 [Adjoint split 完备性审计](archive/ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
+`mean_f` 仍不是难度的单调解释变量：q10 属于最低 size stratum，却远慢于组更大的 q8；因此不能按平均组大小删除 q10 或设置经验超参数。正式复跑对每条查询使用固定 10,000 秒，并以冻结机器、当前 commit、当前二进制哈希和新结果行为准。为了保留完整轨迹，冻结求解器源码提交 `12d6adb` 的诊断构建曾对 q10 使用大于正式 TL 的 86,400 秒外层预算，但该查询在 9,250.911 秒自然完成，结果行本身满足 `solver_seconds < 10000`；精确权值 54，状态数 1,459,398,194。外层诊断预算不得改写成正式 TL。此后同一源码的无诊断正式二进制完成了 q1--q10 固定十条，其中 q10 为 9,544.561 秒、权值 54、状态数 1,459,398,194，十条全部低于 10,000 秒。13 图 P1 全量也已按冻结矩阵完成并通过逐图底线，最终表与身份见第 7.10 节。事故演进与正确性修复见 [辅助半层 Adjoint 审计](archive/AUXILIARY_HALF_ADJOINT_CORRECTNESS_AUDIT_20260815.md)和 [Adjoint split 完备性审计](archive/ADJOINT_SPLIT_COMPLETENESS_AUDIT_20260817.md)。
 
 ## 5. 副实验： $\langle g,f\rangle$ 受控敏感性
 
@@ -338,7 +339,7 @@ SteinLib 的 11 个 `g=11..16` 实例中，Base 与 Enhanced 仍均为 11/11 命
 
 表中所有候选值均来自 SHA-256 为 `93a5582baecfc38c7683fd6b44c34f0d4a31b1ab05c1f309cc9506933b8cbd9e` 的同一计时二进制。最终审阅没有再改变可执行源码；以完全相同的源文件重链接并重跑 5/5 CTest 后，Windows/MinGW LTO 产物 SHA-256 为 `e2db08db82f7d7f47ff9db14898dd242dcc39ffd59d537615a684490c2897160`，因此记录同时保存计时产物和最终验证产物身份，而不把重链接哈希冒充原计时文件。除 Orkut Base 外均为单次本地方向值；Orkut Base 首次结果贴近门限，因此按候选/main/候选/main 在同一时段各运行两次，表中为两边两样本中位数，两个配对比值分别为 1.028865 和 1.013128。其 1.020972 只表示没有超过既定 1.03 本地噪声门，不能宣称加速。`g=3` 的 Base 与 Enhanced 逐项执行同一个 bounded root-star 包，二者总时间只相差约 1.3%，且每条查询均为 0 个主状态；Enhanced 相对 main 的大幅下降来自不再为已经由共同数学基例闭合的查询构造完整势、dual、witness 与 facility，而不是逐查询关闭增强。单次差异只能视为本机噪声，不能宣称配置间在该基例上存在速度差异。
 
-最终候选通过 Release 全构建、5/5 CTest、显式 $g=2,3$ 共同闭包回归、逐弧 residual 复算和 15/15 GitHub Markdown 校验。完整机器信息、二进制/源文件 SHA-256、RSS 和被否决中间态记录在 [`p1_local_optimization_probe_20260729.json`](../experiments/p1_local_optimization_probe_20260729.json)。下一步必须在正式 Linux 服务器上重新构建，并全量运行 P1 的 13 图、8,318 条查询；只有服务器结果才能回答“13 图中是否仍存在 PrunedDP++ 同时快于 Base 与 Enhanced”的论文底线。
+最终候选通过 Release 全构建、5/5 CTest、显式 $g=2,3$ 共同闭包回归、逐弧 residual 复算和 15/15 GitHub Markdown 校验。完整机器信息、二进制/源文件 SHA-256、RSS 和被否决中间态记录在 [`p1_local_optimization_probe_20260729.json`](../experiments/p1_local_optimization_probe_20260729.json)。该段当时要求的 Linux 13 图、8,318 条 P1 全量已由第 7.10 节冻结版完成；不能继续把本地探针写成当前状态。
 
 ### 7.6 Certificate-support 增量求值门
 
@@ -368,6 +369,79 @@ Base 13 条全部更快，Enhanced `g=5` 六条全部更快，Enhanced `g=7` 有
 正式服务器推荐用顶层 GNU `Makefile`：`make release JOBS=<physical-core-count>` 完成 Release 配置、当前可用 target 编译和 CTest；`make validate-paper-binaries` 只要求两个正式性能二进制 `abhss`/`pruneddp`，`make validate-all-binaries` 才要求已恢复的 Basic+/SCIP-Jack。CMake 禁用 compiler extensions，在工具链支持时对正式本地 target 统一开启 Release IPO/LTO，并在 GCC 9/10 没有可链接浮点 `from_chars` 时自动回退 `strtod`。
 
 `.github/workflows/linux-ci.yml` 在 Ubuntu 24.04 上执行同一 `make release`。它是每次 push/PR 的平台门禁，不替代正式服务器的环境记录。首次服务器运行必须在结果 metadata 中记录 CPU 型号、物理核、RAM、Linux 发行版、kernel、compiler/CMake 版本、Release/IPO 状态，并用 `--dry-run` 核对矩阵展开数后才开始长跑。
+
+### 7.9 冻结版后的分级性能回归门
+
+当前冻结二进制已经完成一次完整 P1 与 Orkut `g=15` q1--q10；自该冻结点起，不再为每个局部删除默认重跑全量。后续按以下层级执行：
+
+1. 文档、注释或重建后生产二进制逐字节相同：只运行静态、正确性与 Markdown 门，不运行性能实验；
+2. 单点、输入无关等价且局限于一个物理热阶段的小删除：运行固定 P1 哨兵，并只运行 Orkut `g=15` q10；q1--q9 不重复运行；
+3. 跨多个热阶段，或改变状态定义域、递推依赖、row 发布生命周期、证书可采纳性或真实上界见证链：才重新考虑完整 P1。这里按语义影响范围判断，不按删除行数、图名、组数或历史计时设置经验开关。
+
+P1 哨兵已在候选不可见的冻结结果上一次选定：每图取其最终最快 ABHSS 配置中 `solver_seconds` 最大的一条，共 13 条；再加入已知历史反向项 Orkut `g=7` q175 Enhanced；最后加入 Musae `g=5` q1--q100 Enhanced 固定成本块。标准参考使用同一冻结二进制在 CPU 5 顺序运行，共 114 条，权值、feasible/infeasible、`(mask,v)` 状态及任务身份均与正式 P1 逐项一致。具体 task key、时间、空间和状态写入 [`correctness_audit.json`](../experiments/correctness_audit.json) 的 `final_dominated_operation_gate.post_freeze_sentinel`。候选只有在这些离散字段完全一致且时间明确不高于冻结参考时才接受；接近或交换 CPU 后方向不稳定时拒绝该删除，不用宽容阈值把不确定性改写成通过。
+
+双进程只使用两个已校准的独立物理核。相同面板的单路/双路校准中，ABHSS 为 290.232177/289.247931 秒，双路/单路为 0.996609；PrunedDP++ 为 395.350486/391.142916 秒，比值为 0.989357。四路 PrunedDP++ 增至 426.358209 秒，比单路慢 7.84%，因此正式长门和后续哨兵都固定最多双路。当前 CPU 4/5 与校准 CPU 0/1 具有相同的不同物理核、不同 socket 拓扑。小删除复测可让一个核运行候选 q10，另一核运行 P1 哨兵；每个 solver process 仍严格单线程。
+
+服务器本地原始记录分别位于 `results/paper_runs/parallel1_calibration_abhss_672bd253cdde_20260802`、`parallel2_calibration_abhss_672bd253cdde_20260802`、`parallel1_calibration_pruneddp_672bd253cdde_20260802`、`parallel2_calibration_pruneddp_672bd253cdde_20260802` 和 `parallel4_calibration_pruneddp_672bd253cdde_20260802`；记录数依次为 80、80、82、82、82。它们属于 Git 忽略的大结果，提交前应把上述汇总与机器拓扑写入机器可读审计，不能依赖未上传目录作为唯一证据。
+
+这套哨兵只用于后续小改的“无可识别退化”决策，不替代本轮冻结二进制的 P1 正式结果。若候选二进制不同，论文和 artifact 必须保留两者身份，不能把哨兵外推成候选已完整复跑。
+
+### 7.10 冻结版最终 P1、Orkut 硬门与哨兵基准
+
+冻结求解器源码提交为 `12d6adb`，正式 ABHSS 二进制 SHA-256 为 `793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced`，PrunedDP++ 二进制 SHA-256 为 `4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2`，矩阵 SHA-256 为 `aed5db1ed83d134f5882f4c9d4544bf26549e9ee5a5392d74c3066b96c273162`。机器为 `test-PowerEdge-R630`，Linux `6.14.0-24-generic`，每个求解器严格单线程，正式 TL 均为 10,000 秒。Base 与 Enhanced 来自同一可执行文件；P1 当前结果固定在 CPU 4/5。PrunedDP++ 没有因 ABHSS 改码而变化，因此复用同机、同矩阵、同 TL、同 baseline 哈希的 `p1_full` 记录，避免无意义重跑；独立审计按 task key 对齐了三方法全部 8,318 个查询身份。
+
+P1 共 16,636 条当前 ABHSS 记录和 8,318 条 PrunedDP++ 记录，任务键全部唯一，55 个原始 infeasible 查询在三方法间逐项一致，没有目标值、feasibility 或 expected-status 不一致。表中时间是该图全部查询的 `solver_seconds` 总和；`min/P` 是 `min(Base, Enhanced) / PrunedDP++`，只用于验收“每图至少一个 ABHSS 配置不劣”，不把逐查询挑快者虚构成第三种算法。
+
+| 图 | 每方法查询数 | Base / 秒 | Enhanced / 秒 | PrunedDP++ / 秒 | 最快 ABHSS | `min/P` |
+|---|---:|---:|---:|---:|---|---:|
+| DBLP-GPU4GST | 900 | 8,035.299 | 9,694.387 | 13,683.019 | Base | 0.5872 |
+| DBLP-MonoGSTPlus | 160 | 3,766.660 | 3,160.483 | 29,049.935 | Enhanced | 0.1088 |
+| DBpedia-MonoGSTPlus | 438 | 8,386.674 | 7,593.174 | 20,288.408 | Enhanced | 0.3743 |
+| Github-GPU4GST | 900 | 90.900 | 76.562 | 338.436 | Enhanced | 0.2262 |
+| LinkedMDB-MonoGSTPlus | 200 | 611.421 | 491.172 | 6,612.577 | Enhanced | 0.0743 |
+| LiveJournal-GPU4GST | 900 | 14,080.989 | 24,257.869 | 27,535.664 | Base | 0.5114 |
+| MovieLens-MonoGSTPlus | 160 | 1,090.124 | 869.355 | 3,041.379 | Enhanced | 0.2858 |
+| Musae-GPU4GST | 900 | 61.146 | 38.497 | 186.901 | Enhanced | 0.2060 |
+| Orkut-GPU4GST | 900 | 30,744.397 | 45,405.709 | 120,913.770 | Base | 0.2543 |
+| Reddit-GPU4GST | 900 | 6,246.078 | 6,150.121 | 7,294.956 | Enhanced | 0.8431 |
+| Toronto-MonoGSTPlus | 160 | 10.374 | 16.916 | 16.241 | Base | 0.6387 |
+| Twitch-GPU4GST | 900 | 77.349 | 81.723 | 448.326 | Base | 0.1725 |
+| Youtube-GPU4GST | 900 | 2,804.511 | 3,603.514 | 3,004.472 | Base | 0.9334 |
+
+13/13 图通过底线。最紧的是 YouTube，其次是 Reddit 和 Toronto；因此后续不能删除这些图，也不能只报告全局平均。空间为图内单查询峰值，状态为图内全部查询的实际 `(mask,v)` 累计：
+
+| 图 | Base 峰值 MiB | Enhanced 峰值 MiB | PrunedDP++ 峰值 MiB | Base states | Enhanced states | PrunedDP++ states |
+|---|---:|---:|---:|---:|---:|---:|
+| DBLP-GPU4GST | 333.973 | 614.207 | 1,746.500 | 299,668,791 | 230,338,803 | 342,635,750 |
+| DBLP-MonoGSTPlus | 722.949 | 678.297 | 7,112.348 | 667,306,185 | 293,343,923 | 1,106,115,160 |
+| DBpedia-MonoGSTPlus | 1,322.848 | 2,333.750 | 13,451.219 | 365,248,307 | 285,581,028 | 400,984,226 |
+| Github-GPU4GST | 9.562 | 20.660 | 161.324 | 21,383,350 | 16,002,423 | 39,874,418 |
+| LinkedMDB-MonoGSTPlus | 646.016 | 332.176 | 10,126.340 | 197,480,559 | 89,326,477 | 258,789,081 |
+| LiveJournal-GPU4GST | 442.316 | 1,145.863 | 1,127.133 | 197,337,482 | 172,752,139 | 160,626,901 |
+| MovieLens-MonoGSTPlus | 46.129 | 562.117 | 173.492 | 1,134,768 | 153,418 | 2,247,152 |
+| Musae-GPU4GST | 4.500 | 11.480 | 73.805 | 7,161,062 | 4,529,006 | 18,424,783 |
+| Orkut-GPU4GST | 507.406 | 2,661.902 | 3,001.832 | 1,001,249,923 | 712,638,167 | 1,140,199,706 |
+| Reddit-GPU4GST | 396.719 | 882.809 | 634.125 | 1,882,349 | 1,975,393 | 2,656,110 |
+| Toronto-MonoGSTPlus | 6.410 | 10.734 | 26.438 | 915,047 | 563,556 | 1,866,233 |
+| Twitch-GPU4GST | 10.125 | 15.980 | 147.320 | 20,964,233 | 10,710,978 | 40,520,002 |
+| Youtube-GPU4GST | 122.812 | 221.379 | 408.125 | 80,248,354 | 73,109,126 | 12,450,269 |
+
+Orkut `g=15` 正式十条使用同一生产二进制、同一 10,000 秒逐查询 TL。q10 最紧，但仍有 455.439 秒余量；全部权值与精确参考一致。
+
+| 查询 | CPU | 权值 | 秒 | 查询峰值 MiB | `(mask,v)` states |
+|---:|---:|---:|---:|---:|---:|
+| q1 | 4 | 21 | 1,988.313 | 3,270.918 | 95,833,201 |
+| q2 | 4 | 32 | 1,725.783 | 3,762.445 | 162,834,196 |
+| q3 | 5 | 38 | 274.595 | 2,690.477 | 30,571,329 |
+| q4 | 5 | 28 | 291.363 | 2,995.301 | 12,586,184 |
+| q5 | 5 | 32 | 4,135.305 | 6,341.828 | 475,605,896 |
+| q6 | 5 | 36 | 2,033.287 | 5,990.352 | 201,117,345 |
+| q7 | 5 | 38 | 2,303.644 | 5,990.352 | 265,320,212 |
+| q8 | 5 | 18 | 210.787 | 5,990.352 | 394,894 |
+| q9 | 5 | 35 | 1,070.936 | 5,990.352 | 96,019,704 |
+| q10 | 4 | 54 | 9,544.561 | 18,318.238 | 1,459,398,194 |
+
+CPU 5 标准化 P1 哨兵由 14 条跨图/历史风险项与 100 条 Musae 固定成本项组成，共 114/114 成功。前者总 `solver_seconds` 为 816.198581，后者为 4.199400；固定块峰值 10.312 MiB、累计 76,770 states。它只定义后续小删除的参考，不进入论文 P1 主表。正式聚合、独立字段核验、逐条 Orkut 与哨兵机器可读值统一保存在 [`correctness_audit.json`](../experiments/correctness_audit.json)；服务器本地原始目录为 `results/paper_runs/final_793d4e_p1_w0_cpu4_20260818`、`final_793d4e_p1_w1_cpu5_20260818`、`p1_full`、`final_793d4e_orkut_g15_w0_cpu4`、`final_793d4e_orkut_g15_w1_cpu5` 和 `post_freeze_p1_sentinel_793d_cpu5_20260819`。
 
 ## 8. Human-review checklist
 

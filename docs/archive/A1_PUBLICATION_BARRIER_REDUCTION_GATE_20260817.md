@@ -1,5 +1,7 @@
 # A1 发布屏障与恒真检查减空门禁（2026-08-17）
 
+> **后续状态（2026-08-19）。** 本文两项严格减空继续保留；当时尚未执行的生产版 Orkut q1--q10 与 13 图 P1 后续均已通过。最终值与哈希见 [全实验方案](../EXPERIMENT_PLAN.md#710-冻结版最终-p1orkut-硬门与哨兵基准)。
+
 ## 1. 结论
 
 本轮只研究公共 A1 已经完成发布之后的重复合法性检查，不增加下界、上界、状态、配置或数据相关开关。
@@ -11,7 +13,7 @@
 
 两项都作用于 Base、DirectedCutOnly 与 Enhanced 共用的 `AnchoredSingletonFuture`，不读取图名、查询编号、组数经验阈值、墙钟、状态数或 enhancement 位。数值、浮点读取顺序、购买公式、row payload 和 `(mask,v)` 状态数不变。
 
-当前 combined production SHA-256 为 `57d2afa0f7098cec9baff15fd8088695c006edf72adccdb1c5668f4ba2a4b505`；diagnostics SHA-256 为 `37204d7f4c80d654a5ae58082ca907675ef001038467680d7458b416dd142095`。本记录写入时，combined 版本的 Orkut g15 q10 10000 秒硬门尚未运行，不得提前写成通过。
+本记录写入时的 combined production SHA-256 为 `57d2afa0f7098cec9baff15fd8088695c006edf72adccdb1c5668f4ba2a4b505`；diagnostics SHA-256 为 `37204d7f4c80d654a5ae58082ca907675ef001038467680d7458b416dd142095`。该时点的 Orkut g15 q10 10,000 秒硬门尚未运行，所以本文件后续的局部结果不能改写成当时已经通过；最终生产版状态以文首更新为准。
 
 ## 2. singleton row 发布屏障
 
@@ -137,4 +139,4 @@ A1 域内 `k>=3` 且 future 值非负，因此从 -1 初始化的 first/second �
 - 只有写出精确权值 54；
 - 且 solver 时间严格小于 10000 秒；
 
-才算通过。之后仍需 q1--q10 全门和 13 图 P1。
+才算通过。该段所要求的后续 q1--q10 全门和 13 图 P1 现已由文首冻结生产版完成。
