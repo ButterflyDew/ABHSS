@@ -139,5 +139,6 @@
     "state-count ratios use mutually solved pairs with positive counts; do not impute counts for timeout/error queries",
     "all available exact methods must agree on objective value before a performance claim is used"
   ],
-  "ablation_plan": "experiments/ablation_plan.json"
+  "ablation_plan": "experiments/ablation_plan.json",
+  "final_campaign_plan": "experiments/final_campaign_plan.json"
 }

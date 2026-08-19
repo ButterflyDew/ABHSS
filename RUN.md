@@ -211,15 +211,19 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 
 分配只由稳定 case hash 决定。同一 `run-dir` 中每个 `(case,method,query)` 有独立 JSON 记录，已完成 key 会跳过，因此可直接重复原命令续跑。不得在同一物理机器上并发运行多个内存带宽重的正式 shard；不得将不同 CPU/编译器的 shard 直接合并为同一时间表。
 
-服务器资源探究确认两路固定物理核与单路的逐查询时空结果可比后，可用 `run_parallel_campaign.py` 恢复本轮 P1、P2 或受控探针：
+本轮最终 campaign 固定使用已校准的 CPU 4/5。先执行只读身份审计和队列展开；确认输出为 95 个 Enhanced cell job、800 个新 Enhanced 任务、24,954 个复用 P1 任务后，再启动后台会话：
 
 ```bash
-python3 tools/experiments/run_parallel_campaign.py p1
-python3 tools/experiments/run_parallel_campaign.py p2
-python3 tools/experiments/run_parallel_campaign.py gf
+python3 tools/experiments/run_parallel_campaign.py prepare
+tmux new-session -d -s abhss-final -c "$PWD" 'python3 tools/experiments/run_parallel_campaign.py run > results/paper_runs/final_g15_campaign_793d4e_20260820/scheduler.log 2>&1'
+python3 tools/experiments/run_parallel_campaign.py status
 ```
 
-该脚本固定使用 CPU 0/1，并把运行日期和当前 commit 写入新 run-id。P1 只重跑 ABHSS 两种配置并引用已归档的同机 PrunedDP++；P2 先完整运行 Enhanced，再按预声明的首次 timeout frontier 运行 Base/PrunedDP++；`gf` 是每 cell 第 3 条查询的 1,000 秒资源探针。它是当前服务器 campaign 的可恢复编排，不改变 `run_experiments.py` 的任务语义。若换机器、两进程会争用同一物理核/内存带宽，或论文要求绝对单进程计时，应使用上一段的通用单路命令，不得直接把两路 campaign 当作正式时间表。
+`prepare` 验证生产二进制哈希、CPU 物理核、当前 P1/P2/S2 task key，并只在任务身份完全相同时复用完整 P1 与 Orkut `g=15` Enhanced q1--q10。`run` 先按只读历史估计从快到慢运行剩余 P2 和全部 S2 Enhanced；首个真实 10,000 秒 Enhanced timeout 落盘后，runner 返回 4，父调度器终止另一核当前进程组并停止整个 campaign。
+
+Enhanced 全部通过后，P2 的 Base/PrunedDP++ 按 `g` 递增运行。每格先跑覆盖五个组大小层的 q1--q5；仅当 5/5 均真实 timeout 且 Enhanced 5/5 已完成，才把当前 q6--q10 与更大 `g` 写为 `not_run_likely_timeout` 而不启动。这些项不是正式 timeout，也不进入 PAR-2/完成数；要补齐正式曲线必须后续重跑。S2 不按 `f` 外推，两个方法都跑完整 150 条。最后执行冻结的最小消融；endpoint-floor 变体由隔离构建器创建并通过完整 CTest。精确协议见 `experiments/final_campaign_plan.json` 和 `docs/EXPERIMENT_PLAN.md` 第 8.5 节。
+
+调度器持有排他锁且每个 task key 独立落盘；后台会话中断后重复同一 `run` 命令即可恢复。换机器或换 CPU 前必须重新校准并修改机器计划，不能直接沿用 CPU 4/5 的正式时间口径。
 
 若某个纸面值需要重跑，必须重跑该预声明 cell 的全部三个计时项并保留旧记录，不得只替换不利的单个 method/query。
 

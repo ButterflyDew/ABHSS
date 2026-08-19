@@ -6,6 +6,7 @@
 |---|---|
 | `paper_matrix.json` | 当前可执行矩阵：P1、P2、S2 与 correctness gates |
 | `ablation_plan.json` | 与主矩阵分离的最小消融面板、固定查询和唯一允许的 build-time 差异 |
+| `final_campaign_plan.json` | 最终双核执行顺序、历史结果复用、Enhanced 硬停止和 P2 保守 likely-timeout 语义 |
 | `data_sources.json` | MonoGST+、GPU4GST、IMDb 和查询生成的来源总表 |
 | `official_sources.json` | 仅 IMDb 2026-07-22 官方冻结的下载与转换定义 |
 | `query_feasibility_audit.json` | 当前矩阵每个图/查询对的共同分量审计 |

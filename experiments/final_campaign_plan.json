@@ -1,0 +1,78 @@
+{
+  "ablations": {
+    "configuration_chain": "run DirectedCutOnly on the fixed 45-query panel; reuse matching production Base/Enhanced records",
+    "endpoint_floor": "build in an isolated git archive with exactly one registered expression changed from max(farthest, endpoint-floor) to farthest, pass all CTest, then run Base and Enhanced on the fixed 45-query panel",
+    "stop_on": "any completed objective/feasibility mismatch or any build diff outside the registered expression"
+  },
+  "enhanced_hard_stop": {
+    "applies_to": [
+      "P2_cross_g",
+      "S2_controlled_gf"
+    ],
+    "predicted_timeout_not_allowed": true,
+    "rule": "after the first real 10000-second Enhanced timeout is durably recorded, run_experiments exits 4; the parent stops launching work, terminates the other process group, records the anomaly, and ends the campaign"
+  },
+  "historical_reuse": {
+    "P1": {
+      "action": "do not rerun",
+      "requirements": [
+        "current task-key set exactly equals the archived 8318 queries times three methods",
+        "ABHSS and PrunedDP++ hashes match",
+        "all archived records are ok",
+        "final_793d4e_p1_audit.json passed"
+      ],
+      "tasks": 24954
+    },
+    "P2_Orkut_g15_Enhanced": {
+      "action": "reuse q1--q10",
+      "requirements": [
+        "current task keys and query path match",
+        "ABHSS hash matches",
+        "all ten records are ok",
+        "final_793d4e_orkut_g15_audit.json passed"
+      ],
+      "tasks": 10
+    }
+  },
+  "likely_timeout_stop": {
+    "action": "do not start q6--q10 at that g or any query at larger g for that graph/method",
+    "applies_equally_to": [
+      "abhss_base",
+      "pruneddp_safe"
+    ],
+    "evidence": "for one fixed graph, g and method, all preregistered tranche-1 q1--q5 (one from each realized-group-size stratum) reach the real 10000-second limit and Enhanced solves all five",
+    "record_status": "not_run_likely_timeout",
+    "reporting": "never count these records as formal timeout, solved, elapsed time, PAR-2 input, or a completed matrix cell; retain task keys and five timeout evidence keys so they can be rerun later",
+    "suite": "P2_cross_g",
+    "why_no_S2_extrapolation": "runtime need not be monotone in target f, so the controlled grid is run in full"
+  },
+  "ordering": {
+    "P2_Enhanced_estimate": "old five-query Enhanced cell time scaled to ten queries",
+    "S2_Enhanced_estimate": "old preregistered q3 Enhanced time scaled to five queries",
+    "fallback": "deterministic graph-size times subset-count score, used only if a historical estimate is absent",
+    "scientific_effect": "none; ordering changes neither solver, timeout nor reporting"
+  },
+  "paper_scope": "P1/P2/S2 main matrix plus the separately preregistered minimal ablations",
+  "phase_order": [
+    "validate binary/matrix/input identities and historical reuse",
+    "run every remaining P2 and all S2 Enhanced cell, ordered by read-only historical estimates from fast to slow",
+    "run P2 Base and PrunedDP++ in ascending g frontiers, with estimated fast-to-slow order inside each g",
+    "run all S2 Base and PrunedDP++ cells from fast to slow without cross-f extrapolation",
+    "run the two preregistered minimal ablation panels"
+  ],
+  "production_identity": {
+    "abhss_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
+    "graph_load_timeout_seconds": 1800,
+    "physical_cpus": [
+      4,
+      5
+    ],
+    "pruneddp_sha256": "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2",
+    "same_abhss_binary_for_base_and_enhanced": true,
+    "timeout_seconds_per_query": 10000
+  },
+  "result_root": "results/paper_runs/final_g15_campaign_793d4e_20260820",
+  "runner": "tools/experiments/run_parallel_campaign.py",
+  "schema_version": 1,
+  "status": "frozen-before-new-campaign-results"
+}

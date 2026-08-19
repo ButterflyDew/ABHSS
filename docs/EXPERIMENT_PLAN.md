@@ -7,10 +7,10 @@
 当前实验只回答三个问题：
 
 1. 在最近两项直接相关工作的完整 workload 上，ABHSS 的总体效率和完成率是否优于 PrunedDP++？
-2. 当组数从常见范围继续增长到 `g=16` 时，优势是否稳定扩大？
+2. 当组数从常见范围继续增长到 `g=15` 时，优势是否稳定扩大？
 3. 在固定图上同时改变 `g` 与平均组大小目标 `f`，结论是否仍成立？
 
-消融、近似解质量、GPU/异构比较和额外应用实验尚未冻结，不进入当前正式矩阵。正确性 gate 是运行前条件，不作为性能贡献。
+最小消融已在第 6 节单独预登记，但不计入 P1/P2/S2 主矩阵；近似解质量、GPU/异构比较和额外应用实验尚未冻结。正确性 gate 是运行前条件，不作为性能贡献。
 
 ## 2. 统一执行规则
 
@@ -218,7 +218,7 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 | `S2_controlled_gf` | 副 | 30 | 150 | 450 |
 | 合计 | 性能 | 125 | 9,128 | 27,384 |
 
-建议顺序：正确性 gate → P1 小图和 Mono 自然图 → P2 → S2 → P1 大图长任务。P1 是全询问承诺，不能因为后半段成本高而只发表先完成的图。所有长任务使用固定 case sharding 和同一 run directory 断点续跑。
+本轮冻结二进制的 P1 已完整结束，因此不再重跑。新 campaign 的顺序是：身份/正确性 gate 与历史记录复用审计 → 剩余 P2 和全部 S2 的 Enhanced（按只读历史估计从快到慢）→ P2 的 Base/PrunedDP++ 递增 `g` frontier → S2 的 Base/PrunedDP++ → 最小消融。所有长任务使用 CPU 4/5 两个已校准物理核、独立 worker directory 和逐任务记录断点续跑。
 
 ## 8. 统计、图表与 claim guardrails
 
@@ -324,6 +324,18 @@ Orkut `g=15` 正式十条使用同一生产二进制、同一 10,000 秒逐查�
 | q10 | 4 | 54 | 9,544.561 | 18,318.238 | 1,459,398,194 |
 
 CPU 5 标准化 P1 哨兵由 14 条跨图/历史风险项与 100 条 Musae 固定成本项组成，共 114/114 成功。前者总 `solver_seconds` 为 816.198581，后者为 4.199400；固定块峰值 10.312 MiB、累计 76,770 states。它只定义后续小删除的参考，不进入论文 P1 主表。正式聚合、独立字段核验、逐条 Orkut 与哨兵机器可读值统一保存在 [`correctness_audit.json`](../experiments/correctness_audit.json)；服务器本地原始目录为 `results/paper_runs/final_793d4e_p1_w0_cpu4_20260818`、`final_793d4e_p1_w1_cpu5_20260818`、`p1_full`、`final_793d4e_orkut_g15_w0_cpu4`、`final_793d4e_orkut_g15_w1_cpu5` 和 `post_freeze_p1_sentinel_793d_cpu5_20260819`。
+
+### 8.5 本轮双核全量 campaign 与提前停跑语义
+
+机器计划冻结在 [`experiments/final_campaign_plan.json`](../experiments/final_campaign_plan.json)，调度入口为 `tools/experiments/run_parallel_campaign.py`。生产二进制仍是第 8.4 节的两个哈希；当前矩阵删除 P2 `g=16` 后的 SHA-256 为 `9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7`。P1 的 24,954 个三方法任务和 Orkut `g=15` Enhanced q1--q10 不重跑，但调度器启动前必须重新展开当前矩阵，并验证任务键全集、查询路径、方法二进制和历史 audit；不能仅因目录名相似就复用。
+
+Enhanced 优先运行剩余 P2 与全部 S2。队列只使用旧版只读探针估计排序：P2 把旧 q1--q5 cell 时间按十条缩放，S2 把预登记 q3 时间按五条缩放；缺失项才使用图规模与子集数的确定性分数。排序只决定先后，不改变 solver、timeout、结果筛选或论文统计。任何 Enhanced 查询真实达到 10,000 秒时，supervisor 先写入 timeout 记录，再以退出码 4 通知父调度器；父调度器停止发新任务并终止另一核的当前进程组，整个 campaign 标为 `stopped`，不得继续用部分 Enhanced 结果拼表。
+
+Base 与 PrunedDP++ 使用完全相同的 P2 保守 frontier。每个固定 `(graph,g,method)` 先运行预登记 tranche 1 的 q1--q5，它们恰好覆盖五个实现后组大小等秩层。只有五条都真实达到 10,000 秒、且对应 Enhanced 五条全部完成时，才不启动当前格 q6--q10 和该图更大 `g`；每个未运行任务写入单独的 `not_run_likely_timeout` 清单，并保存五个真实 timeout 的 task key。该清单不是正式 timeout：不得进入完成数、PAR-2、时间总和或“已完成矩阵”统计，需要完整纸面点时必须后续重跑。只要五条中有一条完成，就继续 q6--q10 和下一个 `g`。该规则同时作用于 Base/PrunedDP++，没有图名、方法特例或可调阈值。
+
+S2 不使用上述外推，因为目标 `f` 与运行时间不具备预先可声称的单调关系；Base 与 PrunedDP++ 的 150 条各自完整运行。消融最后运行：DirectedCutOnly 使用生产二进制；without-endpoint-floor 从当前提交的隔离 `git archive` 构建，只允许把 `max(farthest, endpoint-floor)` 一处改成 `farthest`，随后完整 CTest。任一完成项与 Enhanced 的权值/feasibility 不一致，或 isolated build 身份不满足唯一差异，立即停止。
+
+正式命令先执行 `prepare` 审计，再在 tmux 中执行 `run`；`status` 只读汇总状态。CPU 固定为 4/5，两个 worker 各自保存 metadata、日志和任务 JSON；父进程持有排他锁，重复命令只恢复缺失 task key，不会同时启动第二个 campaign。具体命令见 [`RUN.md`](../RUN.md)。
 
 ## 9. 人工审阅清单
 

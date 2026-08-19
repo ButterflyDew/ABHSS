@@ -453,14 +453,15 @@ def run_native_range(
     load_timeout: float,
     wall_deadline: float | None = None,
     probe_diagnostics: bool = False,
-) -> bool:
-    """Run a native range; return true only when the global budget expires."""
+    stop_on_timeout: bool = False,
+) -> str | None:
+    """Run a native range and return the requested early-stop reason, if any."""
 
     executable = executable_path(method)
     next_index = begin
     while next_index <= end:
         if wall_deadline is not None and time.monotonic() >= wall_deadline:
-            return True
+            return "budget_exhausted"
         attempt_id = hashlib.sha256(
             f"{case.case_id}|{method_name}|{next_index}|{end}|{time.time_ns()}".encode()
         ).hexdigest()[:16]
@@ -656,9 +657,11 @@ def run_native_range(
                 write_record(records_dir, record)
                 print(f"  {method_name} {case.case_id} q{current}: {failure}", flush=True)
                 if failure == "budget_exhausted":
-                    return True
+                    return "budget_exhausted"
+                if failure == "timeout" and stop_on_timeout:
+                    return "timeout"
                 if failure == "graph_load_timeout":
-                    return False
+                    return None
                 next_index = current + 1
                 continue
 
@@ -692,7 +695,7 @@ def run_native_range(
                 next_index = current + 1
             else:
                 next_index = end + 1
-    return False
+    return None
 
 
 def parse_scip_output(output: str) -> tuple[str, float | None, float | None]:
@@ -869,6 +872,11 @@ def main() -> int:
         action="store_true",
         help="enable sparse diagnostics in probe-only binaries",
     )
+    parser.add_argument(
+        "--stop-on-timeout",
+        action="store_true",
+        help="record the first native timeout and return exit code 4 immediately",
+    )
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=1)
     parser.add_argument("--dry-run", action="store_true")
@@ -964,6 +972,7 @@ def main() -> int:
                     "initial_invocation_wall_budget_seconds": args.wall_budget_seconds,
                     "initial_invocation_query_indices": sorted(query_filter) if query_filter else None,
                     "initial_invocation_probe_diagnostics": args.probe_diagnostics,
+                    "initial_invocation_stop_on_timeout": args.stop_on_timeout,
                     "shard_index": args.shard_index,
                     "shard_count": args.shard_count,
                     "hostname": socket.gethostname(),
@@ -995,6 +1004,7 @@ def main() -> int:
                     "graph_load_timeout_seconds": load_timeout,
                     "wall_budget_seconds": args.wall_budget_seconds,
                     "probe_diagnostics": args.probe_diagnostics,
+                    "stop_on_timeout": args.stop_on_timeout,
                     "shard_index": args.shard_index,
                     "shard_count": args.shard_count,
                 },
@@ -1003,10 +1013,10 @@ def main() -> int:
             + "\n"
         )
 
-    budget_exhausted = False
+    stop_reason: str | None = None
     for case in cases:
         if wall_deadline is not None and time.monotonic() >= wall_deadline:
-            budget_exhausted = True
+            stop_reason = "budget_exhausted"
             break
         if case_shard(case, args.shard_count) != args.shard_index:
             continue
@@ -1014,7 +1024,7 @@ def main() -> int:
         query_by_index = {query.index: query for query in queries}
         for method_name in balanced_method_order(case, method_filter):
             if wall_deadline is not None and time.monotonic() >= wall_deadline:
-                budget_exhausted = True
+                stop_reason = "budget_exhausted"
                 break
             method = methods[method_name]
             eligible = [
@@ -1033,7 +1043,7 @@ def main() -> int:
             print(f"{case.case_id}: {method_name}, {len(eligible)} pending", flush=True)
             if method["kind"] == "native":
                 for begin, end in group_contiguous(query.index for query in eligible):
-                    budget_exhausted = run_native_range(
+                    stop_reason = run_native_range(
                         run_id,
                         run_dir,
                         records_dir,
@@ -1047,12 +1057,13 @@ def main() -> int:
                         load_timeout,
                         wall_deadline,
                         args.probe_diagnostics,
+                        args.stop_on_timeout,
                     )
-                    if budget_exhausted:
+                    if stop_reason is not None:
                         break
             elif method["kind"] == "scip_jack":
                 for query in eligible:
-                    budget_exhausted = run_scip_case(
+                    if run_scip_case(
                         run_id,
                         run_dir,
                         records_dir,
@@ -1062,21 +1073,24 @@ def main() -> int:
                         query,
                         timeout,
                         wall_deadline,
-                    )
-                    if budget_exhausted:
+                    ):
+                        stop_reason = "budget_exhausted"
                         break
             else:
                 raise ValueError(f"Unknown method kind: {method['kind']}")
-            if budget_exhausted:
+            if stop_reason is not None:
                 break
-        if budget_exhausted:
+        if stop_reason is not None:
             break
 
     count = combine_records(records_dir, run_dir / "records.jsonl")
     print(f"Recorded {count} task results in {run_dir}")
-    if budget_exhausted:
+    if stop_reason == "budget_exhausted":
         print("Global wall budget exhausted; the run is safely resumable.", flush=True)
         return 3
+    if stop_reason == "timeout":
+        print("Stopped immediately after the first recorded native timeout.", flush=True)
+        return 4
     return 0
 
 

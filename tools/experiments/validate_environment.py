@@ -258,6 +258,27 @@ def main() -> int:
     if core_source.count(endpoint_contract) != 1:
         failures.append("production endpoint-floor expression no longer matches the registered ablation")
 
+    campaign = load_json("experiments/final_campaign_plan.json")
+    production = campaign.get("production_identity", {})
+    likely_stop = campaign.get("likely_timeout_stop", {})
+    hard_stop = campaign.get("enhanced_hard_stop", {})
+    if (
+        campaign.get("schema_version") != 1
+        or campaign.get("status") != "frozen-before-new-campaign-results"
+        or production.get("physical_cpus") != [4, 5]
+        or production.get("abhss_sha256") != "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced"
+        or production.get("pruneddp_sha256") != "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2"
+        or int(production.get("timeout_seconds_per_query", -1)) != 10_000
+        or production.get("same_abhss_binary_for_base_and_enhanced") is not True
+        or hard_stop.get("predicted_timeout_not_allowed") is not True
+        or likely_stop.get("applies_equally_to") != ["abhss_base", "pruneddp_safe"]
+        or likely_stop.get("suite") != "P2_cross_g"
+        or likely_stop.get("record_status") != "not_run_likely_timeout"
+        or "never count" not in likely_stop.get("reporting", "")
+        or not (ROOT / campaign.get("runner", "missing")).is_file()
+    ):
+        failures.append("final dual-core campaign identity or stop/reporting contract changed")
+
     s2 = load_json("experiment_data/s1_controlled_gf/cells.json")
     expected_s2_grid = {
         (dataset, g, f)
