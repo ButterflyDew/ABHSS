@@ -556,10 +556,10 @@ A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\mathrm{dist}(u,v)\}.
 h_l(R)=\min_{r\in R\setminus\{l\}}P_R(l,r).
 ```
 
-预处理对每个 $R$ 固定选择使 $h_l(R)$ 最大的起点组；并列时选择组号最小者。记该组为 $l^*(R)$，则轻量端点路径下界和共同 continuation 分别为：
+预处理对每个 $R$ 固定选择使 $h_l(R)$ 最大的起点组；并列时选择组号最小者。记该组为 $l^{*}(R)$，则轻量端点路径下界和共同 continuation 分别为：
 
 ```math
-C^{\mathrm{path}}(v,R)=\frac{d_{l^*(R)}(v)+h_{l^*(R)}(R)}{2},
+C^{\mathrm{path}}(v,R)=\frac{d_{l^{*}(R)}(v)+h_{l^{*}(R)}(R)}{2},
 ```
 
 ```math
@@ -568,7 +568,7 @@ C(v,R)=\max\left\{\max_{j\in R}d_j(v),\ C^{\mathrm{path}}(v,R)\right\}.
 
 当 $|R|=1$ 时，代码直接令 endpoint-floor 等于唯一的组距离 $d_l(v)$；它与 farthest 相同，因此共同 continuation 仍为 $d_l(v)$。空集合返回 0。这样 `EndpointFloorAt` 对空集、单组和多组的三个分支都与定义一致，也避免把单组代入没有终点 $r$ 的 Hamilton 路径公式。
 
-这里没有可调端点数、组数阈值或数据集分支。固定 $R$ 后， $l^*(R)$ 与 $h_{l^*(R)}(R)$ 都是预处理常量；A1 热路径除原有 farthest 外只增加一次组距离读取。
+这里没有可调端点数、组数阈值或数据集分支。固定 $R$ 后， $l^{*}(R)$ 与 $h_{l^{*}(R)}(R)$ 都是预处理常量；A1 热路径除原有 farthest 外只增加一次组距离读取。
 
 先证明可采纳性。取任意从 $v$ 出发覆盖 $R$ 的可行树 $T$，并在每组选择树中实际命中的终端。固定一个起点组 $l$，从该组终端开始把树边倍增遍历，并以 $v$ 为最终终点；总长度为 $2w(T)-\mathrm{dist}_T(l,v)$。截去最后一个被访问组到 $v$ 的尾段，再在组度量中 shortcut，得到某个终点组 $r$，满足 $P_R(l,r)\le 2w(T)-\mathrm{dist}_T(l,v)$。又有 $d_l(v)\le\mathrm{dist}_T(l,v)$，因此 $d_l(v)+h_l(R)\le2w(T)$。该结论对每个 $l$ 成立，所以预处理选择其中最大者仍然安全。
 
@@ -749,7 +749,7 @@ changed-arc 只减少每轮重新检查的弧，不改变最终 residual 最短�
 D(S,v)+L_{mathrm{new}}(v,[g]\setminus S)\ge U_{mathrm{new}}.
 ```
 
-$L_{mathrm{new}}$ 是可采纳下界， $U_{mathrm{new}}$ 是真实可行上界；所以被删状态的任一完整扩展代价至少为 $U_{mathrm{new}}$，而同成本可行解已经存在。未被删除的顶点和值保持原相对次序；branch 位只随对应项压紧，不重新分类。一个 branch 的真假描述它在原 ordinary 闭包中是否严格优于同根 split，这一事实不随上下界改变；被删除的非 branch 等价展开本身也满足同一个拒绝式，故不会丢失可改善拆分类。由此形成统一的 $U$—$L$—$U$ 闭环：真实路径给出初始 $U$，容量可行势提高 $L$，延迟购买把 residual/primal 结构转成新的真实 $U$，最后只按更紧的 $(L,U)$ 单调缩小既有锥体。路径生长、support metric 和 subset DP 的每个有限结果都由原图真实边或精确 D 值组成；这一整段是 DirectedCut 的安全新增证书，不是按查询切换 Base 与 Enhanced。
+$L_{mathrm{new}}$ 是可采纳下界， $U_{mathrm{new}}$ 是真实可行上界；所以被删状态的任一完整扩展代价至少为 $U_{mathrm{new}}$，而同成本可行解已经存在。未被删除的顶点和值保持原相对次序；branch 位只随对应项压紧，不重新分类。一个 branch 的真假描述它在原 ordinary 闭包中是否严格优于同根 split，这一事实不随上下界改变；被删除的非 branch 等价展开本身也满足同一个拒绝式，故不会丢失可改善拆分类。由此形成统一的 $U$ — $L$ — $U$ 闭环：真实路径给出初始 $U$，容量可行势提高 $L$，延迟购买把 residual/primal 结构转成新的真实 $U$，最后只按更紧的 $(L,U)$ 单调缩小既有锥体。路径生长、support metric 和 subset DP 的每个有限结果都由原图真实边或精确 D 值组成；这一整段是 DirectedCut 的安全新增证书，不是按查询切换 Base 与 Enhanced。
 
 只开 `DirectedCut` 时，后续仍运行完整前向 $A$。这一中间配置只用于 correctness/ablation，以隔离第二项增强，不是第四套算法。
 

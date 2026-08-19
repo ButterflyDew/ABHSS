@@ -32,8 +32,10 @@ INLINE_CODE = re.compile(r"`[^`]*`")
 INLINE_DOLLAR = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)")
 LOCAL_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 UNSAFE_INLINE_MATH_LEFT_BOUNDARY = re.compile(
-    r"[、，；：（）。！？]\$(?!\$)|(?<!\s)-\$(?!\$)"
+    r"[、，；：（）。！？—]\$(?!\$)|(?<!\s)-\$(?!\$)"
 )
+INLINE_MATH = re.compile(r"(?<!\\)(?<!\$)\$(?!\$)(.*?)(?<!\\)\$(?!\$)")
+UNBRACED_MATH_STAR = re.compile(r"(?:\^|_)\*")
 FORBIDDEN_GITHUB_MATH_MACRO = re.compile(r"\\(operatorname)\*?(?![A-Za-z])")
 FORBIDDEN_GITHUB_CASES = re.compile(r"\\(?:begin|end)\s*\{cases\}")
 FORBIDDEN_TEXT_MACRO_UNDERSCORE = re.compile(
@@ -161,9 +163,16 @@ def main() -> int:
             if UNSAFE_INLINE_MATH_LEFT_BOUNDARY.search(prose):
                 failures.append(
                     f"{relative}:{line_number}: GitHub may leave inline math "
-                    "literal when its opening $ touches CJK punctuation or a "
+                    "literal when its opening $ touches CJK punctuation, an "
+                    "em dash, or a "
                     "word hyphen; insert a space before the opening $"
                 )
+            for inline_match in INLINE_MATH.finditer(prose):
+                if UNBRACED_MATH_STAR.search(inline_match.group(1)):
+                    failures.append(
+                        f"{relative}:{line_number}: an unbraced math star may "
+                        "be consumed as Markdown emphasis; use ^{*} or _{*}"
+                    )
             inline_dollars += len(INLINE_DOLLAR.findall(prose))
             if re.search(r"\\[()[\]]", prose):
                 failures.append(
