@@ -113,12 +113,12 @@ Base 的 `Future` 由 component-cover、farthest、tour 和公共 A1 组成。En
 
 A1 是逻辑层 $A(\{i\},v)$ 的标准精确 row。所有配置在 ordinary 之前用同一 seed、同一图闭包和同一 continuation 构造它，之后把同一 row 的所有权移交公共前向内核，不重复闭包或计数。
 
-对尚未覆盖组集合 $R$，定义最远组下界和 endpoint-floor 的最大值为 $C(v,R)$。endpoint-floor 从组间 Hamilton path 表中选择终点自由路径值最大的起点组 $l^{*}(R)$：
+对尚未覆盖组集合 $R$，定义最远组下界和 endpoint-floor 的最大值为 $C(v,R)$。endpoint-floor 从组间 Hamilton path 表中选择终点自由路径值最大的起点组 $l^{\star}(R)$：
 
 ```math
 C^{\mathrm{path}}(v,R)
 =
-\frac{d_{l^{*}(R)}(v)+h_{l^{*}(R)}(R)}{2}.
+\frac{d_{l^{\star}(R)}(v)+h_{l^{\star}(R)}(R)}{2}.
 ```
 
 ```math

@@ -556,10 +556,10 @@ A(\{i\},v)=\min_u\{d_a(u)+d_i(u)+\mathrm{dist}(u,v)\}.
 h_l(R)=\min_{r\in R\setminus\{l\}}P_R(l,r).
 ```
 
-预处理对每个 $R$ 固定选择使 $h_l(R)$ 最大的起点组；并列时选择组号最小者。记该组为 $l^{*}(R)$，则轻量端点路径下界和共同 continuation 分别为：
+预处理对每个 $R$ 固定选择使 $h_l(R)$ 最大的起点组；并列时选择组号最小者。记该组为 $l^{\star}(R)$，则轻量端点路径下界和共同 continuation 分别为：
 
 ```math
-C^{\mathrm{path}}(v,R)=\frac{d_{l^{*}(R)}(v)+h_{l^{*}(R)}(R)}{2},
+C^{\mathrm{path}}(v,R)=\frac{d_{l^{\star}(R)}(v)+h_{l^{\star}(R)}(R)}{2},
 ```
 
 ```math
@@ -568,7 +568,7 @@ C(v,R)=\max\left\{\max_{j\in R}d_j(v),\ C^{\mathrm{path}}(v,R)\right\}.
 
 当 $|R|=1$ 时，代码直接令 endpoint-floor 等于唯一的组距离 $d_l(v)$；它与 farthest 相同，因此共同 continuation 仍为 $d_l(v)$。空集合返回 0。这样 `EndpointFloorAt` 对空集、单组和多组的三个分支都与定义一致，也避免把单组代入没有终点 $r$ 的 Hamilton 路径公式。
 
-这里没有可调端点数、组数阈值或数据集分支。固定 $R$ 后， $l^{*}(R)$ 与 $h_{l^{*}(R)}(R)$ 都是预处理常量；A1 热路径除原有 farthest 外只增加一次组距离读取。
+这里没有可调端点数、组数阈值或数据集分支。固定 $R$ 后， $l^{\star}(R)$ 与 $h_{l^{\star}(R)}(R)$ 都是预处理常量；A1 热路径除原有 farthest 外只增加一次组距离读取。
 
 先证明可采纳性。取任意从 $v$ 出发覆盖 $R$ 的可行树 $T$，并在每组选择树中实际命中的终端。固定一个起点组 $l$，从该组终端开始把树边倍增遍历，并以 $v$ 为最终终点；总长度为 $2w(T)-\mathrm{dist}_T(l,v)$。截去最后一个被访问组到 $v$ 的尾段，再在组度量中 shortcut，得到某个终点组 $r$，满足 $P_R(l,r)\le 2w(T)-\mathrm{dist}_T(l,v)$。又有 $d_l(v)\le\mathrm{dist}_T(l,v)$，因此 $d_l(v)+h_l(R)\le2w(T)$。该结论对每个 $l$ 成立，所以预处理选择其中最大者仍然安全。
 
