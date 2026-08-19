@@ -130,7 +130,8 @@
 3. 不要把含下划线的代码标识符塞进数学文本命令，例如不要写 `$S\subseteq\texttt{full\_mask}$`。GitHub 曾把其中的 `_` 送到文本模式并报 “`'_' allowed only in math mode`”。代码名应留在公式外，用 Markdown 行内代码表示；若确实需要数学记号，则改写为 `$M_{\mathrm{full}}$` 这一类结构。
 4. 表格单元格中的行内公式不能直接写竖线定界，如 `$|S|$`；使用 `$\lvert S\rvert$`，否则 Markdown 会先把竖线解释为列分隔符。
 5. 行内公式的开界 `$` 前必须有安全边界。GitHub 已实测会把紧跟中文标点或词内连字号的后续公式留成原文：不要写 `$D$、$A$、$H$` 或 `fixed-$U_0$`，而应写成 $D$、 $A$、 $H$ 以及“固定的 $U_0$”。注意“定界符数量配对”不能发现这类问题，必须同时检查边界和上传后的实际 MathML 数量。
-6. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符及安全左边界、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
-7. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
+6. 行内数学源码不得含裸星号 `*`。即使写成 `^{*}`，GitHub Markdown 仍可能把同一段中两个公式的星号跨定界符配成强调标签，导致两个公式都保留为源码；应写成 `^{\star}`。静态门禁会拒绝行内公式里的裸星号。
+7. 每次提交前运行 `make validate-markdown` 或 `python3 tools/experiments/validate_markdown.py`。该门禁检查 UTF-8、围栏、行内定界符及安全左边界、表格公式、已确认的 GitHub 禁用宏，以及本地链接目标是否以精确大小写被 Git 跟踪；不能让一个只在 Windows 本地存在或仅靠大小写不敏感解析成功的路径通过。`make release` 已依赖该门禁。
+8. 上传后不能只统计公式容器，因为失败公式同样会生成容器。必须在 GitHub 的实际渲染页面（或编辑器 **Preview**）检查所有含公式的文件，并确认每个 `.js-display-math` 和 `.js-inline-math` 都含实际 MathML `<math>` 子节点，任何 `math-renderer` 内均无可见 `.flash-error`、黄色错误框或灰色公式源码回退。不要把整页 `.flash-error` 数量当成判据：GitHub 页面可能自带隐藏的通用错误模板。错误文本既可能是 “The following macros are not allowed”，也可能是 “Missing ...” 或文本模式错误。若 GitHub 以后出现新失败模式，先改写公式，再把可静态识别的模式加入 `validate_markdown.py`。
 
 语法依据见 [GitHub 数学表达式官方文档](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions)；`\operatorname` 的实际限制见 [github/markup#1688](https://github.com/github/markup/issues/1688)。
