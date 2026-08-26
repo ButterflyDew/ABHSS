@@ -147,6 +147,7 @@ Graph LoadGraphFromFolder(const std::string& graph_folder)
     {
         throw std::runtime_error("Invalid graph header in file: " + graph_path.string());
     }
+    g.all_edges_unit_weight = true;
 
     // 第一阶段只保存原边并统计精确度数。这样每个邻接 vector 只分配一次，
     // 避免大图上逐边 push 导致的多轮扩容、复制与额外容量。
@@ -172,6 +173,7 @@ Graph LoadGraphFromFolder(const std::string& graph_folder)
         edge.u = u;
         edge.v = v;
         edge.w = w;
+        g.all_edges_unit_weight = g.all_edges_unit_weight && w == 1.0;
         g.minimum_edge_weight = std::min(g.minimum_edge_weight, w);
         g.edges.push_back(edge);
         ++degree[u];

@@ -93,7 +93,7 @@ inline void EmitAbhssProbe(const char* method,
         for (const Row& row : *rows)
         {
             ready += row.ready ? 1 : 0;
-            scalars += row.value.size();
+            scalars += row.vertex.size();
         }
         out << " rows=" << ready << " scalars=" << scalars;
     }

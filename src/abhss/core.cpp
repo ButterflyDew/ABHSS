@@ -1,6 +1,7 @@
 ﻿#include "core.h"
 
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <numeric>
 #include "diagnostics.h"
@@ -23,12 +24,79 @@ namespace
 /** 高位表示该 top-two 值来自 cone 外公式，而非 row.value 下标。 */
 constexpr std::uint32_t kA1FallbackLocator = std::uint32_t{1} << 31;
 
+/**
+ * @brief 为 strict-unit DirectedCut 按精确整数 A* key 维护 ordinary 闭包队列。
+ *
+ * 队列只把已经精确为整数的 key 用作桶下标；真实状态值仍保存在 double
+ * 中，不舍入边权或下界。组合 future 不要求一致，因此每次插入都会把
+ * current 回退到新 key，保证下一次仍从当前最小非空桶取项。
+ */
+class UnitKeyQueue
+{
+    struct Entry
+    {
+        int vertex;
+        int distance;
+    };
+
+public:
+    /** @brief 建立从零到严格上界减一的一桶一 key 容器，并按 seed 数预留容量。 */
+    UnitKeyQueue(int bucket_count, size_t seed_count)
+        : bucket_(bucket_count), cursor_(bucket_count)
+    {
+        const size_t reserve = bucket_count ? seed_count / static_cast<size_t>(bucket_count) + 1 : 0;
+        for (std::vector<Entry>& bucket : bucket_)
+            bucket.reserve(reserve);
+    }
+
+    /** @brief 判断当前是否没有待处理队列项。 */
+    bool empty() const { return size_ == 0; }
+
+    /** @brief 回退后扫描到全局最小非空桶并返回其下一项，不修改容器。 */
+    QueueNode top()
+    {
+        while (cursor_[current_] == bucket_[current_].size())
+            ++current_;
+        const Entry entry = bucket_[current_][cursor_[current_]];
+        return {static_cast<double>(current_), static_cast<double>(entry.distance), entry.vertex};
+    }
+
+    /** @brief 删除最近一次 `top` 指向的桶首项。 */
+    void pop()
+    {
+        ++cursor_[current_];
+        --size_;
+    }
+
+    /** @brief 插入精确整数 key，并把扫描指针显式回退到可能更小的新桶。 */
+    void push(const QueueNode& node)
+    {
+        const int key = static_cast<int>(node.key);
+        const int distance = static_cast<int>(node.distance);
+        assert(key >= 0);
+        assert(key < static_cast<int>(bucket_.size()));
+        assert(node.key == static_cast<double>(key));
+        assert(distance >= 0);
+        assert(node.distance == static_cast<double>(distance));
+        bucket_[key].push_back({node.vertex, distance});
+        current_ = std::min(current_, key);
+        ++size_;
+    }
+
+private:
+    std::vector<std::vector<Entry>> bucket_;
+    std::vector<size_t> cursor_;
+    int current_ = 0;
+    size_t size_ = 0;
+};
 
 /**
  * @brief 返回 A1 cone 与非负 fallback 共同使用的剩余代价下界。
  *
- * farthest 与 endpoint-floor 都可采纳且沿边至多下降边权；取最大后仍保持
- * 该性质，因此既能安全决定 Dijkstra cone，也能用于 cone 外的 U-B fallback。
+ * farthest 与 endpoint-floor 对任意边权都可采纳且为 1-Lipschitz；取最大
+ * 后仍保持该性质，因此既能安全决定 Dijkstra cone，也能用于 cone 外完全
+ * 相同的 U-B fallback。rooted entry-cover 及其单位权加强只服务普通、前向
+ * 与 adjoint 的状态 future，不进入这张所有配置共同发布的 A1 row。
  */
 double AnchoredSingletonContinuation(const Problem& p, int vertex, int continuation)
 {
@@ -36,7 +104,8 @@ double AnchoredSingletonContinuation(const Problem& p, int vertex, int continuat
 }
 
 /** @brief 任一安全证书严格加强后删除已缓存 row 中不再可能改善 incumbent 的状态。 */
-long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
+template <bool kSymmetricDual>
+long long RefilterOrdinaryAfterCertificateUpgradeImpl(Problem& p)
 {
     long long removed = 0;
     for (int mask = 1; mask < p.subset_count; ++mask)
@@ -54,7 +123,9 @@ long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
         {
             const int vertex = row.vertex[read];
             const double value = row.value[read];
-            if (!(value + FutureBound(p, vertex, remaining_original) < p.best))
+            const double farthest = FarthestRemaining(p, vertex, remaining_original);
+            const double future = kSymmetricDual ? SymmetricFutureBound(p, vertex, remaining_original, farthest) : PrimaryFutureBound(p, vertex, remaining_original, farthest);
+            if (!(value + future < p.best))
             {
                 ++removed;
                 if ((row.branch_bits[read >> 6] >> (read & 63)) & 1ULL)
@@ -93,6 +164,12 @@ long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
         }
     }
     return removed;
+}
+
+/** @brief 在扫描 row 前一次性冻结证书组合，避免逐状态检查第二 packing 生命周期。 */
+long long RefilterOrdinaryAfterCertificateUpgrade(Problem& p)
+{
+    return p.symmetric_dual_ready ? RefilterOrdinaryAfterCertificateUpgradeImpl<true>(p) : RefilterOrdinaryAfterCertificateUpgradeImpl<false>(p);
 }
 }
 
@@ -224,35 +301,66 @@ void WitnessUpperScheduler::RefreshCertificate()
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "certificate_refresh", problem_, -1.0, &problem_.ordinary, evaluation_count_, buy_);
 }
 
+void WitnessUpperScheduler::NotifyOrdinaryRefilter()
+{
+    ++ordinary_revision_;
+    if (support_dp_)
+        support_dp_->Reset();
+}
+
 ResidualClosureScheduler::ResidualClosureScheduler(Problem& problem)
     : problem_(problem)
 {
     if (problem_.UsesDirectedCut())
         buy_ = problem_.dual.ResidualClosureBuyWork(problem_.graph);
     enabled_ = buy_ > 0;
+    if (enabled_ && problem_.graph.all_edges_unit_weight && !problem_.unit_group_distance_by_vertex.empty())
+        symmetric_buy_ = problem_.dual.InitialCertificateBuyWork(problem_.graph);
+    symmetric_enabled_ = symmetric_buy_ > 0;
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_rent_start", problem_, -1.0, nullptr, -1, buy_);
+    if (symmetric_enabled_)
+        EmitAbhssProbe(ProbeFamilyMethod(problem_), "symmetric_dual_rent_start", problem_, -1.0, nullptr, -1, symmetric_buy_);
 }
 
-bool ResidualClosureScheduler::Account(long long row_work, long long new_payload)
+ResidualClosureScheduler::Update ResidualClosureScheduler::Account(long long row_work, long long new_payload)
 {
-    if (!enabled_ || purchased_)
-        return false;
-    if (new_payload >= std::numeric_limits<long long>::max() - payload_)
-        payload_ = std::numeric_limits<long long>::max();
-    else
-        payload_ += new_payload;
-    if (row_work >= std::numeric_limits<long long>::max() - rent_)
-        rent_ = std::numeric_limits<long long>::max();
-    else
-        rent_ += row_work;
-    if (rent_ < buy_)
-        return false;
-    if (payload_ < problem_.graph.n)
-        return false;
-    return Buy();
+    if (!purchased_)
+    {
+        if (!enabled_)
+            return Update::None;
+        if (new_payload >= std::numeric_limits<long long>::max() - payload_)
+            payload_ = std::numeric_limits<long long>::max();
+        else
+            payload_ += new_payload;
+        if (row_work >= std::numeric_limits<long long>::max() - rent_)
+            rent_ = std::numeric_limits<long long>::max();
+        else
+            rent_ += row_work;
+        if (rent_ < buy_ || payload_ < problem_.graph.n)
+            return Update::None;
+        const Update primary_update = BuyPrimary();
+        if (!symmetric_enabled_ || symmetric_rent_ < symmetric_buy_)
+            return primary_update;
+        const Update symmetric_update = BuySymmetric();
+        return primary_update == Update::CertificateReplaced ? primary_update : symmetric_update;
+    }
+
+    if (!symmetric_purchased_)
+    {
+        if (!symmetric_enabled_)
+            return Update::None;
+        if (row_work >= std::numeric_limits<long long>::max() - symmetric_rent_)
+            symmetric_rent_ = std::numeric_limits<long long>::max();
+        else
+            symmetric_rent_ += row_work;
+        if (symmetric_rent_ < symmetric_buy_)
+            return Update::None;
+        return BuySymmetric();
+    }
+    return Update::None;
 }
 
-bool ResidualClosureScheduler::Buy()
+ResidualClosureScheduler::Update ResidualClosureScheduler::BuyPrimary()
 {
     const long long paid_rent = rent_;
     ProbeTimer timer;
@@ -273,12 +381,32 @@ bool ResidualClosureScheduler::Buy()
     problem_.dual.ReleaseResidual();
     const bool support_replaced = RefreshPurchasedPathGrowthCertificate(problem_);
     ProbeTimer refilter_timer;
-    const long long removed = RefilterOrdinaryAfterCertificateUpgrade(problem_);
+    const long long removed = RefilterOrdinaryAfterCertificateUpgradeImpl<false>(problem_);
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_refilter", problem_, refilter_timer.Seconds(), &problem_.ordinary, -1, removed);
     purchased_ = true;
     enabled_ = false;
+    symmetric_rent_ = paid_rent > buy_ ? paid_rent - buy_ : 0;
     EmitAbhssProbe(ProbeFamilyMethod(problem_), "dual_closure_buy", problem_, timer.Seconds(), &problem_.ordinary, -1, paid_rent);
-    return support_replaced;
+    return support_replaced ? Update::CertificateReplaced : Update::OrdinaryRefiltered;
+}
+
+ResidualClosureScheduler::Update ResidualClosureScheduler::BuySymmetric()
+{
+    const long long paid_rent = symmetric_rent_;
+    ProbeTimer timer;
+    std::vector<std::vector<double>> dense(problem_.g);
+    for (int group = 0; group < problem_.g; ++group)
+        dense[group].swap(problem_.group_distance[group].value);
+    problem_.symmetric_dual.BuildInitialCertificateOnly(problem_.graph, problem_.query, dense, problem_.root, true);
+    for (int group = 0; group < problem_.g; ++group)
+        dense[group].swap(problem_.group_distance[group].value);
+    problem_.symmetric_dual_ready = true;
+    const long long removed = RefilterOrdinaryAfterCertificateUpgradeImpl<true>(problem_);
+    symmetric_purchased_ = true;
+    symmetric_enabled_ = false;
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "symmetric_dual_buy", problem_, timer.Seconds(), &problem_.ordinary, -1, paid_rent);
+    EmitAbhssProbe(ProbeFamilyMethod(problem_), "symmetric_dual_refilter", problem_, -1.0, &problem_.ordinary, -1, removed);
+    return Update::OrdinaryRefiltered;
 }
 
 double AnchoredSingletonFuture::Value(const Problem& p,
@@ -701,8 +829,8 @@ void BuildReusableAnchoredSingletonLayer(
             row.ready = true;
             accepted_states += touched.size();
 
-            // 先清空复用工作区，再允许购买触发整轮重启。A1 不写 ordinary
-            // row，但与 D 使用相同调度器，并按实际 queue-pop/edge-relax 付 rent。
+            // 先清空复用工作区，再允许 witness 购买触发整轮重启。A1 不写
+            // ordinary row，但与 D 使用同一个树 DP 调度器并连续累计实际工作。
             for (int vertex : touched)
                 distance[vertex] = fp::kInf;
             if (witness_scheduler.Account(row_work, false))
@@ -800,7 +928,8 @@ void ForEachTriple(const Problem& p, int first, int second, int third, Use&& use
 
 }  // namespace
 
-template <bool kStagedCertificateCache>
+/** @brief 以同一递推实例化 Base flat、weighted DirectedCut staged 与 strict-unit DirectedCut 队列路径。 */
+template <bool kStagedCertificateCache, bool kUnitKeyQueue>
 void BuildOrdinaryRowsImpl(Problem& p,
                            AnchoredSingletonFuture* singleton_future,
                            WitnessUpperScheduler& witness_scheduler,
@@ -836,6 +965,7 @@ void BuildOrdinaryRowsImpl(Problem& p,
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
         long long layer_certificate_calls = 0;
         long long layer_certificate_cache_rejections = 0;
+        long long layer_rooted_entry_rejections = 0;
         long long layer_dual_evaluations = 0;
         long long layer_dual_rejections = 0;
         long long layer_dual_exact = 0;
@@ -866,9 +996,9 @@ void BuildOrdinaryRowsImpl(Problem& p,
             long long certificate_cache_rejections = 0;
             long long exact_dual_cache_rejections = 0;
 #endif
-            // lambda：Base 一次缓存完整公共 future；DirectedCut 配置逐级缓存
-            // 已算出的可采纳下界。每个候选仍用自己的 value 检查缓存证书，
-            // 只有不足以拒绝时才继续计算下一阶段。
+            // lambda：Base 一次缓存 farthest/A1/tour；DirectedCut 配置逐级缓存
+            // 已算出的可采纳下界，strict-unit 特化先加入 rooted-entry。每个候选
+            // 仍用自己的 value 检查缓存证书，只有不足以拒绝时才计算下一阶段。
             auto CanImprove = [&](int vertex, double value)
             {
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
@@ -907,7 +1037,19 @@ void BuildOrdinaryRowsImpl(Problem& p,
                 {
                     state = row_epoch;
                     bound_state[vertex] = state;
-                    bound_cache[vertex] = 0.0;
+                    if constexpr (kUnitKeyQueue)
+                    {
+                        bound_cache[vertex] = RootedEntryCoverLower(p, vertex, remaining_original);
+                        if (!(value + bound_cache[vertex] < p.best))
+                        {
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
+                            ++layer_rooted_entry_rejections;
+#endif
+                            return false;
+                        }
+                    }
+                    else
+                        bound_cache[vertex] = 0.0;
                 }
                 else if (!(value + bound_cache[vertex] < p.best))
                 {
@@ -924,8 +1066,9 @@ void BuildOrdinaryRowsImpl(Problem& p,
                             rejected.push_back(vertex);
                             if ((state & kBoundStageMask) == 0)
                             {
-                                double rejection_cutoff = std::max(0.0, p.best - bound_cache[vertex]);
-                                while (rejection_cutoff + bound_cache[vertex] < p.best)
+                                const double rejection_lower = bound_cache[vertex];
+                                double rejection_cutoff = std::max(0.0, p.best - rejection_lower);
+                                while (rejection_cutoff + rejection_lower < p.best)
                                     rejection_cutoff = std::nextafter(rejection_cutoff, fp::kInf);
                                 distance[vertex] = rejection_cutoff;
                             }
@@ -954,7 +1097,17 @@ void BuildOrdinaryRowsImpl(Problem& p,
                     ++layer_dual_evaluations;
 #endif
                     bool exact_dual = false;
-                    const bool dual_can_improve = p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, lower, exact_dual);
+                    bool dual_can_improve = p.dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, p.graph.all_edges_unit_weight, lower, exact_dual);
+                    if constexpr (kUnitKeyQueue)
+                    {
+                        if (dual_can_improve && p.symmetric_dual_ready)
+                        {
+                            bool symmetric_exact = false;
+                            dual_can_improve = p.symmetric_dual.CanImproveAllExcept(vertex, p.original_mask[mask], value, p.best, true, lower, symmetric_exact);
+                            exact_dual = exact_dual && symmetric_exact;
+                        }
+                    }
+                    lower = CloseCompletionLower(p, lower);
                     bound_cache[vertex] = lower;
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                     if (exact_dual)
@@ -963,7 +1116,7 @@ void BuildOrdinaryRowsImpl(Problem& p,
                         state |= kBoundExactDual;
                     }
 #endif
-                    if (!dual_can_improve)
+                    if (!dual_can_improve || !(value + lower < p.best))
                     {
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
                         ++layer_dual_rejections;
@@ -1025,15 +1178,37 @@ void BuildOrdinaryRowsImpl(Problem& p,
 #endif
                     if (farthest < 0.0)
                         farthest = FarthestRemaining(p, vertex, remaining_original);
+                    const bool evaluate_tour = lower < p.tour.UpperEnvelope(remaining_original, farthest);
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
-                    if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
+                    if (evaluate_tour)
                         ++layer_tour_full_evaluations;
                     else
                         ++layer_tour_envelope_skips;
 #endif
-                    if (lower < p.tour.UpperEnvelope(remaining_original, farthest))
-                        lower = std::max(lower, p.tour.At(vertex, remaining_original, p.group_distance));
-                    bound_cache[vertex] = lower;
+                    if (evaluate_tour)
+                    {
+                        if constexpr (kUnitKeyQueue)
+                        {
+                            bool tour_exact = false;
+                            lower = p.tour.AtUntilRejected(vertex, remaining_original, p.group_distance, value, p.best, lower, true, tour_exact);
+                            lower = CloseCompletionLower(p, lower);
+                            bound_cache[vertex] = lower;
+                            if (!tour_exact)
+                            {
+#if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
+                                ++layer_tour_rejections;
+#endif
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            lower = std::max(lower, p.tour.At(vertex, remaining_original, p.group_distance));
+                            bound_cache[vertex] = lower;
+                        }
+                    }
+                    else
+                        bound_cache[vertex] = lower;
                     state = (state & ~kBoundStageMask) | 4;
                     bound_state[vertex] = state;
                 }
@@ -1115,14 +1290,26 @@ void BuildOrdinaryRowsImpl(Problem& p,
                 }
                 touched.resize(accepted);
             }
-            // Set/CanImprove 只有在完整 future 已缓存后才接纳标签；统一线性建堆。
-            SearchQueue queue = BuildInitialQueue(touched, distance, bound_cache);
+            // Set/CanImprove 只有在完整 future 已缓存后才接纳标签；strict-unit DirectedCut 使用精确整数 key 桶。
+            auto queue = [&]()
+            {
+                if constexpr (kUnitKeyQueue)
+                {
+                    UnitKeyQueue result(static_cast<int>(std::ceil(p.best)), touched.size());
+                    for (int vertex : touched)
+                        result.push({distance[vertex] + bound_cache[vertex], distance[vertex], vertex});
+                    return result;
+                }
+                else
+                    return BuildInitialQueue(touched, distance, bound_cache);
+            }();
             while (!queue.empty())
             {
                 const QueueNode node = queue.top();
                 queue.pop();
                 ++row_work;
-                if (node.distance != distance[node.vertex] || !(node.key < p.best))
+                const bool key_can_improve = node.key < p.best;
+                if (node.distance != distance[node.vertex] || !key_can_improve)
                     continue;
                 settled.push_back(node.vertex);
                 for (const auto& edge : p.graph.adj[node.vertex])
@@ -1188,8 +1375,11 @@ void BuildOrdinaryRowsImpl(Problem& p,
             if constexpr (kStagedCertificateCache)
                 witness_scheduler.PublishOrdinaryMask(mask);
             witness_scheduler.Account(row_work, true);
-            if (closure_scheduler.Account(row_work, static_cast<long long>(row.vertex.size())))
+            const ResidualClosureScheduler::Update closure_update = closure_scheduler.Account(row_work, static_cast<long long>(row.vertex.size()));
+            if (closure_update == ResidualClosureScheduler::Update::CertificateReplaced)
                 witness_scheduler.RefreshCertificate();
+            else if (closure_update == ResidualClosureScheduler::Update::OrdinaryRefiltered)
+                witness_scheduler.NotifyOrdinaryRefilter();
             EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_row", p, ordinary_progress_timer.Seconds(), nullptr, size, row_work);
 
             if (size == p.half)
@@ -1250,6 +1440,7 @@ void BuildOrdinaryRowsImpl(Problem& p,
 #if defined(GST_ENABLE_DETAILED_PROBE_DIAGNOSTICS)
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_calls_layer", p, -1.0, nullptr, size, layer_certificate_calls);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_certificate_cache_rejections_layer", p, -1.0, nullptr, size, layer_certificate_cache_rejections);
+        EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_rooted_entry_rejections_layer", p, -1.0, nullptr, size, layer_rooted_entry_rejections);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_evaluations_layer", p, -1.0, nullptr, size, layer_dual_evaluations);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_rejections_layer", p, -1.0, nullptr, size, layer_dual_rejections);
         EmitAbhssProbe(ProbeFamilyMethod(p), "ordinary_dual_exact_layer", p, -1.0, nullptr, size, layer_dual_exact);
@@ -1266,6 +1457,7 @@ void BuildOrdinaryRowsImpl(Problem& p,
     }
 }
 
+/** @brief 按冻结配置与 strict-unit 精确不变量选择同一 ordinary 递推的模板实例。 */
 void BuildOrdinaryRows(Problem& p,
                        AnchoredSingletonFuture* singleton_future,
                        WitnessUpperScheduler& witness_scheduler,
@@ -1273,9 +1465,14 @@ void BuildOrdinaryRows(Problem& p,
                        int last_layer)
 {
     if (p.UsesDirectedCut())
-        BuildOrdinaryRowsImpl<true>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
+    {
+        if (p.graph.all_edges_unit_weight && p.best < static_cast<double>(std::numeric_limits<int>::max()))
+            BuildOrdinaryRowsImpl<true, true>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
+        else
+            BuildOrdinaryRowsImpl<true, false>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
+    }
     else
-        BuildOrdinaryRowsImpl<false>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
+        BuildOrdinaryRowsImpl<false, false>(p, singleton_future, witness_scheduler, closure_scheduler, last_layer);
 }
 
 }  // namespace gst::methods::abhss::internal

@@ -1,6 +1,6 @@
 {
-  "schema_version": 5,
-  "frozen_at": "2026-08-20",
+  "schema_version": 7,
+  "frozen_at": "2026-08-27",
   "data_freeze": "published-workloads-plus-imdb-20260722",
   "paper_scope": "single-compute-thread exact undirected nonnegative-edge GST",
   "paper_timeout_seconds_per_instance": 10000,
@@ -36,19 +36,24 @@
     "execution_relation": "the profiles share common A1/D/low-A operations; every remaining difference is either a safe added certificate or a same-role replacement; Base has no logical state family without an Enhanced counterpart or replacement",
     "common_operations": {
       "A1": "if q=max(0,floor(g/2)-1)>0, every legal configuration uses the same seeds, farthest + endpoint-floor cone, nonnegative fallback, standard rows, top-two view and forward-A ownership transfer; a conditional witness buy that tightens the cutoff discards the partial pass and restarts, while only the final accepted rows are published and counted",
-      "witness_scheduler": "after preprocessing, every legal configuration constructs the same scheduler with rent=0; A1 and ordinary D continuously pay queue-pop/edge-relax rent, each profile substitutes only its own witness vertex count into the same buy formula t*((3^k-1)/2+3^k), and every buy calls the same EvaluateWitnessTree implementation"
+      "witness_scheduler": "after preprocessing, every legal configuration constructs the same scheduler with rent=0; A1 and ordinary D continuously pay queue-pop/edge-relax rent, each profile substitutes only its own witness vertex count into the same buy formula t*((3^k-1)/2+3^k), and every buy calls the same EvaluateWitnessTree implementation",
+      "tour_cache": "weighted ordinary/adjoint computes the complete tour certificate once per row epoch and caches it; strict-unit DirectedCut may stop after complete endpoint terms reject the current integer-budget label and resumes the unfinished stage for a later smaller label",
+      "adjoint_vertex_processing": "both transpose layouts call one ProcessVertex implementation with the same payload multiset and deterministic (reduced,mask) order; strict-unit uses sparse event buckets and general weighted graphs use 64-vertex blocks, selected once from the loader-verified exact edge-weight invariant"
     },
     "same_role_replacements": {
       "distance_root_initialization": "BootstrappedBounded -> CompletePotential; both are selected realizations of one BuildDistanceRootInitialization call and return the same {group_distance, root, feasible upper} contract. The canonical SPT union is private cutoff bootstrap work inside the bounded realization, while full-distance expansion is private work inside the complete realization.",
       "upper_witness": "root-path tree -> primal upper plus dual-primal tree; both preprocessing paths only construct their witness and do not unconditionally evaluate it, then enter the common zero-rent scheduler, common buy formula and common tree-DP implementation; common root-star and root-path-union uppers remain shared",
-      "high_completion_after_A1": "forward high A -> common A1 plus adjoint high H; when q>0, ell=min(1,q) keeps only the required common A1 forward prefix and H realizes logical layers 2..q"
+      "high_completion_after_A1": "forward high A -> common A1 plus adjoint high H; when q>0, ell=min(1,q) keeps only the required common A1 forward prefix and H realizes logical layers 2..q",
+      "strict_unit_ordinary_queue": "binary heap -> exact integer-key bucket queue; both implement the same abstract global-minimum-key interface, and the bucket realization is selected only when DirectedCut is enabled, every edge weight is exactly 1, and the current exact upper bound fits the integer bucket index"
     },
     "safe_additions": [
       "directed-cut dual-feasibility certificate outside A1 in the ordinary max stack and adjoint reduced/prefix checks",
+      "strict-unit DirectedCut rooted-entry certificate; Base and weighted DirectedCut retain zero rooted-entry",
+      "residual-closure certificate refresh and a structurally purchased independent reverse packing whose value is combined only by maximum",
       "facility feasible upper bound"
     ],
     "contract_evidence": "experiments/abhss_configuration_refactor_gate.json",
-    "runtime_switching": "forbidden"
+    "runtime_switching": "per-query configuration switching is forbidden; compile-time physical specialization from the loader-verified all-edges-unit invariant is permitted and never reads graph names, g, row counts, state counts or elapsed time"
   },
   "graph_loading": {
     "implementation": "shared 8 MiB buffered numeric scanner; solver then performs exact-degree adjacency reservation and one O(n+m) connected-component index build, while the offline feasibility audit streams edges into a DSU",
@@ -140,5 +145,15 @@
     "all available exact methods must agree on objective value before a performance claim is used"
   ],
   "ablation_plan": "experiments/ablation_plan.json",
-  "final_campaign_plan": "experiments/final_campaign_plan.json"
+  "final_campaign_plan": "experiments/final_campaign_plan.json",
+  "final_campaign_plan_status": "historical plan for the frozen 12d6adb binary; regenerate binary/task identities before a V61 campaign",
+  "development_candidate_evidence": {
+    "candidate": "V61 weighted complete-tour cache plus edge-invariant adjoint layout specialization",
+    "release_binary_sha256": "f3b99791518882572577a2c9e35c10bec259dfc1de2db401b52229a502d00e46",
+    "orkut_g15_q10": {"solver_seconds": 9560.341419, "weight": 54.0, "query_peak_rss_mib": 18309.305, "mask_vertex_states": 1459398194, "gate": "solver_seconds < 10000"},
+    "orkut_g7_q175_enhanced": {"solver_seconds": 198.644568, "weight": 33.0, "query_peak_rss_mib": 2660.766, "mask_vertex_states": 11598909},
+    "imdb_g14_f400_q2_enhanced": {"solver_seconds": 845.422852, "weight": 18.0, "query_peak_rss_mib": 10108.762, "mask_vertex_states": 188230094},
+    "p1_sentinel": {"tasks": 114, "hard14_old_seconds": 831.208884, "hard14_v61_seconds": 830.01636, "hard14_ratio": 0.998565314, "musae100_old_seconds": 4.272498, "musae100_v61_seconds": 4.289315, "musae100_ratio": 1.003936105, "objective_mismatches": 0, "state_differences": "Reddit g7 q220 Enhanced only: 94 -> 101; all other 113 task state counts identical"},
+    "evidence_boundary": "development non-regression evidence only; it does not replace the frozen full P1 table or claim a V61 full-matrix rerun"
+  }
 }

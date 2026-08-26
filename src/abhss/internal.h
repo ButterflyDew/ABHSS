@@ -3,7 +3,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -152,12 +155,57 @@ struct DistanceRootInitialization
     int root = 1;
 };
 
-/** @brief 零权连通分量覆盖得到的全局下界、覆盖数和候选代表根。 */
+/** @brief 零权连通分量覆盖得到的全局下界、可选 rooted 子集表和候选代表根。 */
 struct ComponentCover
 {
     double lower = 0.0;
     int cover_number = 0;
     std::vector<int> roots;
+    std::vector<double> subset_lower;
+    std::vector<double> rooted_uncovered_lower;
+    std::vector<std::uint16_t> root_component_group_mask;
+    std::vector<std::uint16_t> unit_terminal_induced_group_mask;
+    std::vector<unsigned char> unit_nonterminal_cover_number;
+
+    /** @brief 返回覆盖 original_mask 的任意非定根 completion 必须支付的安全下界。 */
+    double SubsetLower(int original_mask) const
+    {
+        assert(original_mask >= 0 && static_cast<size_t>(original_mask) < subset_lower.size());
+        return subset_lower[original_mask];
+    }
+
+    /** @brief 把 root 的零权分量计入连接责任，返回严格更强的 rooted completion 下界。 */
+    double RootedSubsetLower(int original_mask, int root) const
+    {
+        assert(root > 0 && static_cast<size_t>(root) < root_component_group_mask.size());
+        const int uncovered = original_mask & ~static_cast<int>(root_component_group_mask[root]);
+        return std::max(subset_lower[original_mask], rooted_uncovered_lower[uncovered]);
+    }
+
+    /**
+     * @brief 单位权图中合并首次命中、终端覆盖数与非候选顶点 cover。
+     *
+     * uncovered 至少需要 c 个不同组顶点；到其中第一点之前的 nearest-1 个
+     * 内部点不命中任何 uncovered 组。把每个非查询候选顶点相邻的候选诱导
+     * 分量组集视为一个 block；根免费可达范围之外的组至少需要 block-cover
+     * 数量个互异非候选顶点。两类顶点互斥，故可与 c 安全相加。
+     */
+    double UnitRootedEntryLower(int original_mask, int root, double nearest, double required_nonterminal = 0.0) const
+    {
+        const int uncovered = original_mask & ~static_cast<int>(root_component_group_mask[root]);
+        const double lower = std::max(subset_lower[original_mask], rooted_uncovered_lower[uncovered]);
+        if (!uncovered)
+            return lower;
+        assert(nearest >= 0.0);
+        double strengthened = rooted_uncovered_lower[uncovered] + std::max(0.0, nearest - 1.0);
+        strengthened = std::max(strengthened, rooted_uncovered_lower[uncovered] + required_nonterminal);
+        if (!unit_terminal_induced_group_mask.empty() && !unit_nonterminal_cover_number.empty())
+        {
+            const int steiner_uncovered = original_mask & ~static_cast<int>(unit_terminal_induced_group_mask[root]);
+            strengthened = std::max(strengthened, rooted_uncovered_lower[uncovered] + unit_nonterminal_cover_number[steiner_uncovered]);
+        }
+        return std::max(lower, strengthened);
+    }
 };
 
 /** @brief 从共同根到各组的最短路边并集及其真实去重边权。 */
@@ -184,11 +232,29 @@ public:
      * @param metric 无向输入图导出的对称组间最短连接代价矩阵。
      */
     void Build(const std::vector<std::vector<double>>& metric);
+    /** @brief 绑定单位权图按顶点连续的安全截止组距离视图。 */
+    void SetUnitDistanceView(const std::vector<std::uint16_t>& view) { unit_distance_ = view.data(); }
     /**
      * @brief 返回从给定顶点完成 mask 中剩余组的固定端点 tour 下界。
      * @return 不超过任何可行剩余树代价的 admissible lower bound。
      */
     double At(int vertex, int mask, const GroupTable& distance) const;
+    /**
+     * @brief 按完整端点项逐批计算 tour，并在已有某项足以拒绝标签时安全提前返回。
+     *
+     * 若 `exact=false`，返回值仍是可采纳 tour 下界，并已在调用者指定的补全费用格上
+     * 满足严格拒绝式；调用者不得把它标成完整 tour 缓存。生产路径当前只在 strict-unit
+     * 精确整数补全格上使用这一早停接口，一般加权图直接调用 `At` 取得完整值。
+     * 若标签始终未被拒绝，则每个无序端点对恰处理一次并返回与 `At` 相同的精确值。
+     */
+    double AtUntilRejected(int vertex,
+                           int mask,
+                           const GroupTable& distance,
+                           double prefix,
+                           double incumbent,
+                           double lower,
+                           bool integral_completion,
+                           bool& exact) const;
     /**
      * @brief 返回完整 rooted tour 实现值的常数时间安全上包络。
      *
@@ -204,14 +270,18 @@ public:
     double EndpointFloorAt(int vertex, int mask, const GroupTable& distance) const;
 
 private:
-    struct Endpoint
-    {
-        int left = 0;
-        int right = 0;
-        double path = 0.0;
-    };
     int group_count_ = 0;
-    std::vector<std::vector<Endpoint>> endpoints_;
+    const std::uint16_t* unit_distance_ = nullptr;
+    /** 每个 mask 的升序组列表；固定 g 字节步长使热路径无需反复拆 bit。 */
+    std::vector<unsigned char> mask_groups_;
+    /** 每个 mask 的组数；避免正式构建在每次 tour 求值时调用软件 popcount。 */
+    std::vector<unsigned char> mask_group_count_;
+    /** 每个 mask 的紧凑上三角端点路径在 endpoint_pair_path_ 中的起点。 */
+    std::vector<std::uint32_t> endpoint_pair_offset_;
+    /** 按 mask 紧凑保存固定两端的最短 Hamilton path。 */
+    std::vector<double> endpoint_pair_path_;
+    /** 每个 (mask,position) 的终点自由固定起点路径最小值。 */
+    std::vector<double> endpoint_floor_by_position_;
     std::vector<unsigned char> endpoint_floor_left_;
     std::vector<double> endpoint_floor_value_;
 };
@@ -295,6 +365,10 @@ struct Problem
     }
 
     GroupTable group_distance;
+    std::vector<std::uint16_t> unit_group_distance_by_vertex;
+    std::vector<std::uint16_t> unit_nonterminal_group_distance_by_vertex;
+    std::vector<unsigned char> unit_nonterminal_first_group;
+    std::vector<unsigned char> unit_nonterminal_second_group;
     TourLowerBound tour;
     ComponentCover component_cover;
     RootPathUnion root_path_union;
@@ -302,14 +376,23 @@ struct Problem
     std::vector<int> certificate_support_edges;
     std::size_t certificate_support_vertex_count = 0;
     dual_cut::DualCutPotential dual;
+    dual_cut::DualCutPotential symmetric_dual;
+    bool symmetric_dual_ready = false;
 
     std::vector<int> bit_to_group;
     std::vector<int> popcount;
     std::vector<int> original_mask;
     std::vector<unsigned char> farthest_group;
+    std::vector<unsigned char> nearest_group;
     std::vector<Row> ordinary;
     std::vector<double> ordinary_minimum;
 };
+
+/** @brief 单位权图中把可采纳补全下界闭合到精确整数费用格。 */
+inline double CloseCompletionLower(const Problem& problem, double lower)
+{
+    return problem.graph.all_edges_unit_weight ? std::ceil(lower) : lower;
+}
 
 struct QueueNode
 {
@@ -350,8 +433,8 @@ inline SearchQueue BuildInitialQueue(const std::vector<int>& touched, const std:
     return SearchQueue(std::greater<QueueNode>{}, std::move(storage));
 }
 
-/** @brief 用零权连通分量计算覆盖数下界，并返回可用的代表根。 */
-ComponentCover ComputeComponentCover(const Graph& graph, const Query& query);
+/** @brief 用零权连通分量计算覆盖数下界，并按消费者生命周期物化 rooted future。 */
+ComponentCover ComputeComponentCover(const Graph& graph, const Query& query, bool build_rooted_future);
 /**
  * @brief 构造共同的“距离 oracle + 候选根 + 初始真实上界”预处理输出。
  *
@@ -382,6 +465,14 @@ WitnessTree BuildDualWitness(const Graph& graph,
 double EvaluateWitnessTree(const WitnessTree& tree,
                            const Problem& problem,
                            const std::vector<Row>& ordinary);
+/**
+ * @brief 按统一公式估计一次 witness-tree subset DP 的 buy 工作量。
+ *
+ * `witness_vertices` 只取当前配置已构造的真实 witness 顶点数；
+ * `nonanchor_count` 决定共同 subset 空间，函数不读取配置位。
+ */
+long long EstimateWitnessTreeDpWork(std::size_t witness_vertices,
+                                    int nonanchor_count);
 /** @brief 估计一次证书支持图 subset DP 的结构工作量。 */
 long long EstimateCertificateSupportDpWork(std::size_t support_vertices,
                                            int nonanchor_count);
@@ -435,7 +526,7 @@ private:
     std::size_t last_activated_mask_count_ = 0;
     std::size_t last_recomputed_mask_count_ = 0;
 };
-/** @brief 在 closure primal 与路径 witness 的并图上组合 ordinary 子解。 */
+/** @brief 在 closure primal 与真实路径证书的并图上组合 ordinary 子解。 */
 double EvaluateCertificateSupport(const Problem& problem);
 /** @brief 在 dual primal 设施点上构造 residual-support 度量并做 subset DP 上界。 */
 double BuildPrimalFacilityUpper(const Problem& problem,
@@ -448,6 +539,16 @@ bool PrepareProblem(Problem& problem);
 bool RefreshPurchasedPathGrowthCertificate(Problem& problem);
 /** @brief 返回剩余组中的最远组距离下界；命中顶点最大组缓存时为 O(1)。 */
 double FarthestRemaining(const Problem& problem, int vertex, int original_mask);
+/** @brief 返回剩余组中的最近组距离；仅供严格单位权 first-hit cover 使用。 */
+double NearestRemaining(const Problem& problem, int vertex, int original_mask);
+/** @brief 物化单位权图上从每个根到各组的最少非查询候选顶点数。 */
+void BuildUnitNonterminalGroupDistanceView(Problem& problem);
+/** @brief 返回到剩余组路径不可避免的最大非查询候选顶点数，不计非候选根。 */
+double FarthestRequiredNonterminal(const Problem& problem,
+                                   int vertex,
+                                   int original_mask);
+/** @brief 返回 DirectedCut 在严格单位权图上的 rooted-entry 下界；其余配置返回零。 */
+double RootedEntryCoverLower(const Problem& problem, int vertex, int original_mask);
 /** @brief 计算统一 future 下界；开启 DirectedCut 时再并入对偶势。 */
 double FutureBound(const Problem& problem, int vertex, int original_mask);
 /** @brief 复用调用者已计算的 farthest，避免热路径重复扫描剩余组。 */
@@ -455,6 +556,18 @@ double FutureBound(const Problem& problem,
                    int vertex,
                    int original_mask,
                    double farthest);
+/** @brief 只使用冻结主证书的完整 future；不含第二 packing 的运行时判断。 */
+double PrimaryFutureBound(const Problem& problem,
+                          int vertex,
+                          int original_mask,
+                          double farthest);
+/** @brief 使用两份独立 packing 的较大值；调用前必须已购买第二证书。 */
+double SymmetricFutureBound(const Problem& problem,
+                            int vertex,
+                            int original_mask,
+                            double farthest);
+/** @brief 读取第二 packing 当前已购买的最强阶段；半径未购买时保持原势值。 */
+double SymmetricPackingBound(const Problem& problem, int vertex, int original_mask);
 
 /** @brief 枚举 singleton mask 对应组的全部精确距离值。 */
 template <class Use>

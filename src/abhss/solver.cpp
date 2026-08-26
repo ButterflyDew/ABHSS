@@ -52,8 +52,7 @@ AnchoredSingletonFuture* ScheduleAnchoredSingletonFuture(
 
     ProbeTimer timer;
     EmitAbhssProbe(probe_method, "singleton_anchor_start", problem);
-    BuildReusableAnchoredSingletonLayer(
-        problem, singleton_future, witness_scheduler);
+    BuildReusableAnchoredSingletonLayer(problem, singleton_future, witness_scheduler);
     EmitAbhssProbe(probe_method,
                    "singleton_anchor_end",
                    problem,
@@ -186,6 +185,10 @@ SolveResult SolveOneQuery(const Graph& graph,
             singleton_future,
             witness_scheduler,
             probe_method);
+    // A1 不消费非候选距离；DirectedCut 在共同 A1 后按严格单位权不变量
+    // 增加 rooted-entry 的非候选深度证书，Base 不构造这份增强视图。
+    if (problem.UsesDirectedCut())
+        BuildUnitNonterminalGroupDistanceView(problem);
     // A1 本身仍逐项执行共同代码；这里只在 A1 完成后把已经发生的公共搜索
     // 工作一次性交给增强证书调度器，使困难查询不必用弱 dual 重做多张 D row。
     ResidualClosureScheduler closure_scheduler(problem);

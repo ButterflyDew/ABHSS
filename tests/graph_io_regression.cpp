@@ -80,6 +80,8 @@ int main()
         graph.component_of.size() != 6)
         throw std::runtime_error("fast graph reader header mismatch");
     CheckWeight(graph.minimum_edge_weight, 0.0, "minimum edge");
+    if (graph.all_edges_unit_weight)
+        throw std::runtime_error("mixed-weight graph was marked unit-weight");
 
     const std::vector<ExpectedEdge> expected = {
         {1, 2, 0.0},
@@ -115,6 +117,9 @@ int main()
     if (disconnected.component_count != 3 ||
         disconnected.component_of != expected_components)
         throw std::runtime_error("connected-component cache mismatch");
+    CheckWeight(disconnected.minimum_edge_weight, 1.0, "unit minimum edge");
+    if (!disconnected.all_edges_unit_weight)
+        throw std::runtime_error("unit-weight graph was not marked unit-weight");
 
     // 无向自环必须与旧读取器一样向同一邻接表插入两项，
     // 同时不得改变连通分量数。

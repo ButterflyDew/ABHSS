@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Resumable, per-instance-deadline experiment supervisor.
+"""Resumable experiment supervisor with explicit timing semantics.
 
 Native solvers keep a graph loaded while consecutive queries run.  The
 supervisor starts (and resets) the 10,000-second deadline on the solver's
 ``[Ready]``/``[Query]`` markers.  If one query times out, only that process is
 killed; the next query resumes in a fresh process.  Thus easy queries do not
 subsidize hard queries and a timeout never discards completed results.
+
+Targeted diagnostic runs may explicitly request ``--no-timeout``.  This mode
+is restricted to native solvers and forbids a global wall budget, so a task is
+allowed to finish naturally while completed query records remain resumable.
 """
 
 from __future__ import annotations
@@ -346,7 +350,7 @@ def make_base_record(
     case: Case,
     method_name: str,
     query: QueryMeta,
-    timeout: float,
+    timeout: float | None,
 ) -> dict[str, Any]:
     key = task_key(case, method_name, query.index)
     record: dict[str, Any] = {
@@ -449,7 +453,7 @@ def run_native_range(
     query_by_index: dict[int, QueryMeta],
     begin: int,
     end: int,
-    timeout: float,
+    timeout: float | None,
     load_timeout: float,
     wall_deadline: float | None = None,
     probe_diagnostics: bool = False,
@@ -524,9 +528,12 @@ def run_native_range(
                     peak_rss_bytes = max(peak_rss_bytes or 0, sampled_rss)
                 remaining = max(0.0, deadline - time.monotonic())
                 try:
-                    line = lines.get(
-                        timeout=min(remaining, 0.2) if probe_diagnostics else remaining
-                    )
+                    if probe_diagnostics:
+                        line = lines.get(timeout=min(remaining, 0.2))
+                    elif timeout is None and wall_deadline is None and ready:
+                        line = lines.get()
+                    else:
+                        line = lines.get(timeout=remaining)
                 except queue.Empty:
                     if time.monotonic() < deadline:
                         continue
@@ -550,7 +557,7 @@ def run_native_range(
                         process_rss_bytes(process) if probe_diagnostics else None
                     )
                     peak_rss_bytes = ready_rss_bytes
-                    natural_deadline = query_started + timeout
+                    natural_deadline = float("inf") if timeout is None else query_started + timeout
                     deadline = (
                         min(natural_deadline, wall_deadline)
                         if wall_deadline is not None
@@ -609,7 +616,7 @@ def run_native_range(
                 write_record(records_dir, record)
                 last_completed = query_index
                 query_started = time.monotonic()
-                natural_deadline = query_started + timeout
+                natural_deadline = float("inf") if timeout is None else query_started + timeout
                 deadline = (
                     min(natural_deadline, wall_deadline)
                     if wall_deadline is not None
@@ -861,6 +868,11 @@ def main() -> int:
         help="repeat to select explicit 1-based query indices",
     )
     parser.add_argument("--timeout", type=float)
+    parser.add_argument(
+        "--no-timeout",
+        action="store_true",
+        help="disable the per-query deadline for native diagnostic runs only",
+    )
     parser.add_argument("--graph-load-timeout", type=float)
     parser.add_argument(
         "--wall-budget-seconds",
@@ -882,6 +894,14 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    if args.timeout is not None and args.timeout <= 0:
+        parser.error("timeout must be positive")
+    if args.no_timeout and args.timeout is not None:
+        parser.error("no-timeout and timeout are mutually exclusive")
+    if args.no_timeout and args.wall_budget_seconds is not None:
+        parser.error("no-timeout cannot be combined with a wall budget")
+    if args.no_timeout and args.stop_on_timeout:
+        parser.error("no-timeout cannot be combined with stop-on-timeout")
     if args.wall_budget_seconds is not None and args.wall_budget_seconds <= 0:
         parser.error("wall-budget-seconds must be positive")
     wall_deadline = (
@@ -893,7 +913,7 @@ def main() -> int:
         parser.error("require 0 <= shard-index < shard-count")
     config_path = args.config if args.config.is_absolute() else ROOT / args.config
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    timeout = args.timeout or float(config["timeout_seconds"])
+    timeout = None if args.no_timeout else (args.timeout if args.timeout is not None else float(config["timeout_seconds"]))
     load_timeout = args.graph_load_timeout or float(config.get("graph_load_timeout_seconds", 1800))
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = args.run_dir or (ROOT / "results" / "paper_runs" / run_id)
@@ -911,6 +931,14 @@ def main() -> int:
         for case in expand_cases(config)
         if selected(case.suite, suite_filter) and selected(case.case_id, case_filter)
     ]
+    if args.no_timeout:
+        selected_kinds = {
+            methods[name]["kind"]
+            for case in cases
+            for name in balanced_method_order(case, method_filter)
+        }
+        if selected_kinds - {"native"}:
+            parser.error("no-timeout is supported only for native methods")
     case_queries: dict[str, list[QueryMeta]] = {}
     task_count = 0
     for case in cases:
@@ -936,9 +964,10 @@ def main() -> int:
     shard_case_count = sum(
         case_shard(case, args.shard_count) == args.shard_index for case in cases
     )
+    timeout_label = "none" if timeout is None else f"{timeout:g}s"
     print(
         f"Run {run_id}: {shard_case_count}/{len(cases)} cases, {task_count} selected tasks, "
-        f"timeout={timeout:g}s, shard={args.shard_index}/{args.shard_count}",
+        f"timeout={timeout_label}, shard={args.shard_index}/{args.shard_count}",
         flush=True,
     )
     if args.dry_run:
@@ -968,6 +997,7 @@ def main() -> int:
                     "config_path": str(config_path.relative_to(ROOT)).replace("\\", "/"),
                     "config_sha256": sha256_file(config_path),
                     "timeout_seconds": timeout,
+                    "no_timeout": args.no_timeout,
                     "graph_load_timeout_seconds": load_timeout,
                     "initial_invocation_wall_budget_seconds": args.wall_budget_seconds,
                     "initial_invocation_query_indices": sorted(query_filter) if query_filter else None,
@@ -1001,6 +1031,7 @@ def main() -> int:
                     "method_filter": sorted(method_filter) if method_filter else None,
                     "query_indices": sorted(query_filter) if query_filter else None,
                     "timeout_seconds": timeout,
+                    "no_timeout": args.no_timeout,
                     "graph_load_timeout_seconds": load_timeout,
                     "wall_budget_seconds": args.wall_budget_seconds,
                     "probe_diagnostics": args.probe_diagnostics,

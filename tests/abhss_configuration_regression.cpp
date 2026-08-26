@@ -99,6 +99,57 @@ double ExactSubsetDp(const gst::Graph& graph, const gst::Query& query)
         dp.back().begin() + 1, dp.back().end());
 }
 
+/** @brief 独立返回每个 mask 和 root 的精确 rooted subset-DP 值。 */
+std::vector<std::vector<double>> ExactRootedSubsetDp(const gst::Graph& graph, const gst::Query& query)
+{
+    const int g = static_cast<int>(query.groups.size());
+    const int subset_count = 1 << g;
+    const double infinity = std::numeric_limits<double>::infinity();
+    std::vector<std::vector<double>> dp(subset_count, std::vector<double>(graph.n + 1, infinity));
+    for (int mask = 1; mask < subset_count; ++mask)
+    {
+        if (!(mask & (mask - 1)))
+        {
+            const int group = __builtin_ctz(static_cast<unsigned int>(mask));
+            for (int terminal : query.groups[group])
+                dp[mask][terminal] = 0.0;
+        }
+        else
+        {
+            const int pivot = mask & -mask;
+            for (int left = (mask - 1) & mask; left; left = (left - 1) & mask)
+            {
+                const int right = mask ^ left;
+                if (!right || !(left & pivot))
+                    continue;
+                for (int vertex = 1; vertex <= graph.n; ++vertex)
+                    dp[mask][vertex] = std::min(dp[mask][vertex], dp[left][vertex] + dp[right][vertex]);
+            }
+        }
+        std::priority_queue<HeapItem, std::vector<HeapItem>, std::greater<HeapItem>> heap;
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            if (std::isfinite(dp[mask][vertex]))
+                heap.push({dp[mask][vertex], vertex});
+        while (!heap.empty())
+        {
+            const auto [value, vertex] = heap.top();
+            heap.pop();
+            if (value != dp[mask][vertex])
+                continue;
+            for (const gst::AdjEdge& edge : graph.adj[vertex])
+            {
+                const double next = value + edge.w;
+                if (next < dp[mask][edge.to])
+                {
+                    dp[mask][edge.to] = next;
+                    heap.push({next, edge.to});
+                }
+            }
+        }
+    }
+    return dp;
+}
+
 /** @brief 检查一个配置的可行性与目标值是否逐例匹配独立真值。 */
 void Check(const char* method,
            const gst::methods::abhss::SolveResult& answer,
@@ -154,6 +205,125 @@ gst::Graph RandomConnectedGraph(std::mt19937& random, int n)
                 present[u][v] = present[v][u] = 1;
             }
     return graph;
+}
+
+
+/** @brief 把随机拓扑改成严格单位权图，并显式启用加载器同义的不变量标志。 */
+void ConvertToUnitWeights(gst::Graph& graph)
+{
+    for (gst::UndirectedEdge& edge : graph.edges)
+        edge.w = 1.0;
+    for (std::vector<gst::AdjEdge>& adjacency : graph.adj)
+        for (gst::AdjEdge& edge : adjacency)
+            edge.w = 1.0;
+    graph.minimum_edge_weight = 1.0;
+    graph.all_edges_unit_weight = true;
+}
+/** @brief 用逐组 Dijkstra 独立复算“进入非候选顶点付 1”的截断距离。 */
+std::vector<std::uint16_t> ReferenceUnitNonterminalDistance(const gst::Graph& graph,
+                                                            const gst::Query& query,
+                                                            const std::vector<std::uint16_t>& candidate_mask,
+                                                            std::uint16_t cap)
+{
+    const int g = static_cast<int>(query.groups.size());
+    std::vector<std::uint16_t> result((static_cast<size_t>(graph.n) + 1) * g, cap);
+    for (int group = 0; group < g; ++group)
+    {
+        std::vector<int> distance(graph.n + 1, cap);
+        std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<std::pair<int, int>>> heap;
+        for (int terminal : query.groups[group])
+        {
+            distance[terminal] = 0;
+            heap.push({0, terminal});
+        }
+        while (!heap.empty())
+        {
+            const auto [value, vertex] = heap.top();
+            heap.pop();
+            if (value != distance[vertex])
+                continue;
+            for (const gst::AdjEdge& edge : graph.adj[vertex])
+            {
+                const int next = value + !candidate_mask[edge.to];
+                if (next >= cap || next >= distance[edge.to])
+                    continue;
+                distance[edge.to] = next;
+                heap.push({next, edge.to});
+            }
+        }
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            result[static_cast<size_t>(vertex) * g + group] = static_cast<std::uint16_t>(distance[vertex]);
+    }
+    return result;
+}
+
+/** @brief 逐表核对单位权 0-1 距离视图、最远两组缓存和 rooted 修正。 */
+void CheckUnitNonterminalDistanceView()
+{
+    std::mt19937 random(0x01B17u);
+    for (int instance = 0; instance < 65; ++instance)
+    {
+        const int g = 4 + instance % 13;
+        const int n = g + 5;
+        gst::Graph graph = RandomConnectedGraph(random, n);
+        ConvertToUnitWeights(graph);
+        gst::Query query;
+        query.groups.resize(g);
+        for (int group = 0; group < g; ++group)
+        {
+            query.groups[group].push_back(group + 1);
+            query.groups[group].push_back(1 + (3 * group + instance) % n);
+            if (instance & 1)
+                query.groups[group].push_back(1 + (5 * group + instance + 2) % n);
+            std::sort(query.groups[group].begin(), query.groups[group].end());
+            query.groups[group].erase(std::unique(query.groups[group].begin(), query.groups[group].end()), query.groups[group].end());
+        }
+
+        const auto cover = gst::methods::abhss::internal::ComputeComponentCover(graph, query, true);
+        if (cover.root_component_group_mask.empty())
+            throw std::runtime_error("ABHSS nonterminal-distance oracle generated a degenerate cover.");
+        gst::methods::abhss::internal::Problem problem(graph, query, gst::methods::abhss::SolveOptions::Base());
+        problem.g = g;
+        problem.best = 1.0 + instance % 7;
+        problem.component_cover = cover;
+        gst::methods::abhss::internal::BuildUnitNonterminalGroupDistanceView(problem);
+
+        const auto cap = static_cast<std::uint16_t>(problem.best + 1.0);
+        const std::vector<std::uint16_t> reference = ReferenceUnitNonterminalDistance(graph, query, cover.root_component_group_mask, cap);
+        if (problem.unit_nonterminal_group_distance_by_vertex != reference)
+            throw std::runtime_error("ABHSS unit nonterminal-distance view differs from independent Dijkstra.");
+
+        for (int vertex = 1; vertex <= n; ++vertex)
+        {
+            unsigned char first = 255;
+            unsigned char second = 255;
+            const size_t offset = static_cast<size_t>(vertex) * g;
+            for (int group = 0; group < g; ++group)
+            {
+                const std::uint16_t value = reference[offset + group];
+                if (first == 255 || value > reference[offset + first])
+                {
+                    second = first;
+                    first = static_cast<unsigned char>(group);
+                }
+                else if (second == 255 || value > reference[offset + second])
+                    second = static_cast<unsigned char>(group);
+            }
+            if (problem.unit_nonterminal_first_group[vertex] != first || problem.unit_nonterminal_second_group[vertex] != second)
+                throw std::runtime_error("ABHSS unit nonterminal farthest cache changed its tie rule.");
+
+            for (int mask = 1; mask < (1 << g); ++mask)
+            {
+                std::uint16_t expected = 0;
+                for (int bits = mask; bits; bits &= bits - 1)
+                    expected = std::max(expected, reference[offset + __builtin_ctz(static_cast<unsigned>(bits))]);
+                if (!cover.root_component_group_mask[vertex] && expected)
+                    --expected;
+                if (gst::methods::abhss::internal::FarthestRequiredNonterminal(problem, vertex, mask) != expected)
+                    throw std::runtime_error("ABHSS unit nonterminal rooted correction differs from direct scan.");
+            }
+        }
+    }
 }
 
 /** @brief 生成允许组重叠和每组多终端的确定性随机 GST 查询。 */
@@ -399,6 +569,26 @@ void CheckDistanceRootInitializationContract()
         fallback_complete.root < 5 || fallback_complete.root > 7)
         throw std::runtime_error(
             "ABHSS distance-root initialization failed its disconnected canonical-terminal fallback.");
+
+    gst::Graph unit;
+    unit.n = 6;
+    unit.minimum_edge_weight = std::numeric_limits<double>::infinity();
+    unit.adj.assign(7, {});
+    AddEdge(unit, 1, 2, 1.0);
+    AddEdge(unit, 2, 3, 1.0);
+    AddEdge(unit, 3, 4, 1.0);
+    AddEdge(unit, 4, 5, 1.0);
+    AddEdge(unit, 5, 6, 1.0);
+    AddEdge(unit, 2, 5, 1.0);
+    ConvertToUnitWeights(unit);
+    gst::Query unit_query;
+    unit_query.groups = {{1, 6}, {3}, {5}};
+    const auto unit_complete = gst::methods::abhss::internal::BuildDistanceRootInitialization(unit, unit_query, DistanceRootRealization::CompletePotential);
+    const std::array<std::array<double, 6>, 3> expected_unit_distance{{{{0, 1, 2, 2, 1, 0}}, {{2, 1, 0, 1, 2, 3}}, {{2, 1, 2, 1, 0, 1}}}};
+    for (int group = 0; group < 3; ++group)
+        for (int vertex = 1; vertex <= unit.n; ++vertex)
+            if (unit_complete.group_distance[group].value[vertex] != expected_unit_distance[group][vertex - 1])
+                throw std::runtime_error("ABHSS unit multi-source BFS changed an exact group distance.");
 }
 
 /** @brief 锁定 g<=3 root-star 数学闭包在全部合法配置中的共同精确语义。 */
@@ -495,6 +685,9 @@ void CheckDirectedCutResidualAccounting()
     const long long expected_buy = 2LL * graph.m + static_cast<long long>(query.groups.size()) * (2LL * graph.m + graph.n);
     if (dual.ResidualClosureBuyWork(graph) < expected_buy)
         throw std::runtime_error("ABHSS residual-closure buy work fell below its static floor.");
+    const long long expected_initial_buy = 2LL * graph.m + 4LL * static_cast<long long>(query.groups.size()) * graph.n;
+    if (dual.InitialCertificateBuyWork(graph) != expected_initial_buy)
+        throw std::runtime_error("ABHSS independent initial-certificate buy work changed its structural formula.");
 
     dual.ReleaseResidual();
     dual.CompleteResidualClosureKeepingResidualAndPrimalEdges(graph, query, distance, initialization.root);
@@ -503,12 +696,99 @@ void CheckDirectedCutResidualAccounting()
             if (dual.GroupAt(vertex, group) + 1e-12 < before[group][vertex])
                 throw std::runtime_error("ABHSS residual closure weakened an existing group potential.");
     CheckResidual("ABHSS residual closure");
+
+    // 逐点把 weighted certified interval 的布尔判定与完整逐组和比较；区间
+    // 只能提前判定，不能改变严格改善谓词或返回高于 exact 的下界。
+    const int full_mask = (1 << static_cast<int>(query.groups.size())) - 1;
+    constexpr std::array<double, 4> kBoundaryGap = {-0.25, 0.0, 1e-12, 0.25};
+    for (int vertex = 1; vertex <= graph.n; ++vertex)
+    for (int excluded = 0; excluded <= full_mask; ++excluded)
+    {
+        const double exact_lower = dual.At(vertex, full_mask ^ excluded);
+        const double value = 0.375 * vertex + 0.125 * excluded;
+        for (double gap : kBoundaryGap)
+        {
+            const double incumbent = value + exact_lower + gap;
+            double lower = 0.0;
+            bool exact = false;
+            const bool actual = dual.CanImproveAllExcept(vertex, excluded, value, incumbent, false, lower, exact);
+            const bool expected = value + exact_lower < incumbent;
+            if (actual != expected || lower > exact_lower + 1e-10 || (exact && std::fabs(lower - exact_lower) > 1e-10))
+                throw std::runtime_error("ABHSS weighted directed-cut interval changed the exact improvement predicate.");
+        }
+    }
+
     const double optimum = ExactSubsetDp(graph, query);
     if (!std::isfinite(dual.PrimalUpper()) || dual.PrimalUpper() + 1e-9 < optimum)
         throw std::runtime_error("ABHSS residual closure returned an invalid primal upper bound.");
     if (dual.ResidualClosureBuyWork(graph) != 0)
         throw std::runtime_error("ABHSS residual closure remained purchasable after completion.");
 }
+
+/** @brief 逐项验证完整主 packing 与反序 reduced-cost packing 都安全且互有严格值。 */
+void CheckSymmetricDirectedCutPacking()
+{
+    std::mt19937 random(0xD0A17u);
+    std::uint64_t reverse_stronger = 0;
+    std::uint64_t primary_stronger = 0;
+    std::uint64_t entry_stronger = 0;
+    for (int instance = 0; instance < 128; ++instance)
+    {
+        const int n = 7 + static_cast<int>(random() % 4);
+        const int g = 4 + instance % 4;
+        gst::Graph graph = RandomConnectedGraph(random, n);
+        ConvertToUnitWeights(graph);
+        const gst::Query query = RandomQuery(random, n, g);
+        const auto initialization = gst::methods::abhss::internal::BuildDistanceRootInitialization(graph, query, gst::methods::abhss::DistanceRootRealization::CompletePotential);
+        std::vector<std::vector<double>> distance(g);
+        for (int group = 0; group < g; ++group)
+            distance[group] = initialization.group_distance[group].value;
+        gst::methods::dual_cut::DualCutPotential primary;
+        primary.BuildKeepingResidualChangedArcsWithPrimalEdges(graph, query, distance, initialization.root);
+        primary.ReleaseResidual();
+        primary.CompleteResidualClosureKeepingResidualAndPrimalEdges(graph, query, distance, initialization.root);
+        gst::methods::dual_cut::DualCutPotential reverse;
+        reverse.BuildInitialCertificateOnly(graph, query, distance, initialization.root, true);
+        const auto cover = gst::methods::abhss::internal::ComputeComponentCover(graph, query, true);
+        const auto exact = ExactRootedSubsetDp(graph, query);
+        gst::methods::abhss::internal::Problem depth_problem(graph, query, gst::methods::abhss::SolveOptions::Base());
+        depth_problem.g = g;
+        depth_problem.best = static_cast<double>(n + 1);
+        depth_problem.component_cover = cover;
+        gst::methods::abhss::internal::BuildUnitNonterminalGroupDistanceView(depth_problem);
+        for (int mask = 1; mask < (1 << g); ++mask)
+        {
+            for (int vertex = 1; vertex <= graph.n; ++vertex)
+            {
+                const double forward_value = primary.At(vertex, mask);
+                const double reverse_value = reverse.At(vertex, mask);
+                double entry_value = 0.0;
+                if (!cover.root_component_group_mask.empty())
+                {
+                    const int uncovered = mask & ~static_cast<int>(cover.root_component_group_mask[vertex]);
+                    double nearest = 0.0;
+                    if (uncovered)
+                    {
+                        nearest = std::numeric_limits<double>::infinity();
+                        for (int bits = uncovered; bits; bits &= bits - 1)
+                            nearest = std::min(nearest, distance[__builtin_ctz(static_cast<unsigned>(bits))][vertex]);
+                    }
+                    const double required_nonterminal = gst::methods::abhss::internal::FarthestRequiredNonterminal(depth_problem, vertex, uncovered);
+                    entry_value = cover.UnitRootedEntryLower(mask, vertex, nearest, required_nonterminal);
+                    entry_stronger += entry_value > cover.RootedSubsetLower(mask, vertex);
+                }
+                if (forward_value > exact[mask][vertex] + 1e-9 || reverse_value > exact[mask][vertex] + 1e-9 || entry_value > exact[mask][vertex] + 1e-9)
+                    throw std::runtime_error("ABHSS symmetric reduced-cost packing exceeded exact rooted DP.");
+                reverse_stronger += reverse_value > forward_value;
+                primary_stronger += forward_value > reverse_value;
+            }
+        }
+    }
+    if (!reverse_stronger || !primary_stronger || !entry_stronger)
+        throw std::runtime_error("ABHSS symmetric reduced-cost packing direct panel found no complementary strict values.");
+    std::cout << "symmetric reduced-cost strict states primary/reverse/entry=" << primary_stronger << "/" << reverse_stronger << "/" << entry_stronger << std::endl;
+}
+
 /** @brief 锁定辅助 H 半格对被省略 D 半格的精确转置职责。 */
 void CheckAuxiliaryHalfAdjointRegression()
 {
@@ -579,6 +859,9 @@ void CheckAnchoredSingletonMaterializationEquivalence()
         const int bit = mask & -mask;
         problem.original_mask[mask] = problem.original_mask[mask ^ bit] | (1 << problem.bit_to_group[gst::methods::abhss::internal::FirstBit(bit)]);
     }
+    problem.component_cover.subset_lower.assign(1 << problem.g, 0.0);
+    problem.component_cover.rooted_uncovered_lower.assign(1 << problem.g, 0.0);
+    problem.component_cover.root_component_group_mask.assign(kVertices + 1, 0);
     problem.group_distance.resize(problem.g);
     for (int group = 0; group < problem.g; ++group)
     {
@@ -699,6 +982,122 @@ void CheckRowValueIntersectionTraversal()
     Check(dense, {64});
 }
 
+/** @brief 核对零权分量 cover DP 为每个剩余组子集保留严格安全的连接下界。 */
+void CheckComponentCoverSubsetLower()
+{
+    // lambda：逐边核对基础 rooted component-cover 本身的一致性；后续组合
+    // rooted-entry 不作该声明，显式回退的单位权 key 队列也不依赖它。
+    auto CheckRootedLipschitz = [](const gst::Graph& graph, const auto& cover, int full_mask)
+    {
+        for (const gst::UndirectedEdge& edge : graph.edges)
+            for (int mask = 1; mask <= full_mask; ++mask)
+                if (std::fabs(cover.RootedSubsetLower(mask, edge.u) - cover.RootedSubsetLower(mask, edge.v)) > edge.w + 1e-12)
+                    throw std::runtime_error("ABHSS rooted component-cover is not edge-Lipschitz.");
+    };
+
+    gst::Graph graph;
+    graph.n = 5;
+    graph.adj.resize(graph.n + 1);
+    AddEdge(graph, 1, 2, 1.0);
+    AddEdge(graph, 2, 3, 1.0);
+    AddEdge(graph, 3, 4, 1.0);
+    AddEdge(graph, 4, 5, 1.0);
+    ConvertToUnitWeights(graph);
+    gst::Query query;
+    query.groups = {{1}, {2}, {2}, {4}};
+    const auto cover = gst::methods::abhss::internal::ComputeComponentCover(graph, query, true);
+    if (cover.cover_number != 3 || cover.lower != 2.0 || cover.SubsetLower(0b0110) != 0.0 || cover.SubsetLower(0b0111) != 1.0 || cover.SubsetLower(0b1001) != 1.0)
+        throw std::runtime_error("ABHSS positive-edge subset component-cover lower bound is inconsistent.");
+
+    if (cover.RootedSubsetLower(0b0111, 3) != 2.0 || cover.RootedSubsetLower(0b0111, 2) != 1.0)
+        throw std::runtime_error("ABHSS rooted positive-edge component-cover lower bound is inconsistent.");
+    CheckRootedLipschitz(graph, cover, 0b1111);
+
+    gst::Query entry_query;
+    entry_query.groups = {{3}, {4}};
+    const auto entry_cover = gst::methods::abhss::internal::ComputeComponentCover(graph, entry_query, true);
+    if (entry_cover.UnitRootedEntryLower(0b11, 1, 2.0) != 3.0 || entry_cover.UnitRootedEntryLower(0b11, 2, 1.0) != 2.0)
+        throw std::runtime_error("ABHSS unit first-hit component-cover lower bound is inconsistent.");
+
+    gst::Query steiner_query;
+    steiner_query.groups = {{2}, {4}};
+    const auto steiner_cover = gst::methods::abhss::internal::ComputeComponentCover(graph, steiner_query, true);
+    if (steiner_cover.unit_terminal_induced_group_mask.empty() || steiner_cover.unit_nonterminal_cover_number.empty() ||
+        steiner_cover.UnitRootedEntryLower(0b11, 1, 1.0) != 3.0 || steiner_cover.UnitRootedEntryLower(0b11, 3, 1.0) != 2.0)
+        throw std::runtime_error("ABHSS unit terminal-induced Steiner lower bound is inconsistent.");
+
+    gst::Graph incidence_graph;
+    incidence_graph.n = 5;
+    incidence_graph.adj.resize(incidence_graph.n + 1);
+    AddEdge(incidence_graph, 1, 2, 1.0);
+    AddEdge(incidence_graph, 2, 3, 1.0);
+    AddEdge(incidence_graph, 1, 4, 1.0);
+    AddEdge(incidence_graph, 4, 5, 1.0);
+    ConvertToUnitWeights(incidence_graph);
+    gst::Query incidence_query;
+    incidence_query.groups = {{3}, {5}};
+    const auto incidence_cover = gst::methods::abhss::internal::ComputeComponentCover(incidence_graph, incidence_query, true);
+    if (incidence_cover.unit_nonterminal_cover_number[0b11] != 2 ||
+        incidence_cover.UnitRootedEntryLower(0b11, 1, 2.0) != 4.0 || incidence_cover.UnitRootedEntryLower(0b11, 2, 1.0) != 3.0)
+        throw std::runtime_error("ABHSS unit nonterminal incidence-cover lower bound is inconsistent.");
+
+    const auto unrooted_cover = gst::methods::abhss::internal::ComputeComponentCover(graph, query, false);
+    if (!unrooted_cover.root_component_group_mask.empty() || !unrooted_cover.subset_lower.empty() ||
+        !unrooted_cover.rooted_uncovered_lower.empty() || !unrooted_cover.unit_terminal_induced_group_mask.empty() ||
+        !unrooted_cover.unit_nonterminal_cover_number.empty() || unrooted_cover.lower != cover.lower || unrooted_cover.roots != cover.roots)
+        throw std::runtime_error("ABHSS unconsumed rooted component-cover data changed common outputs or was materialized.");
+
+    gst::methods::abhss::internal::Problem base_problem(graph, query, gst::methods::abhss::SolveOptions::Base());
+    base_problem.g = static_cast<int>(query.groups.size());
+    base_problem.component_cover = unrooted_cover;
+    if (gst::methods::abhss::internal::RootedEntryCoverLower(base_problem, 1, 0b1111) != 0.0)
+        throw std::runtime_error("ABHSS Base consumed a DirectedCut-only rooted-entry certificate.");
+    gst::methods::abhss::internal::PrepareProblem(base_problem);
+    if (!base_problem.component_cover.root_component_group_mask.empty() || !base_problem.nearest_group.empty())
+        throw std::runtime_error("ABHSS Base materialized strict-unit rooted-entry storage.");
+
+    gst::methods::abhss::internal::Problem enhanced_problem(graph, query, gst::methods::abhss::SolveOptions::Enhanced());
+    gst::methods::abhss::internal::PrepareProblem(enhanced_problem);
+    if (enhanced_problem.component_cover.root_component_group_mask.empty() || enhanced_problem.nearest_group.empty())
+        throw std::runtime_error("ABHSS strict-unit DirectedCut omitted rooted-entry storage.");
+
+    gst::Graph zero_graph;
+    zero_graph.n = 4;
+    zero_graph.adj.resize(zero_graph.n + 1);
+    AddEdge(zero_graph, 1, 2, 0.0);
+    AddEdge(zero_graph, 2, 3, 2.0);
+    AddEdge(zero_graph, 3, 4, 2.0);
+    gst::Query zero_query;
+    zero_query.groups = {{1}, {2}, {4}};
+    const auto zero_cover = gst::methods::abhss::internal::ComputeComponentCover(zero_graph, zero_query, true);
+    if (zero_cover.cover_number != 2 || zero_cover.lower != 2.0 || zero_cover.SubsetLower(0b011) != 0.0 || zero_cover.SubsetLower(0b101) != 2.0)
+        throw std::runtime_error("ABHSS zero-component subset cover lower bound is inconsistent.");
+    if (zero_cover.RootedSubsetLower(0b111, 3) != 4.0 || zero_cover.RootedSubsetLower(0b111, 1) != 2.0)
+        throw std::runtime_error("ABHSS rooted zero-component cover lower bound is inconsistent.");
+    CheckRootedLipschitz(zero_graph, zero_cover, 0b111);
+
+    gst::Graph fractional_graph;
+    fractional_graph.n = 5;
+    fractional_graph.adj.resize(fractional_graph.n + 1);
+    AddEdge(fractional_graph, 1, 5, 0.1);
+    AddEdge(fractional_graph, 2, 5, 0.1);
+    AddEdge(fractional_graph, 3, 5, 0.1);
+    gst::Query fractional_query;
+    fractional_query.groups = {{1}, {2}, {3}};
+    const auto fractional_cover = gst::methods::abhss::internal::ComputeComponentCover(fractional_graph, fractional_query, true);
+    const long double exact_rooted = 3.0L * static_cast<long double>(fractional_graph.minimum_edge_weight);
+    if (static_cast<long double>(fractional_cover.RootedSubsetLower(0b111, 5)) > exact_rooted)
+        throw std::runtime_error("ABHSS fractional rooted component-cover lower bound rounded upward.");
+
+    gst::Query weighted_query = fractional_query;
+    weighted_query.groups.push_back({5});
+    gst::methods::abhss::internal::Problem weighted_problem(fractional_graph, weighted_query, gst::methods::abhss::SolveOptions::Enhanced());
+    gst::methods::abhss::internal::PrepareProblem(weighted_problem);
+    if (!weighted_problem.component_cover.root_component_group_mask.empty() || !weighted_problem.nearest_group.empty() ||
+        gst::methods::abhss::internal::RootedEntryCoverLower(weighted_problem, 5, 0b1111) != 0.0)
+        throw std::runtime_error("ABHSS weighted DirectedCut materialized or consumed strict-unit rooted-entry storage.");
+}
+
 /** @brief 核对持久 support-DP 在逐批发布 ordinary row 后始终等于独立全量重算。 */
 void CheckIncrementalCertificateSupportDp()
 {
@@ -796,13 +1195,15 @@ void CheckIncrementalCertificateSupportDp()
 /** @brief 运行入口契约、层计划不变量及 g=2..10 的确定性随机精确性实例。 */
 int main()
 {
+    CheckUnitNonterminalDistanceView();
     CheckAuxiliaryHalfAdjointRegression();
     CheckAnchoredSingletonMaterializationEquivalence();
     CheckRowValueIntersectionTraversal();
+    CheckComponentCoverSubsetLower();
     CheckIncrementalCertificateSupportDp();
-
-    // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
-    // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
+    // 初始 rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里锁定
+    // 两种配置共同的 witness 公式；closure 后只有真实路径严格改善时才会
+    // 切换到已有独立一致性测试覆盖的 support-DP。
     using gst::methods::abhss::internal::EstimateWitnessTreeDpWork;
     if (EstimateWitnessTreeDpWork(0, 5) != 0 ||
         EstimateWitnessTreeDpWork(7, 0) != 7 ||
@@ -810,7 +1211,6 @@ int main()
         EstimateWitnessTreeDpWork(5, 3) != 200)
         throw std::runtime_error(
             "ABHSS common witness buy formula is inconsistent.");
-
     // 调度器本身也必须从零 rent、零次求值启动；不能把 Base 的旧式预买
     // 偷藏进构造函数。这里只设置公式所需的树大小，不触发实际树 DP。
     gst::Graph scheduler_graph;
@@ -997,6 +1397,7 @@ int main()
     CheckSubNanogapClosure(base);
     CheckLowGroupExactClosure(base, directed_only, enhanced);
     CheckDirectedCutResidualAccounting();
+    CheckSymmetricDirectedCutPacking();
 
     std::mt19937 random(0xAB455u);
     constexpr int kInstances = 5000;
@@ -1026,6 +1427,28 @@ int main()
     if (!base_state_total || !directed_state_total || !enhanced_state_total)
         throw std::runtime_error(
             "an ABHSS configuration never registered a mask-vertex state");
+    std::uint64_t unit_state_total = 0;
+    constexpr int kUnitInstances = 256;
+    for (int instance = 0; instance < kUnitInstances; ++instance)
+    {
+        const int n = 6 + static_cast<int>(random() % 4);
+        const int g = 4 + instance % 7;
+        gst::Graph graph = RandomConnectedGraph(random, n);
+        ConvertToUnitWeights(graph);
+        const gst::Query query = RandomQuery(random, n, g);
+        const double expected = ExactSubsetDp(graph, query);
+        const auto base_answer = gst::methods::abhss::SolveOneQuery(graph, query, base);
+        Check("ABHSS-Base unit lattice", base_answer, expected, instance);
+        unit_state_total += base_answer.mask_vertex_states;
+        const auto directed_answer = gst::methods::abhss::SolveOneQuery(graph, query, directed_only);
+        Check("ABHSS-DirectedCutOnly unit lattice", directed_answer, expected, instance);
+        unit_state_total += directed_answer.mask_vertex_states;
+        const auto enhanced_answer = gst::methods::abhss::SolveOneQuery(graph, query, enhanced);
+        Check("ABHSS-Enhanced unit lattice", enhanced_answer, expected, instance);
+        unit_state_total += enhanced_answer.mask_vertex_states;
+    }
+    if (!unit_state_total)
+        throw std::runtime_error("unit-weight exactness panel never exercised a mask-vertex state");
     for (int instance = 0; instance < 500; ++instance)
     {
         const int g = 6 + instance % 5;

@@ -93,16 +93,6 @@ void BuildReusableAnchoredSingletonLayer(
     class WitnessUpperScheduler& witness_scheduler);
 
 /**
- * @brief 按统一公式估计一次 witness-tree subset DP 的 buy 工作量。
- *
- * `witness_vertices` 只允许取当前配置已经构造的真实 witness 顶点数；
- * `nonanchor_count` 决定共同的 subset 空间。函数不读取配置位，因此 Base、
- * DirectedCutOnly 与 Enhanced 只能把各自树大小代入同一公式。
- */
-long long EstimateWitnessTreeDpWork(size_t witness_vertices,
-                                    int nonanchor_count);
-
-/**
  * @brief Base/Enhanced 共用的 witness-tree DP rent-or-buy 调度器。
  *
  * 构造时 rent 严格为 0，buy 只由当前 `Problem` 的 witness 顶点数和非锚组
@@ -138,6 +128,9 @@ public:
     /** @brief 上界 evaluator 切换到 certificate support 后重置 buy 与 rent。 */
     void RefreshCertificate();
 
+    /** @brief destructive row 重滤后失效增量 support-DP，并登记一次输入修订。 */
+    void NotifyOrdinaryRefilter();
+
     /** @brief 距离下一次当前输入修订可购买还需支付的 rent；不可买时返回上限。 */
     long long RemainingRentUntilBuy() const;
 
@@ -167,22 +160,34 @@ private:
 class ResidualClosureScheduler
 {
 public:
+    enum class Update
+    {
+        None,
+        OrdinaryRefiltered,
+        CertificateReplaced
+    };
+
     explicit ResidualClosureScheduler(Problem& problem);
-    bool Account(long long row_work, long long new_payload = 0);
+    Update Account(long long row_work, long long new_payload = 0);
 
     long long BuyWork() const { return buy_; }
     long long RentWork() const { return rent_; }
     bool Purchased() const { return purchased_; }
 
 private:
-    bool Buy();
+    Update BuyPrimary();
+    Update BuySymmetric();
 
     Problem& problem_;
     long long rent_ = 0;
     long long buy_ = 0;
     long long payload_ = 0;
+    long long symmetric_rent_ = 0;
+    long long symmetric_buy_ = 0;
     bool enabled_ = false;
     bool purchased_ = false;
+    bool symmetric_enabled_ = false;
+    bool symmetric_purchased_ = false;
 };
 
 /** @brief 按 |S| 递增生成 D(S,v)，仅发布不可继续同根拆分的规范 branch。 */

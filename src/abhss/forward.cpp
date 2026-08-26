@@ -151,7 +151,8 @@ void CompleteAnchoredRow(Problem& p,
 }
 }  // namespace
 
-std::vector<Row> BuildForwardAnchoredRows(
+template <bool kSymmetricDual>
+std::vector<Row> BuildForwardAnchoredRowsImpl(
     Problem& p,
     const ForwardAnchoredPlan& plan,
     std::vector<Row> anchored)
@@ -209,8 +210,10 @@ std::vector<Row> BuildForwardAnchoredRows(
                     if (!(value + farthest < p.best))
                         return false;
                     bound_stamp[vertex] = stamp;
-                    bound_cache[vertex] =
-                        FutureBound(p, vertex, remaining_original, farthest);
+                    if constexpr (kSymmetricDual)
+                        bound_cache[vertex] = SymmetricFutureBound(p, vertex, remaining_original, farthest);
+                    else
+                        bound_cache[vertex] = PrimaryFutureBound(p, vertex, remaining_original, farthest);
                 }
                 return value + bound_cache[vertex] < p.best;
             };
@@ -323,6 +326,16 @@ std::vector<Row> BuildForwardAnchoredRows(
                 plan.probe_method, plan.probe_phase, p, -1.0, &anchored, size);
     }
     return anchored;
+}
+
+std::vector<Row> BuildForwardAnchoredRows(
+    Problem& p,
+    const ForwardAnchoredPlan& plan,
+    std::vector<Row> anchored)
+{
+    if (p.symmetric_dual_ready)
+        return BuildForwardAnchoredRowsImpl<true>(p, plan, std::move(anchored));
+    return BuildForwardAnchoredRowsImpl<false>(p, plan, std::move(anchored));
 }
 
 std::vector<Row> RunForwardAnchoredStage(

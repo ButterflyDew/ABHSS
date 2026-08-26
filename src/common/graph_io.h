@@ -28,6 +28,7 @@ struct Graph
     int n = 0;
     int m = 0;
     double minimum_edge_weight = std::numeric_limits<double>::infinity();
+    bool all_edges_unit_weight = false;
     std::vector<UndirectedEdge> edges;
     std::vector<std::vector<AdjEdge>> adj;
 

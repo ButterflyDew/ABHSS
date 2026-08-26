@@ -184,7 +184,7 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 
 ### 6.1 固定面板与选择原则
 
-消融只回答方法章节中的两个核心因果问题，不逐个关闭缓存、布局或调度微优化。面板在读取消融结果前固定为 P2 的 Musae-GPU4GST、Youtube-GPU4GST、Orkut-GPU4GST，取 $g\in\{6,10,14\}$，每个 cell 只取原 tranche 1 的 q1--q5。三图分别代表 small、medium sparse 和 large dense；三个 $g$ 覆盖低、中、高组数；五条查询恰好来自五个输入组大小等秩层。共 9 cells、45 条查询，不根据方法运行时间换图、换查询或增加有利样本。
+消融只回答方法章节中的三个核心因果问题，不逐个关闭缓存、布局或调度微优化。前两个面板在读取消融结果前固定为 P2 的 Musae-GPU4GST、Youtube-GPU4GST、Orkut-GPU4GST，取 $g\in\{6,10,14\}$，每个 cell 只取原 tranche 1 的 q1--q5。三图分别代表 small、medium sparse 和 large dense；三个 $g$ 覆盖低、中、高组数；五条查询恰好来自五个输入组大小等秩层。共 9 cells、45 条查询，不根据方法运行时间换图、换查询或增加有利样本。第三个面板只研究全单位权图的结构证书，使用第 6.4 节在候选实现前由历史超时规则冻结的 IMDb 难例，不与 P2 面板混算。
 
 消融沿用正式服务器、编译器、单线程计时边界和每查询 10,000 秒 TL。生产 Base/Enhanced 若与消融处于相同 commit、二进制和机器，可直接复用 P2 正式记录；否则必须重跑，不能跨环境拼接。所有变体先通过仓库 CTest、固定零权反例和独立小图精确对照，完成查询的目标值必须与生产配置一致。
 
@@ -204,9 +204,19 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 
 完整对照为 `production` 与 `without-endpoint-floor` 乘以 `{Base, Enhanced}`，共新增 90 个变体任务。机器可读选择、唯一允许的源码差异和构建身份记录在 [`experiments/ablation_plan.json`](../experiments/ablation_plan.json)。若 isolated build 的 diff 不再恰好是一处语义修改，消融不得启动。
 
-### 6.4 报告与停止规则
+### 6.4 消融 C：单位权结构证书的累计贡献
 
-两个消融分别报告完成数/5、PAR-2、双方完成查询的成对时间、峰值 RSS、`mask_vertex_states` 和 timeout 方向；正文优先用一张两面板图，逐查询明细放补充材料。消融只用于解释机制，不替代 P1/P2/S2，也不据此改变正式配置。任何权值/可行性不一致立即判为正确性失败并停止该变体；性能变差仍须原样报告。
+该面板只使用 IMDb `g=14` 中在 V23 之前已经由历史 Enhanced `solver_seconds > 10,000` 规则冻结的 11 条查询：`f200` q1/q3，`f400` q2/q4/q5，`f800` q1--q5，`f1600` q2。选择发生在本节两个变体运行之前，不能按当前完成时间再删减。生产 Enhanced 结果可复用同提交、同机器的正式 S2 记录；另构造两个隔离 build-time 变体：
+
+1. `without-unit-structural-certificates`：令 `RootedEntryCoverLower` 返回 0，不构造首次命中、非候选 0-1 深度或候选诱导 block-cover，同时不构造反序独立 packing；精确整数队列和其他物理布局保持生产版本。
+2. `without-reverse-packing`：保留完整单位权 rooted-entry，只禁止 `ResidualClosureScheduler` 购买反序 packing；主 packing、residual closure 和其余 Enhanced 逻辑不变。
+3. `production`：依次包含 rooted-entry 与反序 packing。
+
+因此第一到第二档隔离 Enhanced 单位权 rooted-entry 的累计价值，第二到第三档隔离反序 packing 的边际价值。两个变体均不是运行时开关，不得读取图名、`f`、状态数或时间；isolated diff 只能落在上述证书构造/消费边界。新增 22 个变体任务，逐查询 TL 仍为 10,000 秒。预期 timeout 也是结果，不能为了取得完整状态数延长某一变体。
+
+### 6.5 报告与停止规则
+
+配置链和 A1 面板按 cell 报告完成数/5；单位权面板报告完成数/11。三个消融都报告 PAR-2、共同完成查询的成对时间、峰值 RSS、`mask_vertex_states` 和 timeout 方向。正文优先用一张三面板图，逐查询明细放补充材料。消融只用于解释机制，不替代 P1/P2/S2，也不据此改变正式配置。任何权值/可行性不一致立即判为正确性失败并停止该变体；性能变差仍须原样报告。
 
 ## 7. 工作量与运行次序
 
@@ -218,7 +228,7 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 | `S2_controlled_gf` | 副 | 30 | 150 | 450 |
 | 合计 | 性能 | 125 | 9,128 | 27,384 |
 
-本轮冻结二进制的 P1 已完整结束，因此不再重跑。新 campaign 的顺序是：身份/正确性 gate 与历史记录复用审计 → 剩余 P2 和全部 S2 的 Enhanced（按只读历史估计从快到慢）→ P2 的 Base/PrunedDP++ 递增 `g` frontier → S2 的 Base/PrunedDP++ → 最小消融。所有长任务使用 CPU 4/5 两个已校准物理核、独立 worker directory 和逐任务记录断点续跑。
+第 8.4 节的 `12d6adb` 历史冻结二进制已完整跑完 P1，旧 campaign 因而不重跑该块；这条复用结论不自动转移到当前 V61。若论文冻结 V61，必须先重建计划身份并正式重跑 V61 的 P1 Base/Enhanced；同机、同矩阵、同 TL 且二进制未变的 PrunedDP++ 记录可以复用，V61 开发哨兵不能替代完整 P1。随后按以下顺序执行：身份/正确性 gate 与历史记录复用审计 → 剩余 P2 和全部 S2 的 Enhanced（按只读历史估计从快到慢）→ P2 的 Base/PrunedDP++ 递增 `g` frontier → S2 的 Base/PrunedDP++ → 最小消融。所有长任务使用 CPU 4/5 两个已校准物理核、独立 worker directory 和逐任务记录断点续跑。
 
 ## 8. 统计、图表与 claim guardrails
 
@@ -325,9 +335,17 @@ Orkut `g=15` 正式十条使用同一生产二进制、同一 10,000 秒逐查�
 
 CPU 5 标准化 P1 哨兵由 14 条跨图/历史风险项与 100 条 Musae 固定成本项组成，共 114/114 成功。前者总 `solver_seconds` 为 816.198581，后者为 4.199400；固定块峰值 10.312 MiB、累计 76,770 states。它只定义后续小删除的参考，不进入论文 P1 主表。正式聚合、独立字段核验、逐条 Orkut 与哨兵机器可读值统一保存在 [`correctness_audit.json`](../experiments/correctness_audit.json)；服务器本地原始目录为 `results/paper_runs/final_793d4e_p1_w0_cpu4_20260818`、`final_793d4e_p1_w1_cpu5_20260818`、`p1_full`、`final_793d4e_orkut_g15_w0_cpu4`、`final_793d4e_orkut_g15_w1_cpu5` 和 `post_freeze_p1_sentinel_793d_cpu5_20260819`。
 
+### 8.4.1 当前 V61 开发候选门（不替代 8.4 正式表）
+
+当前源码对应 V61 Release 二进制 `f3b99791518882572577a2c9e35c10bec259dfc1de2db401b52229a502d00e46`。它恢复一般加权 ordinary/adjoint 的完整 tour 一次缓存，并令 strict-unit 事件桶与一般加权 64 顶点块共享同一逐顶点数学处理。Orkut `g=15,q10` 为 9,560.341419 秒、权值 54、18,309.305 MiB、1,459,398,194 states；IMDb `g=14,f=400,q2` 为 845.422852 秒、权值 18、10,108.762 MiB、188,230,094 states；5/5 CTest 通过。
+
+V61 还重放 V42 的 114 条 P1 开发哨兵。14 个跨图难例总时间为 830.016360 秒，对照 831.208884 秒；Musae 100 条为 4.289315 秒，对照 4.272498 秒。114 条权值一致；Reddit `g=7,q220` Enhanced 的 states 为 101，对照为 94，其余 113 条一致。该差异来自物理遍历下 incumbent 更新时间，不能写成逐 states 支配。完整证据和失败 V59/V60 的边界见[接受档案](archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-weighted-tour-adjoint-v61-gate-20260827)。
+
+这组数据只证明当前候选通过关键开发门。第 8.4 节提交 `12d6adb` 的完整 P1 和 Orkut q1--q10 仍是历史正式结果；若论文最终冻结 V61，必须以 V61 身份运行尚未覆盖的正式矩阵，不能把旧完整 P1 冒充当前二进制结果。
+
 ### 8.5 本轮双核全量 campaign 与提前停跑语义
 
-机器计划冻结在 [`experiments/final_campaign_plan.json`](../experiments/final_campaign_plan.json)，调度入口为 `tools/experiments/run_parallel_campaign.py`。生产二进制仍是第 8.4 节的两个哈希；当前矩阵删除 P2 `g=16` 后的 SHA-256 为 `9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7`。P1 的 24,954 个三方法任务和 Orkut `g=15` Enhanced q1--q10 不重跑，但调度器启动前必须重新展开当前矩阵，并验证任务键全集、查询路径、方法二进制和历史 audit；不能仅因目录名相似就复用。
+[`experiments/final_campaign_plan.json`](../experiments/final_campaign_plan.json) 与 `tools/experiments/run_parallel_campaign.py` 冻结的是第 8.4 节旧生产二进制的历史 campaign；当前 V61 源码不得直接沿用其中的 ABHSS 哈希或“P1/q1--q10 全部复用”判定。若选择 V61 作为论文冻结版，先以新提交和二进制哈希重新生成计划：PrunedDP++ 可继续复用同机同矩阵记录；V61 的 q10 可按完整任务身份复用本节结果，其余旧 ABHSS 正式项必须重跑或明确标为历史对照。以下双核顺序、Enhanced-first、统一 frontier 和停止语义仍适用于重新生成后的计划。
 
 Enhanced 优先运行剩余 P2 与全部 S2。队列只使用旧版只读探针估计排序：P2 把旧 q1--q5 cell 时间按十条缩放，S2 把预登记 q3 时间按五条缩放；缺失项才使用图规模与子集数的确定性分数。排序只决定先后，不改变 solver、timeout、结果筛选或论文统计。任何 Enhanced 查询真实达到 10,000 秒时，supervisor 先写入 timeout 记录，再以退出码 4 通知父调度器；父调度器停止发新任务并终止另一核的当前进程组，整个 campaign 标为 `stopped`，不得继续用部分 Enhanced 结果拼表。
 

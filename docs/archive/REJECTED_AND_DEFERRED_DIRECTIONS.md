@@ -67,6 +67,10 @@
 - [Queue pop 与 forward 空行发布负向探针](#history-queue-pop-and-empty-ready-negative-probe-20260816) — 原文件 `QUEUE_POP_AND_EMPTY_READY_NEGATIVE_PROBE_20260816.md`
 - [Staged certificate cache 物理减写与冻结分派负向探针](#history-staged-cache-physical-reduction-negative-probe-20260816) — 原文件 `STAGED_CACHE_PHYSICAL_REDUCTION_NEGATIVE_PROBE_20260816.md`
 - [Directed-cut 延迟精确购买负向探针（2026-08-17）](#history-lazy-exact-dual-purchase-negative-probe-20260817) — 原文件 `LAZY_EXACT_DUAL_PURCHASE_NEGATIVE_PROBE_20260817.md`
+- [单位权 ordinary Row 整数物理布局中性探针（2026-08-23）](#history-unit-row-layout-neutral-probe-20260823)
+- [三元路径支持规范化负向探针（2026-08-23）](#history-triple-path-normalization-negative-probe-20260823)
+- [Root-path/primal support 同职责替换负向门（2026-08-24）](#history-root-path-primal-support-replacement-negative-probe-20260824)
+- [IMDb V25 后续四类整数证书负向门（2026-08-24）](#history-imdb-v25-followup-integral-negative-gates-20260824)
 
 <a id="history-communication-cross-graph-structural-bound-survey"></a>
 
@@ -1619,6 +1623,8 @@ Orkut `g=15,q5` 的全部状态与 primitive-work 逐行相同；size-2 层末�
 
 > 原始记录：`ROOTED_COMPONENT_COVER_FUTURE_NEGATIVE_PROBE_20260810.md`。以下正文仅做机械合并和标题降级；历史结论的适用边界以原文为准。
 
+> **2026-08-26 状态勘误：** 本节只证明该公式在两条 Orkut `g=15` 查询上被既有证书支配，不能推出跨图全局无效。后续 IMDb `g=14` 证明 strict-unit rooted-entry 对 Enhanced 很有价值；当前生产版仅在 DirectedCut 且全边严格等于 1 时保留它，Base 与一般权图不再消费 generic rooted cover，A1 也仍不使用它。历史公式与时间保留，当前边界见接受卷的 V36 门及其现行配置勘误。
+
 ### 1. 候选与证明
 
 把原图零权连通分量收缩。预处理原本已经为全部组 mask 计算最少需要选择多少个终端分量的精确 set-cover DP，但主线只保留 full mask 的全局下界。本候选保留整张 `2^g` cover 表，并为每个顶点保存其零权分量可以免费命中的 16-bit 组 mask。
@@ -2405,3 +2411,160 @@ production 与 probe 构建均通过 5/5 CTest。候选二进制 SHA-256 为 `8b
 ### 3. 结论
 
 候选没有把 q10 的重复区间工作转化为净收益，提前 exact 的额外工作超过省下的区间重算；它也没有减少完整 layer 2 状态。源码、构建二进制和临时计数器均回退，不进入正式方法。后续不得把“发生第二次 lower crossing”本身当作购买 exact 的充分物理理由；若重试，必须先有更强的严格支配条件或新的状态削减证据。
+
+
+<a id="history-unit-row-layout-neutral-probe-20260823"></a>
+
+## 单位权 ordinary Row 整数物理布局中性探针（2026-08-23）
+
+### 候选与安全边界
+
+V15 在已知全图边权均为 1 的查询中，用 `uint32_t` 物理保存 ordinary Row 的整数值；非单位权图仍使用原 `double` 路径。该改写不量化、不压缩浮点精度：单位权最短路与当前 DP 状态值本来就是可精确表示的整数，读取时再无损转换为 `double`。候选通过当时全部 5 项 CTest，权值与 `(mask,v)` 状态数逐项不变。
+
+### 隔离结果
+
+IMDb `g=14,f=400,q1` 使用相同 V14 算法底座和绑定核心进行完整运行：
+
+| 版本 | 时间 / 秒 | 查询峰值 / MiB | 状态数 | 权值 |
+|---|---:|---:|---:|---:|
+| V14 `double` Row | 1697.942388 | 9700.234 | 390,097,522 | 16 |
+| V15 单位权整数 Row | 1705.084601 | 9521.219 | 390,097,522 | 16 |
+
+内存下降约 1.85%，但时间增加约 0.42%。它还会让全局 Row 接口承担两套物理表示，增加实现与论文说明复杂度，却没有形成可辨认的吞吐收益。因此生产源码恢复统一 Row 表示；除非后续内存成为明确瓶颈并重新完成 P1 门，不得仅以“单位权可存整数”为由恢复该候选。
+
+<a id="history-triple-path-normalization-negative-probe-20260823"></a>
+
+## 三元路径支持规范化负向探针（2026-08-23）
+
+### 候选与安全边界
+
+V17 先对三元路径生长所得真实边并集按 `(weight,edge_id)` 计算确定性 MST，再递归删除不命中任何查询组的叶边。MST 删除环而保持连通，删去无组叶也保持其余组覆盖；故所得边集仍展开为原图可行树，费用不增，只能提供安全上界。
+
+静态复核发现该变换不能用于 closure 后的 quad support：该支持图还会被后续 support-DP 消费，环边或当前无职责叶可能为未来 ordinary 子树提供更好的连接选择。最终候选因此严格限制为预处理 triple 上界，不改变购买后的 quad 支持集合。修正版通过配置精确性与零权边核心回归。
+
+### 针对性结果与结论
+
+IMDb `g=14,f=400,q5` 的诊断构建在图加载后运行该预处理；259.8 秒后仍只有 `best=18`，没有提前得到已知最优值 17。该询问的主要困难正是最优上界来得太晚，因此候选未改变关键事件，继续完整运行没有合理收益预期，随即停止。生产源码完全撤销规范化；失败构建和结果目录在本轮收尾时删除。
+
+<a id="history-root-path-primal-support-replacement-negative-probe-20260824"></a>
+
+## Root-path/primal support 同职责替换负向门（2026-08-24）
+
+### 候选与安全边界
+
+冻结 V21 只有在 closure 后的四元真实路径严格改善 incumbent 时，才把该路径边与 closure primal 边合成 support 并切换上界消费者。V22 试图覆盖“路径不改善但另一种消费者可能更强”的区间：候选改用预处理公共 root-path-union 与 closure primal 的原图边并。为避免图名或经验阈值，只在其确定性 support-DP 工作量 $B_{\mathrm{sup}}(s,k)$ 不超过旧 witness-tree DP 工作量 $B_{\mathrm{wit}}(t,k)$ 时替换。
+
+该候选在正确性上是安全的：support 只含原图边，subset-DP 的每个有限值都可展开成已有 ordinary 子树与真实 support 路径的连通并；较弱结果最多不收紧上界。它却没有逐实例性能支配。closure 会重新恢复 primal bitmap，新 support 不保证包含旧 dual witness；即使符号工作量不大，消费者强弱、rent 重启和后续证明状态仍可能不利。因此必须通过完整慢例和 P1 门，不能只凭结构式采用。
+
+### 完整 10,000 秒门
+
+两条查询使用同一 V22 Release 二进制、原图与原查询，分别独占 CPU4/CPU5；外层 `timeout 10060` 仅给加载与回收留余量。计入完成必须正常退出并写出 solver time 小于 10,000 秒的结果行。
+
+| 查询 | 历史 Enhanced / 秒 | V22 结果 | 终止前 RSS | 判定 |
+|---|---:|---:|---:|---|
+| IMDb `g=14,f=200,q3` | 28,803.599 | 无结果行，exit 124 | 约 34.7 GiB | 未压入门内 |
+| IMDb `g=14,f=800,q5` | 77,843.622 | 无结果行，exit 124 | 约 50.4 GiB | 未压入门内 |
+
+诊断前缀曾显示 `f=800,q5` 的新 support 可以较早把 incumbent 从 17 降到已知最优值 16，但完整运行仍不能在门内完成。这进一步说明该查询不只缺优质上界：找到最优值以后，剩余安全下界仍不足以迅速完成最优性证明。`f=200,q3` 同样没有获得完整结果。预测、诊断前缀和内存下降均不能代替正常退出。
+
+### 结论与清理
+
+V22 没有把 11 条历史慢询问中的任何新增项压入 10,000 秒，故不满足采用门。生产源码恢复 V21：路径不严格改善时保留旧 witness；V22 专用回归、函数名、正式方法文档、失败构建和空结果均清理。最终仍以 V21 已完整验证的 6/11 为准。若未来重试，必须直接加强最优性证明下界或给出新 support 对旧 witness 的结构/功能支配，而不能再次只比较 evaluator 的符号工作量。
+
+<a id="history-integral-residual-component-cover-zero-20260824"></a>
+
+## 整数 residual 分量覆盖恒零否决（2026-08-24）
+
+### 候选
+
+候选仅针对全单位权图，在 DirectedCut 完成全部 residual 势闭包后，把至少一个方向 residual 为 0 的无向边视为免费连接，合并免费分量。对 rooted 状态删除根分量已经命中的组，再以覆盖其余组至少需要的免费终端分量数作为未分配 residual 容量下界，并尝试与原组势相加。该构造不舍入浮点数，也不读取图名、组数、时间或状态统计。
+
+### 恒零证明
+
+该候选在当前“逐组完成 residual 势”的结构下恒为 0。固定任意已完成组 i，令 d_i(x) 是完成该组时顶点 x 到其终端集合的 residual 最短路距离。对可行连通分量中的任意非终端顶点 x，某条最短路首弧 (x,y) 满足
+
+```math
+d_i(x)=r(x,y)+d_i(y).
+```
+
+势更新从该弧扣除正梯度 d_i(x)-d_i(y)=r(x,y)，所以更新后的该方向 residual 精确为 0。沿最短路重复可知，每个顶点都有一条到组 i 某个终端的零 residual 有向路。后续组只继续减少 residual，不会使这条零路重新变正。
+
+因此，全部组闭包完成后，任意顶点所在的无向零 residual 分量都包含每一个查询组的至少一个终端，其组掩码已经是 full mask。对任意 rooted remaining mask，删除根分量命中组后均得到空集，所谓分量覆盖下界恒为 0。把“至少一个方向为零”收紧为特定方向也不能直接补救：rooted completion 的边定向随未知解而变，若没有另一份方向一致的容量论证，就不能安全收费。
+
+### 直接门与结论
+
+新增独立测试在 96 个确定性多终端单位权随机实例上完成全部组 residual 闭包，并枚举全部 (mask,root)；正 residual-cover 值出现次数为 0，测试按预期触发“未覆盖有效路径”失败。IMDb g=14,f=800,q5 候选诊断运行约 10 分钟后因上述恒零证明终止；继续运行只能得到与冻结 V21 相同的状态逻辑并额外支付空判断。
+
+候选源码、直接测试和大图进程均已回退或停止，不进入生产方法。以后不得再次在“全部组势已经完成”的最终 residual 上构造同类零分量 cover；若研究 residual 的离散剩余容量，必须在部分组尚未完成的阶段寻找与既有势容量严格不重叠、且不会被下一次势闭包结构性清零的证书。
+
+<a id="history-integral-leaf-spine-dominated-20260824"></a>
+
+## 单位权 leaf-spine 必要条件非支配门失败（2026-08-24）
+
+候选利用任意极小 rooted completion 都存在承担某个剩余组职责的非根叶。枚举该叶所属组，以根叶路径为主干；若组 i 的根距离与 i 到叶组的组间距离之和已经超过当前严格整数预算，则 i 不可能由这条主干覆盖，必须落在主干外森林。单位权下，主干外森林至少支付覆盖这些组所需的不同终端数。对所有可能叶组均无法装入预算时即可安全拒绝。该条件只读取精确整数距离、组间度量、component-cover 表和当前 incumbent，不含数据或组数阈值。
+
+候选的安全性可由主干与其余森林的边不交分解直接得到，但它每次状态最坏需要扫描全部叶组与其余组，即 O(g^2)。直接非支配门先在 128 个多终端单位权随机实例上枚举全部 mask、root 与整数预算，再在 512 个每组唯一终端实例上重复；两轮都没有出现一次“现有 farthest、rooted component-cover 与完整 Hamilton-path tour 放行，而 leaf-spine 拒绝”的预算。现有 tour 已经支付同阶端点路径扫描，继续带到 IMDb 只会增加热循环。
+
+因此候选未进入大图探针，源码、专用 rooted oracle、构建与直接测试全部回退。除非以后能证明一个低于 O(g^2) 且不被现有 tour 覆盖的聚合式，否则不得仅凭 leaf-spine 的独立安全性重新加入。
+
+<a id="history-imdb-v25-followup-integral-negative-gates-20260824"></a>
+
+## IMDb V25 后续四类整数证书负向门（2026-08-24）
+
+本节以已经完成 9/11 条历史慢询问的 V25 为唯一对照，固定 IMDb 官方单位权图、`g=14,f=200` 的 q1/q3、Enhanced、CPU4/CPU5 和同一诊断口径。所有候选均不读取图名、`g/f`、墙钟或状态量，也不压缩浮点精度；每个实现先通过当时的 5/5 CTest，再进入大图直接门。以下前缀只用于判定结构支配，不能冒充完整 10,000 秒结果。
+
+### A1 cone 加 rooted component-cover
+
+候选把已经证明 1-Lipschitz 的 `RootedSubsetLower` 加入 `AnchoredSingletonContinuation`，同时由 cone 和 row 外 fallback 调用；更强但没有 cone 一致性证明的 first-hit 项不进入 A1。q3 的 A1 标量仅从 V25 的 145,986,771 降为 145,943,341，减少 43,430，即约 0.030%，而时间从 126.379 秒增至 127.270 秒；第一张 D2 row 的 4,625,661 个标量逐项不变。q1 的 A1 标量仍为 185,756,470。该候选不能影响剩余的状态爆炸，已从公共 A1 恢复为 `max(farthest, endpoint-floor)`。
+
+### ordinary settled-state rooted-star 上界
+
+候选对已经 settle 的低层 rooted 状态，用真实状态代价加到各剩余组的最短路 star 生成可行上界。它没有修改下界和状态语义；q1 前四张、q3 前八张 D2 row 均未把 incumbent 21 收紧到已知最优值 20。历史档案中的 all-state star-completion 已经给出更大覆盖范围的同类负结果，因此本次达到预登记停止条件后立即撤销，不再等待 residual 购买。
+
+### 初始反序 packing 的 residual radius
+
+候选保留 V25 反序初始势，并保存每条边两方向的零 residual 位；搜索再支付一次 `g` 轮 0-1 BFS 后，把组势和与最远 residual 组距离相加。q3 的第二层完整结果由 V25 的 322,199,431 个标量、7,881,611,943 工作和 769.876 秒，变为 318,893,036 个标量、7,843,289,863 工作和 877.079 秒：状态只减少 1.03%、工作只减少 0.49%，额外构造和热路径使时间增加约 107 秒。q1 的购买耗时 120.115 秒并从已发布 row 删除 46,989,113/289,652,402 个状态，但该不均衡收益不能解决 q3，且需要长期保存 `O(gn)` 半径表。候选整体不满足双难例门，相关调度、位图和 0-1 BFS 已删除。
+
+### 反序 primal 与完整反序 closure
+
+只在 V25 初始反序 packing 后恢复 primal 的轻候选没有改善 incumbent：q1 购买由 92.668 秒增至 93.327 秒，q3 由 98.340 秒增至 100.236 秒，refilter 数量不变。更强候选从空容量起点完整执行反序 residual closure、恢复 primal 并调用同一 facility 上界；q1 购买需 329.226 秒，删除 20,342,475 个已发布状态，q3 购买需 345.373 秒，只删除 503,064 个状态，二者 best 均仍为 21。它重复了本卷既有的双顺序证书结论，不能以 q1 的局部比例掩盖 q3 的支配性失败。生产实现恢复为只购买反序初始 packing，转置后立即释放 residual、changed-arc 与 primal 临时量。
+
+### 结论
+
+四类候选均没有新增一条完整的 10,000 秒完成项。正式源码只保留 V25 的 first-hit rooted component-cover、精确单位权 key 队列和反序初始 packing；失败构建、原始前缀和专用测试在本节数字核对后清理。后续不得再以“补全第二份 residual”“把现有 cover 顺手塞进 A1”或“对 settled state 运行普通 star”为新方向；新候选必须在进入长跑前证明对 q1/q3 都存在未被现有 farthest、tour、cover 与双 packing 支配的拒绝集合。
+
+<a id="history-unit-nonterminal-depth-scheduler-negative-20260825"></a>
+
+## 单位权非候选深度延迟购买负向门（V35，2026-08-25）
+
+### 候选
+
+V34 已在每条全单位权非平凡查询中直接执行每组一次 0-1 BFS，得到路径上不可避免的非候选顶点数，并立即用于 rooted-entry future。V35 尝试把这项 $O(g(n+m))$ 预处理改成结构 rent-or-buy：购买价固定为 $g(2m+n)$，A1/ordinary 的 queue-pop 与邻接检查支付 rent；购买前只用其余 cover，达到价格后才构造深度表并重滤已发布 D。该候选不读取图名、组数区间、状态量或墙钟，理论上安全，因为购买前只是使用更弱下界。
+
+### 直接结果
+
+| 查询 | V34 秒 | V35 秒 | V34 状态 | V35 状态 | 结论 |
+|---|---:|---:|---:|---:|---|
+| IMDb `g=14,f=200,q3` | 1549.334476 | 1577.274 | 382,628,052 | 387,658,149 | 购买发生在 20 张 D2 row 后；多发现 5,030,097 个状态并慢约 28 秒 |
+| IMDb `g=14,f=3200,q5` | -- | 311.1465 | -- | 201,324,444 | 搜索结束前不购买，只证明调度器能避开一次预处理，不能证明端到端优于直接构造 |
+
+q3 是本轮硬门中的代表性困难询问。购买前的弱 future 已经允许额外状态进入 row；后续重滤只能删除当前 payload，不能撤销已经执行的 split、队列和邻接工作，也不能降低累计 `(mask,v)` 实际状态数。因此“先省图线性预处理、后补强”与本轮优先压状态的目标相反。对容易查询，避免 0-1 BFS 的收益还不足以抵消额外 scheduler、rent 与生命周期说明成本。
+
+### 结论
+
+V35 被否决时，V34/V36 恢复的是当时三个配置的无条件共同构造。**现行配置勘误（2026-08-26）：** 当前生产版只在 strict-unit DirectedCut 中一次性构造非候选深度视图；Base 不支付这项增强预处理。保留的结论仍是“对需要该证书的 DirectedCut 不做延迟购买”，因为购买前放入的状态无法追回；不得把历史共同作用域复制到当前方法章节。
+
+
+<a id="history-orkut-rooted-adaptive-nonapplicable-20260826"></a>
+
+## Orkut rooted-entry 自适应启停方向不适用（2026-08-26）
+
+### 错误前提
+
+该方向最初假设 GPU4GST Orkut 是单位权图，希望统计 ordinary 中 rooted-entry 的实际拒绝数；若长期为 0，则停用该证书和相关存储。只读核验原图后发现权重包含 89、57 等一般整数，加载器正确给出 `all_edges_unit_weight=false`。生产代码本来就不为该查询构造 rooted-entry、16-bit 单位距离、非候选 0-1 深度或整数 key 桶。因此详细诊断中的 rooted-entry 拒绝数为 0 只表示函数不在该模板中生效，不能解释成“被 directed-cut 支配”。
+
+临时候选曾加入按已观察拒绝数关闭 rooted-entry 的状态。即使放到真正单位权图上，这也会用查询运行中的经验计数改变后续证书集合，增加一个难以在论文中解释的在线策略；在 Orkut 上则完全没有目标操作可关。候选在发现图身份错误后完整回退，未进入正式门。当前只保留编译期详细诊断计数，用于真正 strict-unit 查询的离线解释；正式构建不写该计数。
+
+### 停止条件
+
+以后研究 Orkut q10 时必须先读取图 manifest 与加载器不变量，不得把 GPU4GST 的“整数加权”误写成“单位权”。rooted-entry、整数闭包和 `UnitKeyQueue` 只可用于逐边精确等于 1 的图；一般加权图的有效方向是 V61 已采用的完整 tour 一次缓存和同职责物理布局恢复，而不是为不存在的 rooted 证书增加启停超参数。

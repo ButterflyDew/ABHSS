@@ -77,7 +77,7 @@ Algorithm 1  ABHSS(G, K, profile)
 14: 返回当前真实上界 U
 ```
 
-算法 1 的 `profile` 在查询批次开始前冻结。Enhanced 不按图名、组数区间、状态量或运行时间选择另一条路径。配置差异仅有两类：DirectedCut/facility 是安全新增证书；bounded/complete 距离表示、root-path/dual-primal witness、完整前向/Adjoint 是共享输入输出职责的 realization 替换。A1 和 $D(1),\ldots,D(q)$ 始终共同。
+算法 1 的 `profile` 在查询批次开始前冻结。Enhanced 不按图名、组数区间、状态量或运行时间选择另一条路径。配置差异仅有两类：DirectedCut/facility 是安全新增证书；bounded/complete 距离表示、root-path/dual-primal witness、二叉堆/strict-unit 精确整数桶、完整前向/Adjoint 是共享输入输出职责的 realization 替换。A1 和 $D(1),\ldots,D(q)$ 始终共同。
 
 建议正文配一张层格图：横轴为 mask 大小，底部画共同 ordinary $D(1..q)$，左上画共同 A1；Base 继续到 $D(h)$ 和高层 $A$，Enhanced 从 $H(h)$ 反向递减并在 A/H 边界汇合。图中用实线表示共同层、虚线表示安全新增证书、双箭头表示同职责替换。
 
@@ -107,7 +107,20 @@ Algorithm 2  BuildSparseRow(S, dependencies, U)
 12: 返回 row
 ```
 
-Base 的 `Future` 由 component-cover、farthest、tour 和公共 A1 组成。Enhanced 在同一接口中再取 DirectedCut 势的最大值。实现可分阶段缓存已经计算的下界，但缓存只能保存可采纳前缀，不能把某个候选的一次拒绝永久解释成 row 值；候选变小时必须能继续计算尚未完成的证书链。
+伪代码中的“优先队列”是抽象最小 key 接口。Base 与一般权 DirectedCut 使用二叉堆；只有开启 DirectedCut、加载器确认全边严格等于 1，且当前真实上界可作为 `int` 桶界时，rooted 值和真实补全代价才共同落在可索引整数格，代码把可采纳 future 闭合为 `ceil` 并使用 `UnitKeyQueue`。该容器一桶一 key，但组合 future 不要求 1-Lipschitz：每次插入更小 key 都显式回退扫描指针，下一次仍返回全局最小桶。状态保存为原 `double`；这不是浮点量化或经验桶宽。
+
+轻量 component-cover 先收缩零权边。令 $c(M)$ 为覆盖剩余组 $M$ 至少需要的终端分量数， $\Gamma(v)$ 为根分量免费命中的组， $w_+$ 为最小正边权，则：
+
+```math
+L_{\mathrm{cc}}^r(v,M)=\max\left\{\max\{0,c(M)-1\}w_+,c(M\setminus\Gamma(v))w_+\right\}.
+```
+
+第二项把当前根分量纳入连接责任：每个尚未被根分量免费命中的终端分量都不同于根分量，连接它们至少各需一条正边。全部配置共同使用全局零代价可行性、未定根 cover 闭合和代表根；当前代码只在 strict-unit DirectedCut 中物化每顶点 16-bit 免费组 mask，并把第二项并入下一段 rooted-entry。Base、一般权图与至多三组的共同精确基例不支付该项。
+
+在全边严格等于 1 且开启 DirectedCut 时，Enhanced future 还增加 rooted-entry 组合界。令 $U=M\setminus\Gamma(v)$； $c(U)$ 计覆盖 $U$ 必需的候选终端数。额外进入责任取三者最大：到第一个 $U$ 终端前的 $d_{\min}(v,U)-1$ 个内部点、以候选点权 0/其余点权 1 的多源 0-1 距离最大值、以及候选诱导分量由非候选邻接 block 覆盖的最少顶点数。首次内部点不命中 $U$，后二者只计非候选点，因此每项都可与 $c(U)$ 相加；三项间可能复用，故不能相加。该界由 DirectedCut 配置的 ordinary/forward/adjoint 使用，不进入公共 A1；Base 不构造或消费它。
+实现的 16-bit 距离视图只无损保存锥体内整数；锥体外是只供拒绝的安全 cutoff，精确 DP 不读取该占位，因此不是浮点精度压缩。
+
+Base 的 `Future` 由 farthest、tour 和公共 A1 组成。Enhanced 在同一拒绝职责中增加 DirectedCut 势；strict-unit 时还增加 rooted-entry 与可购买的反序独立 packing，所有证书只取最大。实现可分阶段缓存已经计算的下界，但不能把某个候选的一次拒绝永久解释成完整证书。strict-unit 的整数补全格允许逐完整端点项拒绝并在较小标签到来时恢复；一般加权图第一次到达 tour 就计算并缓存完整值，避免反复扫描候选专属的部分 tour。
 
 ### 3.4 公共 A1 与真实上界调度
 
@@ -155,13 +168,15 @@ L_{\mathrm{cut}}(v,R)=\sum_{i\in R}\pi_i(v)
 
 不超过从 $v$ 完成 $R$ 的最小附加代价。changed-arc 修复和截断 potential cone 只省略势差严格为 0 的弧，不改变对偶值。
 
-对偶势只能作为下界。算法沿零 residual 支撑恢复 primal，并按原图真实边重新计价，得到可行上界和 dual-primal witness；facility DP 同样只组合可展开到真实边的路径。ordinary 搜索积累足够确定性工作后，可一次性购买 residual closure，补全势并恢复更强 primal/facility 上界。若新的真实路径证书继续改善 $U$，算法只删除满足以下条件的已物化状态：
+对偶势只能作为下界。算法沿零 residual 支撑恢复 primal，并按原图真实边重新计价，得到可行上界和 dual-primal witness；facility DP 同样只组合可展开到真实边的路径。ordinary 搜索积累足够确定性工作后，可一次性购买 residual closure，补全势并恢复更强 primal/facility 上界。若四元真实路径严格改善 $U$，算法把其原图边与 primal 边的并登记为新的 support 上界消费者；路径没有严格改善时继续使用原 witness。任一 support-DP 有限值都可展开为精确 singleton/ordinary 子树和真实 support 路径的连通并。随后算法只删除满足以下条件的已物化状态：
 
 ```math
 D(S,v)+L_{\mathrm{new}}(v,[k]\setminus S)\ge U_{\mathrm{new}}.
 ```
 
 于是 DirectedCut 形成闭环：真实路径给初始 $U$，容量可行势提高 $L$，购买后真实边恢复新的 $U$，最后按新的 $(L,U)$ 单调收缩已有 row。这个闭环是 Enhanced 相对 Base 的安全新增，不承担 A1 的替换职责。
+
+单位权图上，组顺序的不对称还允许第二个独立证书：主 residual closure 购买时先结转公共搜索 rent 超过其购买价的余额，随后继续累计 ordinary work；总余额达到静态成本 $2m+4gn$ 时，算法在独立 residual 上按反组序构造一次初始 packing。正序和反序各自容量可行，future 只取两者最大；不能相加，也不能逐组混合。第二份 residual 构造后立即释放，不恢复第二个 primal。实现仅在逐项证明势为有限非负的 16-bit 精确整数时改用无损整数布局，否则整表保留 `double`；它不是浮点精度压缩。
 
 ### 3.6 AdjointCompletion：从补集侧完成高层
 
@@ -195,13 +210,15 @@ Algorithm 3  AdjointCompletion(D, A1, U)
 6:              若 successor $S\cup B$ 位于已完成的 H 区间：
 7:                  用 $H(S\cup B)$ + 全值 $D(B)$ 松弛 seed
 8:          用可采纳 prefix 做 ordinary 同构的图闭包，发布 H(S)
-9:          用低层 $A(L)$ + branch-$D(S\setminus L)$ + $H(S)$ 更新 $U$
+9:          用低层 $A(L)$ + branch + $D(S\setminus L)$ + $H(S)$ 更新 $U$
 10:         若 S 与其补集同属最高辅助半格：
 11:             用锚距离 + $H(S)$ + $H([k]\setminus S)$ 更新 $U$
 12: 返回 U
 ```
 
 从 size 大到小归纳可得所有已发布 $H(S)$ 都等于补集 ordinary 值。边界式中的三部分覆盖互斥组集且并为全集。组数为奇数时，最高辅助半格的两侧同为 $h$，ordinary 中没有任一 $D(h)$；第 10–11 行的互补 H 完成式恰好恢复这一平衡情形。该条件由集合大小和 row 生命周期推出，不是经验奇偶优化。
+
+物理转置只保留一份逐顶点数学处理。strict-unit 模板以事件桶挂接每张 ordinary row 的下一个 payload；一般加权模板按 64 顶点块聚集同一批 payload。两者按相同顶点顺序调用公共处理，并在顶点内按 `(reduced,mask)` 排序，因而候选、浮点次序和并列规则一致。边权模板由加载器验证的不变量在 adjoint 入口一次分派，不是按图名、组数或运行表现选择算法。
 
 Adjoint 的真正收益来自状态职责替换：Base 显式持有 $D(h)$ 和高层前向 $A$，Enhanced 以补集转置复用较小 ordinary row，并从外侧递减完成。它并不改变 rooted DP 的数值语义，也不删除共同最高逻辑 ordinary 层 $D(q)$。
 
@@ -211,17 +228,17 @@ Adjoint 的真正收益来自状态职责替换：Base 显式持有 $D(h)$ 和�
 
 **引理 1（真实上界）。** 所有写入 $U$ 的值都由原图真实路径、真实 rooted 子树或它们在 witness/support 上的精确 DP 组成，因此 $U$ 始终不小于最优值。
 
-**引理 2（可采纳证书）。** component-cover、farthest、tour、公共 A1 缺项和 DirectedCut 势分别不超过其声明的剩余代价；取最大仍可采纳。
+**引理 2（可采纳证书）。** 全局 component-cover、farthest、tour、公共 A1 缺项，以及 Enhanced 可选的单位权 rooted-entry 和每套 DirectedCut packing，分别不超过其声明的剩余代价。rooted-entry 只把候选终端数与互斥进入责任相加；两套 packing 及其他证书只取最大。单位权真实补全代价为整数，故对可采纳值取 `ceil` 仍安全。
 
 **引理 3（距离—根合同）。** bounded 与 complete realization 都返回真实上界和同语义的组距离接口。bounded 中未保存的位置至少达到构造 cutoff，只能作为拒绝证书；split、完成式和 witness 对这些位置一律读为无穷。若最优推导低于 cutoff，其所需距离必已精确保留；若等于 cutoff，已有真实上界已经闭合。
 
-**引理 4（稀疏 ordinary 格）。** 算法 2 的规范 split 聚合不漏等价类；在可采纳 future 下拒绝的状态不能导出严格优于 $U$ 的完整树；锥体内的图闭包与完整 rooted DP 数值相同。
+**引理 4（稀疏 ordinary 格）。** 算法 2 的规范 split 聚合不漏等价类；在可采纳 future 下拒绝的状态不能导出严格优于 $U$ 的完整树；锥体内的图闭包与完整 rooted DP 数值相同。单位整数桶每次插入更小 key 都回退到对应桶，因此与二叉堆一样保持全局最小 key，不要求 future 一致。
 
 **引理 5（公共 A1）。** continuation 可采纳且 1-Lipschitz，因此 cone 保留任何可改善目标的最短路径前缀，row 外 fallback 由同一拒绝式推出。若 $U$ 改变则整轮重启，最终发布 row 只有一个固定证明边界。
 
 **引理 6（完整前向完备）。** 对任意规范完整树，平衡分解可选出大小至多 $q$ 的锚定侧，并把余下组放入至多两个大小至多 $h$ 的 ordinary 块。Base 的 ordinary 半格、前向增长与完成式枚举这条第一次跨界推导。
 
-**引理 7（Adjoint 等价）。** 辅助 $H(h)$ 精确实现 $D(h)$；单块、双块、successor 三类覆盖任意普通规范 split。递减归纳得到 $H(S,v)=D([k]\setminus S,v)$，普通边界和互补半格边界恢复完整前向格的全部第一次跨界推导。转置 budget 与 prefix 只使用引理 2 的可采纳证书。
+**引理 7（Adjoint 等价）。** 辅助 $H(h)$ 精确实现 $D(h)$；单块、双块、successor 三类覆盖任意普通规范 split。递减归纳得到 $H(S,v)=D([k]\setminus S,v)$，普通边界和互补半格边界恢复完整前向格的全部第一次跨界推导。事件桶与 64 顶点块都与 ordinary payload 建立逐顶点双射并恢复同一确定全序；转置 budget 与 prefix 只使用引理 2 的可采纳证书，完整或部分 tour 只改变证书求值时机。
 
 **定理。** 对无向非负边权图和 $g\le16$ 的合法查询，Base、DirectedCutOnly 与 Enhanced 在实数算术模型下都返回精确最优权值，或正确报告 infeasible。
 
@@ -241,7 +258,7 @@ O\left(3^g n+2^g(m+n)\log(n+m)\right)
 O\left(2^g n+gn+m\right)
 ```
 
-空间。这只是主状态格；同一段必须注明 tour 另付 $O(2^g g^3)$ 时间与 $O(2^g g^2)$ 空间，共同真实路径上界有保守 $O(g^4(m+n))$ 工作，DirectedCut 最坏支付 $O(g(m+n)\log(n+m))$，certificate support 支付 $O(s^3+2^g s^2+3^g s)$。完整总界和逐阶段表放附录，并链接详细方法文档，避免正文既声称简写又隐去 Enhanced 证书成本。
+空间。这只是主状态格；同一段必须注明 tour 另付 $O(2^g g^3)$ 时间与 $O(2^g g^2)$ 空间，共同真实路径上界有保守 $O(g^4(m+n))$ 工作，strict-unit DirectedCut 的 rooted-entry 付 $O(g(n+m)+3^g)$，DirectedCut（含可选反序初始 packing）最坏仍为 $O(g(m+n)\log(n+m))$，certificate support 支付 $O(s^3+2^g s^2+3^g s)$。完整总界和逐阶段表放附录，并链接详细方法文档。
 
 正文随后用实际稀疏 payload 解释性能。若 $M$ 是实际同根合并/转置候选数， $R$ 是实际检查的邻接项数，则主搜索更接近：
 
@@ -250,6 +267,8 @@ O\left(M+R\log(n+m)\right).
 ```
 
 因此实验必须同时报告时间、RSS 和实际主状态项数；状态数只用于解释状态域，不声称是跨算法等价的基本操作。
+
+单位整数桶目前只用于 strict-unit DirectedCut 的 ordinary $D$；Base 仍使用二叉堆。以 $P_D$ 表示 D 队列项数、 $J_D$ 表示回退后桶头前进次数、 $N_D$ 表示 ordinary row 数、 $U$ 表示最大整数桶界，则相应主搜索项写为 $O(M+R_D+P_D+J_D+N_DU+(R_A+R_H)\log(n+m))$，保守 $J_D\le P_DU$。不要把 A/H 写成已经使用整数桶，也不要用未经证明的 key 单调性把 D 简写成线性桶界。
 
 ## 4. 正文伪代码、图与引理取舍
 

@@ -125,8 +125,11 @@ enum class HighLayerRealization : std::uint8_t
 /**
  * @brief 把增强位解释为论文可陈述的“新增 + 同职责替换”执行契约。
  *
- * `added_operations` 只包含 Base 完全没有对应物的安全工作；距离—根初始化、
- * 上界 witness 和高层完成三个字段选择同职责 realization。ordinary future
+ * `added_operations` 只包含 Base 完全没有对应物的安全工作；
+ * `DirectedCutCertificate` 统摄 strict-unit rooted-entry 和可购买反序 packing 等
+ * 安全证书。整数桶只是抽象最小 key 队列在 strict-unit 下的物理 realization，
+ * 不登记为新增证书。距离—根初始化、上界 witness
+ * 和高层完成三个字段选择同职责 realization。ordinary future
  * 字段则固定记录全部配置共享的 A1 row 视图；DirectedCut potential 仅作为
  * 安全新增证书并入 ordinary 的 max 组合，不进入 A1 构造。A1 在每种配置
  * 中至多物化一次并直接移交公共前向内核。

@@ -221,6 +221,8 @@ python3 tools/experiments/run_parallel_campaign.py status
 
 `prepare` 验证生产二进制哈希、CPU 物理核、当前 P1/P2/S2 task key，并只在任务身份完全相同时复用完整 P1 与 Orkut `g=15` Enhanced q1--q10。`run` 先按只读历史估计从快到慢运行剩余 P2 和全部 S2 Enhanced；首个真实 10,000 秒 Enhanced timeout 落盘后，runner 返回 4，父调度器终止另一核当前进程组并停止整个 campaign。
 
+> **当前源码身份提醒（V61）。** `experiments/final_campaign_plan.json` 冻结的是第 8.4 节旧生产二进制，不可直接用于当前 V61 源码。若冻结 V61，必须先更新提交/二进制哈希和 ABHSS task identity，再执行 `prepare`；PrunedDP++ 的同机同任务记录可以复用，V61 Orkut `g=15,q10` 也只能在完整 task key 一致时复用。详细证据边界见 `docs/EXPERIMENT_PLAN.md` 第 8.4.1--8.5 节。
+
 Enhanced 全部通过后，P2 的 Base/PrunedDP++ 按 `g` 递增运行。每格先跑覆盖五个组大小层的 q1--q5；仅当 5/5 均真实 timeout 且 Enhanced 5/5 已完成，才把当前 q6--q10 与更大 `g` 写为 `not_run_likely_timeout` 而不启动。这些项不是正式 timeout，也不进入 PAR-2/完成数；要补齐正式曲线必须后续重跑。S2 不按 `f` 外推，两个方法都跑完整 150 条。最后执行冻结的最小消融；endpoint-floor 变体由隔离构建器创建并通过完整 CTest。精确协议见 `experiments/final_campaign_plan.json` 和 `docs/EXPERIMENT_PLAN.md` 第 8.5 节。
 
 调度器持有排他锁且每个 task key 独立落盘；后台会话中断后重复同一 `run` 命令即可恢复。换机器或换 CPU 前必须重新校准并修改机器计划，不能直接沿用 CPU 4/5 的正式时间口径。
@@ -237,7 +239,9 @@ python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results
 
 诊断运行不自动进入论文汇总。若 PrunedDP++ 明显更快或 ABHSS 超时，保留原数据，再同时检查图的 $n,m$、密度/分量、实现后组大小、双方状态数、上界收紧、row 密度与各 phase 时间，不得仅用“图更大”解释。
 
-对可能越过正式 TL 的单条长询问，可在单独 probe 构建与新 run directory 中追加 `--probe-diagnostics`，并把外层诊断预算设得足以跑完整轨迹。该预算只用于定位，不能替换矩阵中的正式 10,000 秒 TL。runner 会把 `[ProbeDiag]` 行解析进任务 JSON 的 `probe_diagnostics`：`prepare_end`、`singleton_anchor_end`、`ordinary_layer` 和 `adjoint_transpose` 给出阶段边界；`adjoint_layer` 同时给出该 H 层的秒数、row/scalar 数与当前上界；`adjoint_complementary_half_upper` 表示互补辅助半格严格收紧上界。最终还必须保留 solver time、查询峰值 RSS、watchdog 峰值 RSS、返回值和状态数，不能用中途 row 数冒充完成结果。
+对可能越过正式 TL 的单条长询问，可在单独 probe 构建与新 run directory 中追加 `--probe-diagnostics`。若目标是观察完整轨迹到底超过正式 TL 多少，可再显式追加 `--no-timeout`；该选项只允许仓库内 native solver，不能与 `--timeout`、`--stop-on-timeout` 或全局 wall budget 共用，运行元数据和每条结果的 `timeout_seconds` 均写 `null`。无 TL 结果只用于定位，不能替换矩阵中的正式 10,000 秒 TL。
+
+runner 会把 `[ProbeDiag]` 行解析进任务 JSON 的 `probe_diagnostics`：`prepare_end`、`singleton_anchor_end`、`ordinary_row`、`ordinary_layer` 和 `adjoint_transpose` 给出阶段边界与 D 内累计进度；`adjoint_layer` 同时给出该 H 层的秒数、row/scalar 数与当前上界；`adjoint_complementary_half_upper` 表示互补辅助半格严格收紧上界。最终还必须保留 solver time、查询峰值 RSS、watchdog 峰值 RSS、返回值和状态数，不能用中途 row 数冒充完成结果。
 
 ## 8. 汇总与出图
 

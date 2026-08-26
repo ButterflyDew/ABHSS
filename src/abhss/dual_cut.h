@@ -2,11 +2,14 @@
 #define ABHSS_DUAL_CUT_H
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <deque>
 #include <limits>
 #include <numeric>
 #include <queue>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -54,11 +57,33 @@ public:
         const Graph& graph,
         const Query& query,
         const std::vector<std::vector<double>>& group_distance,
-        int root)
+        int root,
+        bool reverse_group_order = false)
     {
+        reverse_group_order_ = reverse_group_order;
         BuildChangedArcs(graph, query, group_distance, root);
         primal_edge_words_.assign((static_cast<size_t>(graph.m) + 63) / 64, 0);
         primal_upper_ = RecoverPrimal(graph, query, root, residual_, primal_edge_words_);
+    }
+
+    /** @brief 只构造一遍截断势 packing 并转置，不恢复 primal 或完成 residual。 */
+    ABHSS_DUAL_NOINLINE void BuildInitialCertificateOnly(
+        const Graph& graph,
+        const Query& query,
+        const std::vector<std::vector<double>>& group_distance,
+        int root,
+        bool reverse_group_order)
+    {
+        reverse_group_order_ = reverse_group_order;
+        BuildChangedArcs(graph, query, group_distance, root);
+        TransposePotentialsByVertex(graph.n, graph.all_edges_unit_weight);
+        residual_.clear();
+        residual_.shrink_to_fit();
+        primal_edge_words_.clear();
+        primal_upper_ = fp::kInf;
+        changed_arc_words_.clear();
+        changed_arc_words_.shrink_to_fit();
+        residual_closure_complete_ = true;
     }
 
     /** @brief 释放只在预处理使用的 2m residual；保留势和 primal 边。 */
@@ -84,6 +109,14 @@ public:
     double At(int vertex, int mask) const
     {
         double value = 0.0;
+        if (!unit_vertex_potential_.empty())
+        {
+            const std::uint16_t* potential = unit_vertex_potential_.data() + static_cast<size_t>(vertex) * potential_group_count_;
+            std::uint32_t integral_value = 0;
+            for (int bits = mask; bits; bits &= bits - 1)
+                integral_value += potential[FirstBit(bits & -bits)];
+            return static_cast<double>(integral_value);
+        }
         if (!vertex_potential_.empty())
         {
             const double* potential = vertex_potential_.data() + static_cast<size_t>(vertex) * potential_group_count_;
@@ -103,9 +136,26 @@ public:
      * 求和的标准 gamma 误差界向下修正，保证返回值不超过直接剩余组和。
      * 未转置时退化为原来的剩余 mask 直接求和。
      */
-    bool CanImproveAllExcept(int vertex, int excluded_mask, double value, double incumbent, double& lower, bool& exact) const
+    bool CanImproveAllExcept(int vertex, int excluded_mask, double value, double incumbent, bool integral_completion, double& lower, bool& exact) const
     {
         exact = false;
+        const double integral_limit = incumbent - value - 1.0;
+        auto CanStillImprove = [&](double candidate)
+        {
+            return integral_completion ? candidate <= integral_limit : value + candidate < incumbent;
+        };
+        if (integral_completion && !CanStillImprove(lower))
+            return false;
+        if (!unit_vertex_potential_.empty())
+        {
+            const std::uint16_t* potential = unit_vertex_potential_.data() + static_cast<size_t>(vertex) * potential_group_count_;
+            std::uint32_t excluded = 0;
+            for (int bits = excluded_mask; bits; bits &= bits - 1)
+                excluded += potential[FirstBit(bits & -bits)];
+            lower = std::max(lower, static_cast<double>(unit_vertex_full_potential_[vertex] - excluded));
+            exact = true;
+            return CanStillImprove(lower);
+        }
         if (!vertex_potential_.empty())
         {
             const int original_excluded_mask = excluded_mask;
@@ -124,25 +174,39 @@ public:
             double primary_low = 0.0;
             double primary_high = 0.0;
             CertifiedInterval(vertex_potential_, vertex_full_potential_, primary_low, primary_high);
-            lower = primary_low;
+            if (!integral_completion)
+            {
+                lower = primary_low;
+                if (!(value + lower < incumbent))
+                    return false;
+                if (value + primary_high < incumbent)
+                    return true;
+                lower = At(vertex, ((1 << potential_group_count_) - 1) ^ original_excluded_mask);
+                exact = true;
+                return value + lower < incumbent;
+            }
+            lower = std::max(lower, primary_low);
             double upper = primary_high;
-            if (!(value + lower < incumbent))
+            if (!CanStillImprove(lower))
                 return false;
             if (value + upper < incumbent)
                 return true;
-            lower = At(vertex, ((1 << potential_group_count_) - 1) ^ original_excluded_mask);
+            lower = std::max(lower, At(vertex, ((1 << potential_group_count_) - 1) ^ original_excluded_mask));
             exact = true;
-            return value + lower < incumbent;
+            return CanStillImprove(lower);
         }
         const int group_count = static_cast<int>(potential_.size());
-        lower = At(vertex, ((1 << group_count) - 1) ^ excluded_mask);
+        const double exact_lower = At(vertex, ((1 << group_count) - 1) ^ excluded_mask);
+        lower = integral_completion ? std::max(lower, exact_lower) : exact_lower;
         exact = true;
-        return value + lower < incumbent;
+        return CanStillImprove(lower);
     }
 
     /** @brief 读取一个原始查询组在指定顶点的单组对偶势。 */
     double GroupAt(int vertex, int group) const
     {
+        if (!unit_vertex_potential_.empty())
+            return unit_vertex_potential_[static_cast<size_t>(vertex) * potential_group_count_ + group];
         if (!vertex_potential_.empty())
             return vertex_potential_[static_cast<size_t>(vertex) * potential_group_count_ + group];
         return potential_[group][vertex];
@@ -178,6 +242,22 @@ public:
     }
 
     /**
+     * @brief 返回独立初始 packing 必做的稠密工作底价。
+     *
+     * 一次构造至少初始化 2m 条有向 residual，并对每个组完成势表初始化、
+     * 原距离复制、cone/capped 势扫描和最终顶点主序转置四遍 n 域。该式只按
+     * 源码中必然执行的循环计价；changed-arc 与 cone 边扫描是额外成本，不用
+     * 图名、组数区间、状态量或墙钟校正。
+     */
+    long long InitialCertificateBuyWork(const Graph& graph) const
+    {
+        const long long n = graph.n;
+        const long long m = graph.m;
+        const long long g = static_cast<long long>(potential_.size());
+        return g > 0 ? 2 * m + 4 * g * n : 0;
+    }
+
+    /**
      * @brief 从已保存的截断势重建 residual，完成全势闭包并恢复新的 primal 树。
      *
      * 初始预处理已经释放 O(m) residual。本函数只在 ordinary 的真实搜索工作
@@ -194,14 +274,16 @@ public:
         if (residual_closure_complete_)
             return;
 
-        const std::vector<int> order = BuildOrder(group_distance, root);
+        std::vector<int> order = BuildOrder(group_distance, root);
+        if (reverse_group_order_)
+            std::reverse(order.begin(), order.end());
         RestoreInitialResidual(graph, order);
         std::vector<std::uint64_t> primary_changed_arc_words = changed_arc_words_;
         std::vector<int> completion_order(order.rbegin(), order.rend());
         CompleteResidualPotentials(graph, group_distance, completion_order, primary_changed_arc_words);
         primal_edge_words_.assign((static_cast<size_t>(graph.m) + 63) / 64, 0);
         primal_upper_ = RecoverPrimal(graph, query, root, residual_, primal_edge_words_);
-        TransposePotentialsByVertex(graph.n);
+        TransposePotentialsByVertex(graph.n, graph.all_edges_unit_weight);
         changed_arc_words_.clear();
         changed_arc_words_.shrink_to_fit();
         residual_closure_complete_ = true;
@@ -229,23 +311,51 @@ private:
     }
 
     /** @brief closure 后把完整证书转为按顶点连续布局，并释放按组布局。 */
-    void TransposePotentialsByVertex(int n)
+    void TransposePotentialsByVertex(int n, bool unit_weight)
     {
         potential_group_count_ = static_cast<int>(potential_.size());
-        vertex_potential_.resize((static_cast<size_t>(n) + 1) * potential_group_count_);
-        vertex_full_potential_.assign(n + 1, 0.0);
-        const double unit_roundoff = std::numeric_limits<double>::epsilon() * 0.5;
-        const double operations = 2.0 * potential_group_count_ + 4.0;
-        const double gamma = operations * unit_roundoff / (1.0 - operations * unit_roundoff);
-        potential_sum_error_factor_ = gamma / (1.0 - gamma);
-        for (int vertex = 1; vertex <= n; ++vertex)
+        bool use_unit_layout = unit_weight;
+        if (use_unit_layout)
         {
-            for (int group = 0; group < potential_group_count_; ++group)
-            {
-                const size_t index = static_cast<size_t>(vertex) * potential_group_count_ + group;
-                vertex_potential_[index] = potential_[group][vertex];
-                vertex_full_potential_[vertex] += potential_[group][vertex];
-            }
+            unit_vertex_potential_.resize((static_cast<size_t>(n) + 1) * potential_group_count_);
+            unit_vertex_full_potential_.assign(n + 1, 0);
+            for (int vertex = 1; use_unit_layout && vertex <= n; ++vertex)
+                for (int group = 0; group < potential_group_count_; ++group)
+                {
+                    const double raw = potential_[group][vertex];
+                    if (!std::isfinite(raw) || raw < 0.0 || raw > std::numeric_limits<std::uint16_t>::max() || raw != std::floor(raw))
+                    {
+                        use_unit_layout = false;
+                        break;
+                    }
+                    const size_t index = static_cast<size_t>(vertex) * potential_group_count_ + group;
+                    const auto value = static_cast<std::uint16_t>(raw);
+                    unit_vertex_potential_[index] = value;
+                    unit_vertex_full_potential_[vertex] += value;
+                }
+        }
+
+        if (use_unit_layout)
+            potential_sum_error_factor_ = 0.0;
+        else
+        {
+            unit_vertex_potential_.clear();
+            unit_vertex_potential_.shrink_to_fit();
+            unit_vertex_full_potential_.clear();
+            unit_vertex_full_potential_.shrink_to_fit();
+            vertex_potential_.resize((static_cast<size_t>(n) + 1) * potential_group_count_);
+            vertex_full_potential_.assign(n + 1, 0.0);
+            const double unit_roundoff = std::numeric_limits<double>::epsilon() * 0.5;
+            const double operations = 2.0 * potential_group_count_ + 4.0;
+            const double gamma = operations * unit_roundoff / (1.0 - operations * unit_roundoff);
+            potential_sum_error_factor_ = gamma / (1.0 - gamma);
+            for (int vertex = 1; vertex <= n; ++vertex)
+                for (int group = 0; group < potential_group_count_; ++group)
+                {
+                    const size_t index = static_cast<size_t>(vertex) * potential_group_count_ + group;
+                    vertex_potential_[index] = potential_[group][vertex];
+                    vertex_full_potential_[vertex] += potential_[group][vertex];
+                }
         }
         potential_.clear();
         potential_.shrink_to_fit();
@@ -322,6 +432,8 @@ private:
         const int n = graph.n;
         const int g = static_cast<int>(query.groups.size());
         residual_closure_complete_ = false;
+        unit_vertex_potential_.clear();
+        unit_vertex_full_potential_.clear();
         vertex_potential_.clear();
         potential_group_count_ = 0;
         vertex_full_potential_.clear();
@@ -330,7 +442,9 @@ private:
         changed_arc_count_ = 0;
         potential_.assign(g, std::vector<double>(n + 1));
 
-        const std::vector<int> order = BuildOrder(group_distance, root);
+        std::vector<int> order = BuildOrder(group_distance, root);
+        if (reverse_group_order_)
+            std::reverse(order.begin(), order.end());
 
         residual_.assign(static_cast<size_t>(2) * graph.m, 0.0);
         for (const UndirectedEdge& edge : graph.edges)
@@ -692,6 +806,8 @@ private:
     }
 
     std::vector<std::vector<double>> potential_;
+    std::vector<std::uint16_t> unit_vertex_potential_;
+    std::vector<std::uint32_t> unit_vertex_full_potential_;
     std::vector<double> vertex_potential_;
     int potential_group_count_ = 0;
     std::vector<double> vertex_full_potential_;
@@ -702,6 +818,7 @@ private:
     long long changed_arc_count_ = 0;
     double primal_upper_ = fp::kInf;
     bool residual_closure_complete_ = false;
+    bool reverse_group_order_ = false;
 };
 }  // namespace gst::methods::dual_cut
 

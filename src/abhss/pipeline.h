@@ -17,7 +17,7 @@ bool ResolveQueryPrelude(const Graph& graph,
                          SolveResult& answer);
 
 /**
- * @brief 在统一 probe 边界内执行全部配置共享的查询预处理。
+ * @brief 在统一 probe 边界内执行查询预处理；共同合同与冻结配置 realization 均封装于 `PrepareProblem`。
  * @return true 表示上下界已闭合，`problem.best` 已是精确答案。
  */
 bool PrepareWithProbe(Problem& problem, const char* probe_method);

@@ -1,15 +1,72 @@
 ﻿#include "internal.h"
 #include "path_growth_upper.h"
 
+#include <deque>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
+#include <unordered_map>
 
 namespace gst::methods::abhss::internal
 {
 namespace
 {
+using PairIndexTable = std::array<std::array<unsigned char, 256>, 17>;
+
+/** @brief 预计算至多 16 个紧凑端点位置的对称上三角下标。 */
+constexpr PairIndexTable BuildPairIndexTable()
+{
+    PairIndexTable table{};
+    for (int count = 2; count <= 16; ++count)
+        for (int left = 0; left < count; ++left)
+            for (int right = left + 1; right < count; ++right)
+            {
+                const int index = left * (2 * count - left - 1) / 2 + right - left - 1;
+                table[count][(left << 4) | right] = static_cast<unsigned char>(index);
+                table[count][(right << 4) | left] = static_cast<unsigned char>(index);
+            }
+    return table;
+}
+
+constexpr PairIndexTable kPairIndex = BuildPairIndexTable();
+
+/** @brief 构造每顶点最远组；已物化 rooted-entry 时同时构造最近组。 */
+template <bool kBuildNearest>
+void BuildExtremeGroupCache(Problem& p)
+{
+    p.farthest_group.resize(p.graph.n + 1);
+    if constexpr (kBuildNearest)
+        p.nearest_group.resize(p.graph.n + 1);
+    for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+    {
+        int farthest = 0;
+        double farthest_value = p.group_distance.front()[vertex];
+        int nearest = 0;
+        double nearest_value = farthest_value;
+        for (int group = 1; group < p.g; ++group)
+        {
+            const double value = p.group_distance[group][vertex];
+            if (value > farthest_value)
+            {
+                farthest = group;
+                farthest_value = value;
+            }
+            if constexpr (kBuildNearest)
+            {
+                if (value < nearest_value)
+                {
+                    nearest = group;
+                    nearest_value = value;
+                }
+            }
+        }
+        p.farthest_group[vertex] = static_cast<unsigned char>(farthest);
+        if constexpr (kBuildNearest)
+            p.nearest_group[vertex] = static_cast<unsigned char>(nearest);
+    }
+}
+
 /** @brief 统计 64 位 membership word 中的置位数，用于 sparse GroupRow rank。 */
 int Popcount64(std::uint64_t bits)
 {
@@ -195,13 +252,14 @@ size_t GroupRow::ExactSize(int n) const
 }
 
 /**
- * @brief 在零权连通分量覆盖超图上计算全局下界和候选代表根。
+ * @brief 在零权连通分量覆盖超图上计算全局下界和可选 rooted 子集 future。
  *
  * 覆盖数为 1 时可直接证明零代价可行；否则结合最小正边权给出不超过任意
  * 可行树的连接代价。正权图使用加载期最小边权并只排序查询终端；含零权边
- * 时才扫描原边和建立并查集。返回根只用于构造上界，不影响下界有效性。
+ * 时才扫描原边和建立并查集。代表根只用于构造上界；每顶点免费组掩码只在
+ * 后续确有 rooted future 消费者时连同子集表一起物化，不影响全局下界。
  */
-ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
+ComponentCover ComputeComponentCover(const Graph& graph, const Query& query, bool build_rooted_future)
 {
     ComponentCover result;
     const int g = static_cast<int>(query.groups.size());
@@ -247,8 +305,8 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
         }
     }
 
-    // 只为询问中实际出现的零权分量保存掩码；正权图中每个顶点本身就是分量。
-    // 这把公共预处理的辅助空间从 O(n) 降为 O(F)，其中 F 是终端出现总数。
+    // 只为询问中实际出现的零权分量构造记录；正权图中每个顶点本身就是分量。
+    // 临时命中记录占 O(F)，根所在分量的组掩码按顶点保存，额外占 O(n)。
     struct TerminalHit
     {
         int component = 0;
@@ -258,6 +316,7 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     };
     struct QueryComponent
     {
+        int id = 0;
         int mask = 0;
         int representative = 0;
         int first_order = 0;
@@ -284,7 +343,7 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     for (size_t begin = 0; begin < hits.size();)
     {
         size_t end = begin;
-        QueryComponent component{0, hits[begin].vertex, hits[begin].order};
+        QueryComponent component{hits[begin].component, 0, hits[begin].vertex, hits[begin].order};
         while (end < hits.size() && hits[end].component == hits[begin].component)
         {
             component.mask |= 1 << hits[end].group;
@@ -326,6 +385,95 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
     }
 
     result.cover_number = cover[full_mask];
+    const bool materialize_rooted_future = build_rooted_future && result.cover_number > 1;
+    if (materialize_rooted_future)
+    {
+        result.root_component_group_mask.assign(graph.n + 1, 0);
+        for (const QueryComponent& component : components)
+            result.root_component_group_mask[component.id] = static_cast<std::uint16_t>(component.mask);
+        if (has_zero)
+            for (int vertex = 1; vertex <= graph.n; ++vertex)
+                result.root_component_group_mask[vertex] = result.root_component_group_mask[Find(vertex)];
+    }
+    if (materialize_rooted_future && graph.all_edges_unit_weight)
+    {
+        // 单位权图没有零边，每个 QueryComponent 对应一个真实候选顶点。先在
+        // 查询候选诱导子图上求连通分量，再为每个可能根记录不经过额外
+        // 非候选 Steiner 顶点能够到达的全部组。
+        const int component_count = static_cast<int>(components.size());
+        std::vector<int> induced_parent(component_count);
+        std::iota(induced_parent.begin(), induced_parent.end(), 0);
+        auto InducedFind = [&](int vertex)
+        {
+            int root = vertex;
+            while (induced_parent[root] != root)
+                root = induced_parent[root];
+            while (induced_parent[vertex] != vertex)
+            {
+                const int next = induced_parent[vertex];
+                induced_parent[vertex] = root;
+                vertex = next;
+            }
+            return root;
+        };
+        std::unordered_map<int, int> induced_index;
+        induced_index.reserve(static_cast<size_t>(component_count) * 2 + 1);
+        for (int index = 0; index < component_count; ++index)
+            induced_index.emplace(components[index].id, index);
+        for (int index = 0; index < component_count; ++index)
+            for (const AdjEdge& edge : graph.adj[components[index].id])
+            {
+                const auto other = induced_index.find(edge.to);
+                if (other == induced_index.end())
+                    continue;
+                const int left = InducedFind(index);
+                const int right = InducedFind(other->second);
+                if (left != right)
+                    induced_parent[right] = left;
+            }
+
+        std::vector<std::uint16_t> induced_group_mask(component_count);
+        for (int index = 0; index < component_count; ++index)
+            induced_group_mask[InducedFind(index)] |= static_cast<std::uint16_t>(components[index].mask);
+        result.unit_terminal_induced_group_mask.assign(graph.n + 1, 0);
+        for (int index = 0; index < component_count; ++index)
+        {
+            const int vertex = components[index].id;
+            const std::uint16_t mask = induced_group_mask[InducedFind(index)];
+            result.unit_terminal_induced_group_mask[vertex] |= mask;
+            for (const AdjEdge& edge : graph.adj[vertex])
+                if (!result.root_component_group_mask[edge.to])
+                    result.unit_terminal_induced_group_mask[edge.to] |= mask;
+        }
+
+        // 每个非查询候选顶点贡献一个 block：只经过该顶点和候选诱导边即可
+        // 接触的组。任意 rooted 完成树中，根免费 block 之外的每个终端候选
+        // 分量都必须邻接树内某个非候选顶点；因此这些真实非候选顶点的 block
+        // 覆盖全部剩余组。忽略 block 间连通性只会降低所需顶点数，不会高估。
+        std::vector<unsigned char> block_superset(full_mask + 1);
+        for (int vertex = 1; vertex <= graph.n; ++vertex)
+            if (!result.root_component_group_mask[vertex])
+                block_superset[result.unit_terminal_induced_group_mask[vertex]] = 1;
+        for (int bit = 0; bit < g; ++bit)
+            for (int mask = 0; mask <= full_mask; ++mask)
+                if (!(mask & (1 << bit)))
+                    block_superset[mask] |= block_superset[mask | (1 << bit)];
+
+        result.unit_nonterminal_cover_number.assign(full_mask + 1, static_cast<unsigned char>(g + 1));
+        result.unit_nonterminal_cover_number[0] = 0;
+        for (int mask = 1; mask <= full_mask; ++mask)
+        {
+            const int first = mask & -mask;
+            for (int block = mask; block; block = (block - 1) & mask)
+            {
+                if (!(block & first) || !block_superset[block])
+                    continue;
+                result.unit_nonterminal_cover_number[mask] = std::min(
+                    result.unit_nonterminal_cover_number[mask],
+                    static_cast<unsigned char>(1 + result.unit_nonterminal_cover_number[mask ^ block]));
+            }
+        }
+    }
     for (int remaining = full_mask; remaining;)
     {
         const int block = choice[remaining];
@@ -334,8 +482,35 @@ ComponentCover ComputeComponentCover(const Graph& graph, const Query& query)
         result.roots.push_back(components[superset[block]].representative);
         remaining ^= block;
     }
+    if (materialize_rooted_future)
+    {
+        result.subset_lower.assign(full_mask + 1, 0.0);
+        result.rooted_uncovered_lower.assign(full_mask + 1, 0.0);
+    }
+    // fma 给出一次舍入的乘法残差：只在普通乘积确实向上舍入时退一 ulp，
+    // 防止机器下界略高于实数值。单位权正式数据保持精确整数和原剪枝行为。
+    auto SafePositiveMultiple = [&](int count)
+    {
+        if (count <= 0 || minimum_positive >= fp::kInf)
+            return 0.0;
+        const double product = count * minimum_positive;
+        if (graph.all_edges_unit_weight || count == 1)
+            return product;
+        if (!std::isfinite(product))
+            return std::nextafter(product, 0.0);
+        const double error = std::fma(static_cast<double>(count), minimum_positive, -product);
+        return error < 0.0 ? std::nextafter(product, 0.0) : product;
+    };
     if (minimum_positive < fp::kInf)
-        result.lower = std::max(0, result.cover_number - 1) * minimum_positive;
+    {
+        result.lower = SafePositiveMultiple(std::max(0, result.cover_number - 1));
+        if (materialize_rooted_future)
+            for (int mask = 1; mask <= full_mask; ++mask)
+            {
+                result.subset_lower[mask] = SafePositiveMultiple(std::max(0, cover[mask] - 1));
+                result.rooted_uncovered_lower[mask] = SafePositiveMultiple(cover[mask]);
+            }
+    }
     return result;
 }
 
@@ -462,32 +637,63 @@ GroupTable BuildGroupDistances(const Graph& graph,
         if (distance.empty())
             distance.assign(graph.n + 1, fp::kInf);
         touched.clear();
-        Heap heap;
-        for (int terminal : query.groups[group])
+        if (graph.all_edges_unit_weight)
         {
-            if (distance[terminal] == 0.0)
-                continue;
-            distance[terminal] = 0.0;
-            touched.push_back(terminal);
-            heap.push({0.0, terminal});
-        }
-        while (!heap.empty())
-        {
-            const auto [value, vertex] = heap.top();
-            if (bounded && !(value < cutoff))
-                break;
-            heap.pop();
-            if (value != distance[vertex])
-                continue;
-            for (const auto& edge : graph.adj[vertex])
+            std::deque<int> queue;
+            for (int terminal : query.groups[group])
             {
-                const double next = value + edge.w;
-                if ((bounded && !(next < cutoff)) || !(next < distance[edge.to]))
+                if (distance[terminal] == 0.0)
                     continue;
-                if (distance[edge.to] >= fp::kInf)
+                distance[terminal] = 0.0;
+                touched.push_back(terminal);
+                queue.push_back(terminal);
+            }
+            while (!queue.empty())
+            {
+                const int vertex = queue.front();
+                queue.pop_front();
+                const double next = distance[vertex] + 1.0;
+                if (bounded && !(next < cutoff))
+                    continue;
+                for (const AdjEdge& edge : graph.adj[vertex])
+                {
+                    if (!(next < distance[edge.to]))
+                        continue;
+                    distance[edge.to] = next;
                     touched.push_back(edge.to);
-                distance[edge.to] = next;
-                heap.push({next, edge.to});
+                    queue.push_back(edge.to);
+                }
+            }
+        }
+        else
+        {
+            Heap heap;
+            for (int terminal : query.groups[group])
+            {
+                if (distance[terminal] == 0.0)
+                    continue;
+                distance[terminal] = 0.0;
+                touched.push_back(terminal);
+                heap.push({0.0, terminal});
+            }
+            while (!heap.empty())
+            {
+                const auto [value, vertex] = heap.top();
+                if (bounded && !(value < cutoff))
+                    break;
+                heap.pop();
+                if (value != distance[vertex])
+                    continue;
+                for (const AdjEdge& edge : graph.adj[vertex])
+                {
+                    const double next = value + edge.w;
+                    if ((bounded && !(next < cutoff)) || !(next < distance[edge.to]))
+                        continue;
+                    if (distance[edge.to] >= fp::kInf)
+                        touched.push_back(edge.to);
+                    distance[edge.to] = next;
+                    heap.push({next, edge.to});
+                }
             }
         }
 
@@ -607,8 +813,7 @@ void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
     group_count_ = static_cast<int>(metric.size());
     const int subset_count = 1 << group_count_;
     const int full_mask = subset_count - 1;
-    std::vector<double> path(
-        static_cast<size_t>(subset_count) * group_count_ * group_count_, fp::kInf);
+    std::vector<double> path(static_cast<size_t>(subset_count) * group_count_ * group_count_, fp::kInf);
     // lambda：把 (mask,start,last) 映射到连续 Hamilton-path DP 存储。
     auto Index = [&](int mask, int start, int last)
     {
@@ -636,52 +841,53 @@ void TourLowerBound::Build(const std::vector<std::vector<double>>& metric)
         }
     }
 
-    endpoints_.assign(subset_count, {});
-    for (int mask = 1; mask < subset_count; ++mask)
+    mask_groups_.assign(static_cast<size_t>(subset_count) * group_count_, 255);
+    mask_group_count_.resize(subset_count);
+    endpoint_pair_offset_.resize(subset_count + 1);
+    std::uint32_t pair_count = 0;
+    for (int mask = 0; mask < subset_count; ++mask)
     {
-        if (!(mask & (mask - 1)))
-            continue;
-        for (int left_bits = mask; left_bits; left_bits &= left_bits - 1)
-        {
-            const int left = FirstBit(left_bits & -left_bits);
-            for (int right_bits = mask & ~((1 << (left + 1)) - 1);
-                 right_bits;
-                 right_bits &= right_bits - 1)
-            {
-                const int right = FirstBit(right_bits & -right_bits);
-                const double value = std::min(path[Index(mask, left, right)],
-                                              path[Index(mask, right, left)]);
-                if (value < fp::kInf)
-                    endpoints_[mask].push_back({left, right, value});
-            }
-        }
+        endpoint_pair_offset_[mask] = pair_count;
+        const int count = __builtin_popcount(static_cast<unsigned>(mask));
+        mask_group_count_[mask] = static_cast<unsigned char>(count);
+        pair_count += static_cast<std::uint32_t>(count * (count - 1) / 2);
     }
-
-    // 每个端点对只访问一次，使新增预计算为 O(g^2 2^g)，不增加原 tour
-    // DP 的渐近复杂度。随后固定终点自由路径值最大的起点组；并列时由组号
-    // 扫描顺序确定，整个选择只依赖查询度量，不含图名或经验阈值。
+    endpoint_pair_offset_[subset_count] = pair_count;
+    endpoint_pair_path_.assign(pair_count, fp::kInf);
+    endpoint_floor_by_position_.assign(static_cast<size_t>(subset_count) * group_count_, fp::kInf);
     endpoint_floor_left_.assign(subset_count, 255);
     endpoint_floor_value_.assign(subset_count, 0.0);
-    std::array<double, 16> endpoint_floor;
     for (int mask = 1; mask < subset_count; ++mask)
     {
+        const size_t group_offset = static_cast<size_t>(mask) * group_count_;
+        int count = 0;
+        for (int bits = mask; bits; bits &= bits - 1)
+            mask_groups_[group_offset + count++] = static_cast<unsigned char>(FirstBit(bits & -bits));
         if (!(mask & (mask - 1)))
             continue;
-        endpoint_floor.fill(fp::kInf);
-        for (const Endpoint& endpoint : endpoints_[mask])
+        size_t pair_index = endpoint_pair_offset_[mask];
+        for (int left_position = 0; left_position < count; ++left_position)
         {
-            endpoint_floor[endpoint.left] = std::min(endpoint_floor[endpoint.left], endpoint.path);
-            endpoint_floor[endpoint.right] = std::min(endpoint_floor[endpoint.right], endpoint.path);
+            const int left = mask_groups_[group_offset + left_position];
+            for (int right_position = left_position + 1; right_position < count; ++right_position)
+            {
+                const int right = mask_groups_[group_offset + right_position];
+                const double value = std::min(path[Index(mask, left, right)], path[Index(mask, right, left)]);
+                endpoint_pair_path_[pair_index++] = value;
+                endpoint_floor_by_position_[group_offset + left_position] = std::min(endpoint_floor_by_position_[group_offset + left_position], value);
+                endpoint_floor_by_position_[group_offset + right_position] = std::min(endpoint_floor_by_position_[group_offset + right_position], value);
+            }
         }
         int selected = -1;
         double selected_floor = -1.0;
-        for (int bits = mask; bits; bits &= bits - 1)
+        for (int position = 0; position < count; ++position)
         {
-            const int group = FirstBit(bits & -bits);
-            if (endpoint_floor[group] > selected_floor)
+            const int group = mask_groups_[group_offset + position];
+            const double floor = endpoint_floor_by_position_[group_offset + position];
+            if (floor > selected_floor)
             {
                 selected = group;
-                selected_floor = endpoint_floor[group];
+                selected_floor = floor;
             }
         }
         endpoint_floor_left_[mask] = static_cast<unsigned char>(selected);
@@ -695,27 +901,152 @@ double TourLowerBound::At(int vertex, int mask, const GroupTable& distance) cons
     if (!mask)
         return 0.0;
     if (!(mask & (mask - 1)))
-        return distance[FirstBit(mask)][vertex];
-
-    std::array<double, 16> fixed;
-    // 固定 (mask,v) 只把每个组距离读入一次，并在同一遍只初始化 mask 内的槽。
-    std::array<double, 16> rooted;
-    for (int bits = mask; bits; bits &= bits - 1)
     {
-        const int group = FirstBit(bits & -bits);
-        rooted[group] = distance[group][vertex];
-        fixed[group] = fp::kInf;
+        const int group = FirstBit(mask);
+        return unit_distance_ ? unit_distance_[static_cast<size_t>(vertex) * group_count_ + group] : distance[group][vertex];
     }
-    for (const auto& endpoint : endpoints_[mask])
+
+    const size_t group_offset = static_cast<size_t>(mask) * group_count_;
+    const int count = mask_group_count_[mask];
+    std::array<double, 16> rooted;
+    std::array<double, 16> fixed;
+    const std::uint16_t* compact = unit_distance_ ? unit_distance_ + static_cast<size_t>(vertex) * group_count_ : nullptr;
+    const bool direct_distance = !distance.front().bounded;
+    for (int position = 0; position < count; ++position)
     {
-        const double candidate = rooted[endpoint.left] + endpoint.path + rooted[endpoint.right];
-        fixed[endpoint.left] = std::min(fixed[endpoint.left], candidate);
-        fixed[endpoint.right] = std::min(fixed[endpoint.right], candidate);
+        const int group = mask_groups_[group_offset + position];
+        rooted[position] = compact ? compact[group] : direct_distance ? distance[group].value[vertex] : distance[group][vertex];
+        fixed[position] = fp::kInf;
+    }
+    size_t pair_index = endpoint_pair_offset_[mask];
+    for (int left = 0; left < count; ++left)
+    {
+        for (int right = left + 1; right < count; ++right)
+        {
+            const double candidate = rooted[left] + endpoint_pair_path_[pair_index++] + rooted[right];
+            fixed[left] = std::min(fixed[left], candidate);
+            fixed[right] = std::min(fixed[right], candidate);
+        }
     }
     double value = 0.0;
-    for (int bits = mask; bits; bits &= bits - 1)
-        value = std::max(value, fixed[FirstBit(bits & -bits)]);
+    for (int position = 0; position < count; ++position)
+        value = std::max(value, fixed[position]);
     return value * 0.5;
+}
+
+/**
+ * @brief 每个端点项完整后立即尝试拒绝；未拒绝时仍只扫描每个无序端点对一次。
+ */
+double TourLowerBound::AtUntilRejected(int vertex,
+                                       int mask,
+                                       const GroupTable& distance,
+                                       double prefix,
+                                       double incumbent,
+                                       double lower,
+                                       bool integral_completion,
+                                       bool& exact) const
+{
+    // 单位权图的真实补全费用为整数，因此 ceil(lower) 才是实际可采纳下界。
+    // prefix 与 incumbent 同样是精确整数，ceil(lower) < incumbent-prefix 等价于
+    // lower <= incumbent-prefix-1；直接比较该半开阈值可避免热路径反复调用 ceil。
+    const double integral_limit = incumbent - prefix - 1.0;
+    auto CanStillImprove = [&](double candidate)
+    {
+        return integral_completion ? candidate <= integral_limit : prefix + candidate < incumbent;
+    };
+
+    if (!mask)
+    {
+        exact = true;
+        return lower;
+    }
+    if (!(mask & (mask - 1)))
+    {
+        exact = true;
+        const int group = FirstBit(mask);
+        const double rooted = unit_distance_ ? unit_distance_[static_cast<size_t>(vertex) * group_count_ + group] : distance[group][vertex];
+        return std::max(lower, rooted);
+    }
+
+    const size_t group_offset = static_cast<size_t>(mask) * group_count_;
+    const int count = mask_group_count_[mask];
+    std::array<double, 16> rooted;
+    std::array<double, 16> fixed;
+    const std::uint16_t* compact = unit_distance_ ? unit_distance_ + static_cast<size_t>(vertex) * group_count_ : nullptr;
+    const bool direct_distance = !distance.front().bounded;
+    for (int position = 0; position < count; ++position)
+    {
+        const int group = mask_groups_[group_offset + position];
+        rooted[position] = compact ? compact[group] : direct_distance ? distance[group].value[vertex] : distance[group][vertex];
+        fixed[position] = fp::kInf;
+    }
+    const size_t pair_offset = endpoint_pair_offset_[mask];
+
+    int pivot = -1;
+    double pivot_score = -1.0;
+    for (int position = 0; position < count; ++position)
+    {
+        const double score = rooted[position] + endpoint_floor_by_position_[group_offset + position];
+        if (score > pivot_score)
+        {
+            pivot = position;
+            pivot_score = score;
+        }
+    }
+    lower = std::max(lower, pivot_score * 0.5);
+    if (!CanStillImprove(lower))
+    {
+        exact = false;
+        return lower;
+    }
+    // 先完整求最强 pivot 的固定端点项；只触碰 count-1 个 pair，命中拒绝时
+    // 不再为其余端点支付三角扫描。候选加法始终按较小位置在前，保持 At 的
+    // 规范浮点求和顺序。
+    for (int other = 0; other < count; ++other)
+    {
+        if (other == pivot)
+            continue;
+        const int left = std::min(pivot, other);
+        const int right = std::max(pivot, other);
+        const size_t pair_index = kPairIndex[count][(left << 4) | right];
+        const double candidate = rooted[left] + endpoint_pair_path_[pair_offset + pair_index] + rooted[right];
+        fixed[left] = std::min(fixed[left], candidate);
+        fixed[right] = std::min(fixed[right], candidate);
+    }
+    double value = fixed[pivot];
+    lower = std::max(lower, value * 0.5);
+    if (!CanStillImprove(lower))
+    {
+        exact = count == 2;
+        return lower;
+    }
+
+    // pivot 已覆盖的 pair 直接跳过；其余 pair 按与 At 相同的规范上三角顺序
+    // 顺扫，因此未提前拒绝时返回逐候选一致的完整 tour 值。
+    size_t pair_index = pair_offset;
+    for (int left = 0; left < count; ++left)
+    {
+        for (int right = left + 1; right < count; ++right, ++pair_index)
+        {
+            if (left == pivot || right == pivot)
+                continue;
+            const double candidate = rooted[left] + endpoint_pair_path_[pair_index] + rooted[right];
+            fixed[left] = std::min(fixed[left], candidate);
+            fixed[right] = std::min(fixed[right], candidate);
+        }
+        if (left == pivot)
+            continue;
+        value = std::max(value, fixed[left]);
+        lower = std::max(lower, value * 0.5);
+        if (!CanStillImprove(lower))
+        {
+            const int higher_nonpivot = count - left - 1 - (pivot > left ? 1 : 0);
+            exact = higher_nonpivot == 0;
+            return lower;
+        }
+    }
+    exact = true;
+    return lower;
 }
 
 /** @brief 用最远根距离和最大终点自由路径值上包络完整 rooted tour。 */
@@ -733,10 +1064,9 @@ double TourLowerBound::EndpointFloorAt(int vertex, int mask, const GroupTable& d
 {
     if (!mask)
         return 0.0;
-    if (!(mask & (mask - 1)))
-        return distance[FirstBit(mask)][vertex];
-    const int group = endpoint_floor_left_[mask];
-    return (distance[group][vertex] + endpoint_floor_value_[mask]) * 0.5;
+    const int group = !(mask & (mask - 1)) ? FirstBit(mask) : endpoint_floor_left_[mask];
+    const double rooted = unit_distance_ ? unit_distance_[static_cast<size_t>(vertex) * group_count_ + group] : distance[group][vertex];
+    return !(mask & (mask - 1)) ? rooted : (rooted + endpoint_floor_value_[mask]) * 0.5;
 }
 
 /**
@@ -1306,12 +1636,109 @@ double BuildPrimalFacilityUpper(const Problem& p,
     return best;
 }
 
+/** @brief 为单位权图构造按顶点连续、按当前上界安全截止的组距离视图。 */
+void BuildUnitGroupDistanceView(Problem& p)
+{
+    if (!p.graph.all_edges_unit_weight || p.UsesBoundedGroupDistances() || !std::isfinite(p.best) ||
+        p.best != std::floor(p.best) || p.best <= 0.0 || p.best > std::numeric_limits<std::uint16_t>::max())
+        return;
+    const auto cap = static_cast<std::uint16_t>(p.best);
+    p.unit_group_distance_by_vertex.resize((static_cast<size_t>(p.graph.n) + 1) * p.g);
+    for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+    {
+        std::uint16_t* output = p.unit_group_distance_by_vertex.data() + static_cast<size_t>(vertex) * p.g;
+        for (int group = 0; group < p.g; ++group)
+        {
+            const double value = p.group_distance[group].value[vertex];
+            if (value < p.best && (value < 0.0 || value != std::floor(value)))
+            {
+                p.unit_group_distance_by_vertex.clear();
+                p.unit_group_distance_by_vertex.shrink_to_fit();
+                return;
+            }
+            output[group] = value < p.best ? static_cast<std::uint16_t>(value) : cap;
+        }
+    }
+    p.tour.SetUnitDistanceView(p.unit_group_distance_by_vertex);
+}
+
+/** @brief 构造从每个根到各组路径上最少非查询候选顶点数的 0-1 距离。 */
+void BuildUnitNonterminalGroupDistanceView(Problem& p)
+{
+    if (!p.graph.all_edges_unit_weight || !std::isfinite(p.best) || p.best != std::floor(p.best) ||
+        p.best <= 0.0 || p.best >= std::numeric_limits<std::uint16_t>::max() || p.component_cover.root_component_group_mask.empty())
+        return;
+    const auto cap = static_cast<std::uint16_t>(p.best + 1.0);
+    p.unit_nonterminal_group_distance_by_vertex.assign((static_cast<size_t>(p.graph.n) + 1) * p.g, cap);
+    p.unit_nonterminal_first_group.assign(p.graph.n + 1, 255);
+    p.unit_nonterminal_second_group.assign(p.graph.n + 1, 255);
+    std::vector<std::uint16_t> distance(p.graph.n + 1, cap);
+    std::vector<unsigned char> settled(p.graph.n + 1);
+    for (int group = 0; group < p.g; ++group)
+    {
+        std::fill(distance.begin(), distance.end(), cap);
+        std::fill(settled.begin(), settled.end(), 0);
+        std::deque<int> queue;
+        for (int terminal : p.query.groups[group])
+        {
+            if (distance[terminal] == 0)
+                continue;
+            distance[terminal] = 0;
+            queue.push_back(terminal);
+        }
+        while (!queue.empty())
+        {
+            const int vertex = queue.front();
+            queue.pop_front();
+            if (settled[vertex])
+                continue;
+            settled[vertex] = 1;
+            for (const AdjEdge& edge : p.graph.adj[vertex])
+            {
+                const bool next_is_candidate = p.component_cover.root_component_group_mask[edge.to] != 0;
+                const auto next = static_cast<std::uint16_t>(distance[vertex] + !next_is_candidate);
+                if (next >= cap || next >= distance[edge.to])
+                    continue;
+                distance[edge.to] = next;
+                if (next_is_candidate)
+                    queue.push_front(edge.to);
+                else
+                    queue.push_back(edge.to);
+            }
+        }
+        for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+        {
+            const size_t offset = static_cast<size_t>(vertex) * p.g;
+            p.unit_nonterminal_group_distance_by_vertex[offset + group] = distance[vertex];
+            unsigned char& first = p.unit_nonterminal_first_group[vertex];
+            unsigned char& second = p.unit_nonterminal_second_group[vertex];
+            if (first == 255 || distance[vertex] > p.unit_nonterminal_group_distance_by_vertex[offset + first])
+            {
+                second = first;
+                first = static_cast<unsigned char>(group);
+            }
+            else if (second == 255 || distance[vertex] > p.unit_nonterminal_group_distance_by_vertex[offset + second])
+                second = static_cast<unsigned char>(group);
+        }
+    }
+}
+
 /** @brief 先检查全局最远组，未命中时按当前距离 realization 扫描剩余组。 */
 double FarthestRemaining(const Problem& p, int vertex, int original_mask)
 {
     if (!original_mask)
         return 0.0;
     const int cached = p.farthest_group[vertex];
+    if (!p.unit_group_distance_by_vertex.empty())
+    {
+        const std::uint16_t* distance = p.unit_group_distance_by_vertex.data() + static_cast<size_t>(vertex) * p.g;
+        if (original_mask & (1 << cached))
+            return distance[cached];
+        std::uint16_t value = 0;
+        for (int bits = original_mask; bits; bits &= bits - 1)
+            value = std::max(value, distance[FirstBit(bits & -bits)]);
+        return value;
+    }
     if (original_mask & (1 << cached))
         return p.group_distance[cached][vertex];
     double value = 0.0;
@@ -1328,6 +1755,61 @@ double FarthestRemaining(const Problem& p, int vertex, int original_mask)
     return value;
 }
 
+/** @brief 先检查全局最近组，未命中时扫描剩余组；距离 realization 可向下但不可向上。 */
+double NearestRemaining(const Problem& p, int vertex, int original_mask)
+{
+    assert(p.graph.all_edges_unit_weight && !p.nearest_group.empty() && original_mask);
+    const int cached = p.nearest_group[vertex];
+    if (!p.unit_group_distance_by_vertex.empty())
+    {
+        const std::uint16_t* distance = p.unit_group_distance_by_vertex.data() + static_cast<size_t>(vertex) * p.g;
+        if (original_mask & (1 << cached))
+            return distance[cached];
+        std::uint16_t value = std::numeric_limits<std::uint16_t>::max();
+        for (int bits = original_mask; bits; bits &= bits - 1)
+            value = std::min(value, distance[FirstBit(bits & -bits)]);
+        return value;
+    }
+    if (original_mask & (1 << cached))
+        return p.group_distance[cached][vertex];
+    double value = fp::kInf;
+    for (int bits = original_mask; bits; bits &= bits - 1)
+        value = std::min(value, p.group_distance[FirstBit(bits & -bits)][vertex]);
+    return value;
+}
+
+/** @brief 返回到剩余组任一路径不可避免的最多非查询候选顶点数，不计根。 */
+double FarthestRequiredNonterminal(const Problem& p, int vertex, int original_mask)
+{
+    if (p.unit_nonterminal_group_distance_by_vertex.empty() || !original_mask)
+        return 0.0;
+    const std::uint16_t* distance = p.unit_nonterminal_group_distance_by_vertex.data() + static_cast<size_t>(vertex) * p.g;
+    std::uint16_t value = 0;
+    const int first = p.unit_nonterminal_first_group[vertex];
+    const int second = p.unit_nonterminal_second_group[vertex];
+    if (original_mask & (1 << first))
+        value = distance[first];
+    else if (second != 255 && (original_mask & (1 << second)))
+        value = distance[second];
+    else
+        for (int bits = original_mask; bits; bits &= bits - 1)
+            value = std::max(value, distance[FirstBit(bits & -bits)]);
+    if (!p.component_cover.root_component_group_mask[vertex] && value)
+        --value;
+    return value;
+}
+
+/** @brief 返回 strict-unit DirectedCut 的 rooted-entry 安全证书；非适用配置无额外下界。 */
+double RootedEntryCoverLower(const Problem& p, int vertex, int original_mask)
+{
+    if (!p.UsesDirectedCut() || !original_mask || !p.graph.all_edges_unit_weight)
+        return 0.0;
+    const int uncovered = original_mask & ~static_cast<int>(p.component_cover.root_component_group_mask[vertex]);
+    if (!uncovered)
+        return p.component_cover.SubsetLower(original_mask);
+    return p.component_cover.UnitRootedEntryLower(original_mask, vertex, NearestRemaining(p, vertex, uncovered), FarthestRequiredNonterminal(p, vertex, uncovered));
+}
+
 /** @brief 从零开始计算 farthest/tour/可选 directed-cut 的统一 future 下界。 */
 double FutureBound(const Problem& p, int vertex, int original_mask)
 {
@@ -1336,17 +1818,43 @@ double FutureBound(const Problem& p, int vertex, int original_mask)
 }
 
 /** @brief 复用已通过廉价检查的 farthest，再计算较贵 tour 与可选 dual。 */
+double PrimaryFutureBound(const Problem& p,
+                          int vertex,
+                          int original_mask,
+                          double farthest)
+{
+    double value = std::max(farthest, RootedEntryCoverLower(p, vertex, original_mask));
+    if (value < p.tour.UpperEnvelope(original_mask, farthest))
+        value = std::max(value, p.tour.At(vertex, original_mask, p.group_distance));
+    if (p.UsesDirectedCut())
+        value = std::max(value, p.dual.At(vertex, original_mask));
+    return CloseCompletionLower(p, value);
+}
+
+/** @brief 在主 future 上再取独立反序 packing 的最大值。 */
+double SymmetricFutureBound(const Problem& p,
+                            int vertex,
+                            int original_mask,
+                            double farthest)
+{
+    assert(p.symmetric_dual_ready);
+    return CloseCompletionLower(p, std::max(PrimaryFutureBound(p, vertex, original_mask, farthest), SymmetricPackingBound(p, vertex, original_mask)));
+}
+
+/** @brief 读取已购买反序 packing 对指定 rooted completion 的安全下界。 */
+double SymmetricPackingBound(const Problem& p, int vertex, int original_mask)
+{
+    assert(p.symmetric_dual_ready);
+    return p.symmetric_dual.At(vertex, original_mask);
+}
+
+/** @brief 按反序 packing 是否已购买选择主 future 或两套 packing 的最大值。 */
 double FutureBound(const Problem& p,
                    int vertex,
                    int original_mask,
                    double farthest)
 {
-    double value = farthest;
-    if (value < p.tour.UpperEnvelope(original_mask, farthest))
-        value = std::max(value, p.tour.At(vertex, original_mask, p.group_distance));
-    if (p.UsesDirectedCut())
-        value = std::max(value, p.dual.At(vertex, original_mask));
-    return value;
+    return p.symmetric_dual_ready ? SymmetricFutureBound(p, vertex, original_mask, farthest) : PrimaryFutureBound(p, vertex, original_mask, farthest);
 }
 
 /** @brief singleton 天然可用；多组状态必须显式 `ready`，空 mask 不算 ordinary。 */
@@ -1365,7 +1873,9 @@ bool PrepareProblem(Problem& p)
 {
     p.g = static_cast<int>(p.query.groups.size());
     p.half = p.g / 2;
-    p.component_cover = ComputeComponentCover(p.graph, p.query);
+    // 至多三组由共同 root-star 恒等式直接闭包，不存在 rooted future 消费者；
+    // 这里只按证明得出的状态生命周期省去 O(n) 根分量掩码，不是经验分段。
+    p.component_cover = ComputeComponentCover(p.graph, p.query, p.g > 3 && p.UsesDirectedCut() && p.graph.all_edges_unit_weight);
     if (p.component_cover.cover_number == 1)
     {
         p.best = 0.0;
@@ -1437,22 +1947,10 @@ bool PrepareProblem(Problem& p)
             p.original_mask[mask ^ (1 << bit)] | (1 << p.bit_to_group[bit]);
     }
 
-    p.farthest_group.resize(p.graph.n + 1);
-    for (int vertex = 1; vertex <= p.graph.n; ++vertex)
-    {
-        int farthest = 0;
-        double farthest_value = p.group_distance.front()[vertex];
-        for (int group = 1; group < p.g; ++group)
-        {
-            const double value = p.group_distance[group][vertex];
-            if (value > farthest_value)
-            {
-                farthest = group;
-                farthest_value = value;
-            }
-        }
-        p.farthest_group[vertex] = static_cast<unsigned char>(farthest);
-    }
+    if (!p.component_cover.root_component_group_mask.empty())
+        BuildExtremeGroupCache<true>(p);
+    else
+        BuildExtremeGroupCache<false>(p);
 
     std::vector<std::vector<double>> metric(
         p.g, std::vector<double>(p.g, fp::kInf));
@@ -1504,6 +2002,7 @@ bool PrepareProblem(Problem& p)
 
     p.ordinary.assign(p.subset_count, {});
     p.ordinary_minimum.assign(p.subset_count, fp::kInf);
+    BuildUnitGroupDistanceView(p);
 
     // 到此只完成当前配置的 witness 构造，不无条件执行树 DP。Base 的
     // root-path tree 与 DirectedCut 的 dual-primal tree 随后都交给跨 A1/D 的

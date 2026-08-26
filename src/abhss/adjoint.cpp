@@ -19,7 +19,7 @@ double AnchoredValue(const Problem& p,
                      int vertex)
 {
     return mask ? RowValue(anchored[mask], vertex)
-                : p.group_distance[p.anchor_group][vertex];
+                : p.group_distance[p.anchor_group].value[vertex];
 }
 
 /**
@@ -41,7 +41,7 @@ void ForEachBackwardBranchSum(const Problem& p,
         // lambda：把 singleton 组距离加到同顶点 H 值后交给调用者。
         ForEachValue(backward, [&](int vertex, double value)
         {
-            use(vertex, value + singleton[vertex]);
+            use(vertex, value + singleton.value[vertex]);
         });
         return;
     }
@@ -65,7 +65,7 @@ void ForEachBackwardValueSum(const Problem& p, int block, const Row& backward, U
     {
         const auto& singleton = p.group_distance[p.bit_to_group[FirstBit(block)]];
         // lambda：把 singleton 精确距离加到同顶点 H 值。
-        ForEachValue(backward, [&](int vertex, double value) { use(vertex, value + singleton[vertex]); });
+        ForEachValue(backward, [&](int vertex, double value) { use(vertex, value + singleton.value[vertex]); });
         return;
     }
     // lambda：把普通 row 全值加到同顶点 H 值；branch 约束可能已由 successor 承担。
@@ -89,6 +89,7 @@ struct TerminalEntry
  * 直接 terminal 负责补齐 successor 递推无法表示的平衡 split。所有候选
  * 都由互斥的真实 rooted D 值组成，筛选只使用可采纳下界。
  */
+template <bool kSymmetricDual, bool kUnitWeight>
 void BuildTransposedTerminals(Problem& p,
                               int low_last,
                               int high_last,
@@ -110,8 +111,10 @@ void BuildTransposedTerminals(Problem& p,
         if (OrdinaryAvailable(p, mask))
             transposed_masks.push_back(mask);
 
-    std::array<std::vector<TerminalEntry>, 64> values_by_offset;
     std::vector<size_t> cursor(p.subset_count);
+    // 配置合同规定 AdjointH 只与 DirectedCut 同时启用，因此所有组距离均为
+    // complete-potential dense row；本文件的 singleton 消费者可直接读 value。
+    std::vector<int> singleton_masks;
     std::vector<double> subset_potential(p.subset_count);
     std::vector<int> subset_stamp(p.subset_count);
     std::vector<double> value_at_mask(p.subset_count);
@@ -121,195 +124,278 @@ void BuildTransposedTerminals(Problem& p,
     std::vector<int> touched_targets;
     int potential_epoch = 0;
     int value_epoch = 0;
-    const size_t word_count = (static_cast<size_t>(p.graph.n + 1) + 63) / 64;
+    for (int mask : transposed_masks)
+        if (p.popcount[mask] == 1)
+            singleton_masks.push_back(mask);
 
-    for (size_t word = 0; word < word_count; ++word)
+    // lambda：两种转置布局只负责聚集当前顶点的真实 payload；后续排序、
+    // split 枚举与全部可采纳证书共用这一份数学实现。
+    auto ProcessVertex = [&](int vertex, std::vector<TerminalEntry>& values)
     {
-        for (auto& values : values_by_offset)
-            values.clear();
-        const int first_vertex = std::max(1, static_cast<int>(word << 6));
-        const int end_vertex = std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
-        for (int mask : transposed_masks)
+        if (values.empty())
+            return;
+        ++potential_epoch;
+        subset_stamp[0] = potential_epoch;
+        subset_potential[0] = 0.0;
+        // lambda：按当前顶点的 epoch 递归缓存任意 mask 的组势和。
+        auto Potential = [&](auto&& self, int mask) -> double
         {
-            const int size = p.popcount[mask];
-            if (size == 1)
+            if (subset_stamp[mask] == potential_epoch)
+                return subset_potential[mask];
+            const int bit = mask & -mask;
+            subset_stamp[mask] = potential_epoch;
+            subset_potential[mask] = self(self, mask ^ bit) + p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
+            return subset_potential[mask];
+        };
+        const double full_potential = p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, p.full_mask);
+        const double budget = p.best - full_potential;
+        if (budget < 0.0)
+            return;
+        for (auto& entry : values)
+            entry.reduced = entry.value - Potential(Potential, entry.mask);
+        std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
+        {
+            return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask;
+        });
+
+        touched_targets.clear();
+        // lambda：登记某个 H 目标在当前顶点的最小外侧代价。调用点已先筛 cover，
+        // 这里仍保留目标域合同；实测删除该短检查会使偶数层转置的物理常数略退化。
+        auto Update = [&](int target, double value)
+        {
+            const int size = p.popcount[target];
+            if (size <= low_last || size > high_last)
+                return;
+            if (terminal_best[target] >= fp::kInf)
+                touched_targets.push_back(target);
+            terminal_best[target] = std::min(terminal_best[target], value);
+        };
+
+        // ordinary 层域按 size 向下闭合。若最小 terminal cover 都没有完整 D，
+        // 更大的 cover 也不可能有单块 terminal，整次逐值扫描严格为空。
+        if (direct_auxiliary_layer)
+        {
+            // 已有完整 ordinary row 时直接转置；辅助层的该项还支配同层 pair。
+            for (const auto& entry : values)
             {
-                const auto& row = p.group_distance[p.bit_to_group[FirstBit(mask)]];
-                for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
-                    values_by_offset[vertex & 63].push_back({mask, row[vertex], 0.0});
-                continue;
-            }
-            const Row& row = p.ordinary[mask];
-            size_t& index = cursor[mask];
-            while (index < row.vertex.size() && row.vertex[index] < end_vertex)
-            {
-                values_by_offset[row.vertex[index] & 63].push_back({mask, row.value[index], 0.0});
-                ++index;
+                if (entry.reduced > budget)
+                    break;
+                const int cover = p.popcount[entry.mask];
+                if (cover >= minimum_terminal_cover && cover <= maximum_terminal_cover)
+                    Update(p.full_mask ^ entry.mask, entry.value);
             }
         }
 
-        for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
+        ++value_epoch;
+        long long submask_work = 0;
+        for (const auto& entry : values)
         {
-            auto& values = values_by_offset[vertex & 63];
-            if (values.empty())
-                continue;
-            ++potential_epoch;
-            subset_stamp[0] = potential_epoch;
-            subset_potential[0] = 0.0;
-            // lambda：按当前顶点的 epoch 递归缓存任意 mask 的组势和。
-            auto Potential = [&](auto&& self, int mask) -> double
-            {
-                if (subset_stamp[mask] == potential_epoch)
-                    return subset_potential[mask];
-                const int bit = mask & -mask;
-                subset_stamp[mask] = potential_epoch;
-                subset_potential[mask] = self(self, mask ^ bit) + p.dual.GroupAt(vertex, p.bit_to_group[FirstBit(bit)]);
-                return subset_potential[mask];
-            };
-            const double full_potential = p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, p.full_mask);
-            const double budget = p.best - full_potential;
-            if (budget < 0.0)
-                continue;
-            for (auto& entry : values)
-                entry.reduced = entry.value - Potential(Potential, entry.mask);
-            std::sort(values.begin(), values.end(), [](const auto& a, const auto& b)
-            {
-                return a.reduced != b.reduced ? a.reduced < b.reduced : a.mask < b.mask;
-            });
+            value_stamp[entry.mask] = value_epoch;
+            value_at_mask[entry.mask] = entry.value;
+            reduced_at_mask[entry.mask] = entry.reduced;
+            submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
+        }
 
-            touched_targets.clear();
-            // lambda：登记某个 H 目标在当前顶点的最小外侧代价。调用点已先筛 cover，
-            // 这里仍保留目标域合同；实测删除该短检查会使偶数层转置的物理常数略退化。
-            auto Update = [&](int target, double value)
-            {
-                const int size = p.popcount[target];
-                if (size <= low_last || size > high_last)
-                    return;
-                if (terminal_best[target] >= fp::kInf)
-                    touched_targets.push_back(target);
-                terminal_best[target] = std::min(terminal_best[target], value);
-            };
+        // 先估计排序 pair 与互补 submask 的真实循环项数，再枚举同一候选集。
+        long long pair_work = 0;
+        size_t right_limit = values.size();
+        for (size_t left = 0; left + 1 < values.size(); ++left)
+        {
+            while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
+                --right_limit;
+            if (right_limit <= left + 1)
+                break;
+            pair_work += static_cast<long long>(right_limit - left - 1);
+            if (pair_work > submask_work)
+                break;
+        }
 
-            // ordinary 层域按 size 向下闭合。若最小 terminal cover 都没有完整 D，
-            // 更大的 cover 也不可能有单块 terminal，整次逐值扫描严格为空。
-            if (direct_auxiliary_layer)
+        if (pair_work <= submask_work)
+        {
+            for (size_t left = 0; left < values.size(); ++left)
             {
-                // 已有完整 ordinary row 时直接转置；辅助层的该项还支配同层 pair。
-                for (const auto& entry : values)
+                if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
+                    break;
+                for (size_t right = left + 1; right < values.size(); ++right)
                 {
-                    if (entry.reduced > budget)
+                    const double pair_reduced = values[left].reduced + values[right].reduced;
+                    if (pair_reduced > budget)
                         break;
-                    const int cover = p.popcount[entry.mask];
-                    if (cover >= minimum_terminal_cover && cover <= maximum_terminal_cover)
-                        Update(p.full_mask ^ entry.mask, entry.value);
+                    if (values[left].mask & values[right].mask)
+                        continue;
+                    const int pair_union = values[left].mask | values[right].mask;
+                    const int cover = p.popcount[pair_union];
+                    if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
+                        continue;
+                    if (direct_auxiliary_layer && cover == minimum_terminal_cover)
+                        continue;
+                    Update(p.full_mask ^ pair_union, values[left].value + values[right].value);
                 }
             }
-
-            ++value_epoch;
-            long long submask_work = 0;
-            for (const auto& entry : values)
+        }
+        else
+        {
+            for (const auto& left : values)
             {
-                value_stamp[entry.mask] = value_epoch;
-                value_at_mask[entry.mask] = entry.value;
-                reduced_at_mask[entry.mask] = entry.reduced;
-                submask_work += (static_cast<long long>(p.subset_count) >> p.popcount[entry.mask]) - 1;
-            }
-
-            // 先估计排序 pair 与互补 submask 的真实循环项数，再枚举同一候选集。
-            long long pair_work = 0;
-            size_t right_limit = values.size();
-            for (size_t left = 0; left + 1 < values.size(); ++left)
-            {
-                while (right_limit > left + 1 && values[left].reduced + values[right_limit - 1].reduced > budget)
-                    --right_limit;
-                if (right_limit <= left + 1)
-                    break;
-                pair_work += static_cast<long long>(right_limit - left - 1);
-                if (pair_work > submask_work)
-                    break;
-            }
-
-            if (pair_work <= submask_work)
-            {
-                for (size_t left = 0; left < values.size(); ++left)
+                const int complement = p.full_mask ^ left.mask;
+                for (int right = complement; right; right = (right - 1) & complement)
                 {
-                    if (left + 1 == values.size() || values[left].reduced + values[left + 1].reduced > budget)
-                        break;
-                    for (size_t right = left + 1; right < values.size(); ++right)
-                    {
-                        const double pair_reduced = values[left].reduced + values[right].reduced;
-                        if (pair_reduced > budget)
-                            break;
-                        if (values[left].mask & values[right].mask)
-                            continue;
-                        const int pair_union = values[left].mask | values[right].mask;
-                        const int cover = p.popcount[pair_union];
-                        if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
-                            continue;
-                        if (direct_auxiliary_layer && cover == minimum_terminal_cover)
-                            continue;
-                        Update(p.full_mask ^ pair_union, values[left].value + values[right].value);
-                    }
+                    if (right <= left.mask || value_stamp[right] != value_epoch)
+                        continue;
+                    const int pair_union = left.mask | right;
+                    const int cover = p.popcount[pair_union];
+                    if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
+                        continue;
+                    if (direct_auxiliary_layer && cover == minimum_terminal_cover)
+                        continue;
+                    const double pair_reduced = left.reduced + reduced_at_mask[right];
+                    if (pair_reduced <= budget)
+                        Update(p.full_mask ^ pair_union, left.value + value_at_mask[right]);
                 }
             }
+        }
+
+        for (int target : touched_targets)
+        {
+            const int included = p.anchor_bit | p.original_mask[target];
+            const double farthest = FarthestRemaining(p, vertex, included);
+            double prefix;
+            if constexpr (kUnitWeight)
+                prefix = CloseCompletionLower(p, std::max(farthest, RootedEntryCoverLower(p, vertex, included)));
             else
+                prefix = farthest;
+            bool can_improve = terminal_best[target] + prefix < p.best;
+            if (can_improve)
             {
-                for (const auto& left : values)
-                {
-                    const int complement = p.full_mask ^ left.mask;
-                    for (int right = complement; right; right = (right - 1) & complement)
-                    {
-                        if (right <= left.mask || value_stamp[right] != value_epoch)
-                            continue;
-                        const int pair_union = left.mask | right;
-                        const int cover = p.popcount[pair_union];
-                        if (cover < minimum_terminal_cover || cover > maximum_terminal_cover)
-                            continue;
-                        if (direct_auxiliary_layer && cover == minimum_terminal_cover)
-                            continue;
-                        const double pair_reduced = left.reduced + reduced_at_mask[right];
-                        if (pair_reduced <= budget)
-                            Update(p.full_mask ^ pair_union, left.value + value_at_mask[right]);
-                    }
-                }
+                double dual_prefix = p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, target);
+                if constexpr (kSymmetricDual)
+                    dual_prefix = std::max(dual_prefix, SymmetricPackingBound(p, vertex, included));
+                if constexpr (kUnitWeight)
+                    prefix = CloseCompletionLower(p, std::max(prefix, dual_prefix));
+                else
+                    prefix = std::max(prefix, dual_prefix);
+                can_improve = terminal_best[target] + prefix < p.best;
             }
-
-            for (int target : touched_targets)
+            if (can_improve && prefix < p.tour.UpperEnvelope(included, farthest))
             {
-                const int included = p.anchor_bit | p.original_mask[target];
-                const double farthest = FarthestRemaining(p, vertex, included);
-                double prefix = std::max(farthest, p.dual.GroupAt(vertex, p.anchor_group) + Potential(Potential, target));
-                if (prefix < p.tour.UpperEnvelope(included, farthest))
+                if constexpr (kUnitWeight)
+                {
+                    bool tour_exact = false;
+                    prefix = p.tour.AtUntilRejected(vertex, included, p.group_distance, terminal_best[target], p.best, prefix, true, tour_exact);
+                    prefix = CloseCompletionLower(p, prefix);
+                    can_improve = tour_exact && terminal_best[target] + prefix < p.best;
+                }
+                else
+                {
                     prefix = std::max(prefix, p.tour.At(vertex, included, p.group_distance));
-                if (terminal_best[target] + prefix < p.best)
-                {
-                    terminal_vertex[target].push_back(vertex);
-                    terminal_value[target].push_back(terminal_best[target]);
+                    can_improve = terminal_best[target] + prefix < p.best;
                 }
-                terminal_best[target] = fp::kInf;
             }
+            if (can_improve)
+            {
+                terminal_vertex[target].push_back(vertex);
+                terminal_value[target].push_back(terminal_best[target]);
+            }
+            terminal_best[target] = fp::kInf;
+        }
+    };
+
+    if constexpr (kUnitWeight)
+    {
+        // strict-unit 图的 ordinary row 通常很稀疏：每张 row 只挂下一项，
+        // 按顶点消费后再挂后继，避免扫描没有 payload 的 row/block 组合。
+        std::vector<int> bucket_head(p.graph.n + 1, -1);
+        std::vector<int> row_next(p.subset_count, -1);
+        for (int mask : transposed_masks)
+        {
+            if (p.popcount[mask] == 1 || p.ordinary[mask].vertex.empty())
+                continue;
+            const int vertex = p.ordinary[mask].vertex.front();
+            row_next[mask] = bucket_head[vertex];
+            bucket_head[vertex] = mask;
+        }
+
+        std::vector<TerminalEntry> values;
+        for (int vertex = 1; vertex <= p.graph.n; ++vertex)
+        {
+            values.clear();
+            for (int mask : singleton_masks)
+            {
+                const auto& row = p.group_distance[p.bit_to_group[FirstBit(mask)]];
+                values.push_back({mask, row.value[vertex], 0.0});
+            }
+            for (int mask = bucket_head[vertex]; mask != -1;)
+            {
+                const int next_mask = row_next[mask];
+                const Row& row = p.ordinary[mask];
+                size_t& index = cursor[mask];
+                values.push_back({mask, row.value[index], 0.0});
+                ++index;
+                if (index < row.vertex.size())
+                {
+                    const int next_vertex = row.vertex[index];
+                    row_next[mask] = bucket_head[next_vertex];
+                    bucket_head[next_vertex] = mask;
+                }
+                mask = next_mask;
+            }
+            ProcessVertex(vertex, values);
+        }
+    }
+    else
+    {
+        // 一般加权图恢复 64 顶点块转置。它与事件桶交给 ProcessVertex 的
+        // payload 完全相同，但在高 g 稠密状态上具有更好的连续访问与分配常数。
+        std::array<std::vector<TerminalEntry>, 64> values_by_offset;
+        const size_t word_count = (static_cast<size_t>(p.graph.n + 1) + 63) / 64;
+        for (size_t word = 0; word < word_count; ++word)
+        {
+            for (auto& values : values_by_offset)
+                values.clear();
+            const int first_vertex = std::max(1, static_cast<int>(word << 6));
+            const int end_vertex = std::min(p.graph.n + 1, static_cast<int>((word + 1) << 6));
+            for (int mask : transposed_masks)
+            {
+                if (p.popcount[mask] == 1)
+                {
+                    const auto& row = p.group_distance[p.bit_to_group[FirstBit(mask)]];
+                    for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
+                        values_by_offset[vertex & 63].push_back({mask, row.value[vertex], 0.0});
+                    continue;
+                }
+                const Row& row = p.ordinary[mask];
+                size_t& index = cursor[mask];
+                while (index < row.vertex.size() && row.vertex[index] < end_vertex)
+                {
+                    values_by_offset[row.vertex[index] & 63].push_back({mask, row.value[index], 0.0});
+                    ++index;
+                }
+            }
+            for (int vertex = first_vertex; vertex < end_vertex; ++vertex)
+                ProcessVertex(vertex, values_by_offset[vertex & 63]);
         }
     }
 }
 
 }  // namespace
 
-void SolveHighAdjoint(Problem& p,
-                       const std::vector<Row>& anchored,
-                       int low_last,
-                       int high_last,
-                       const char* probe_method)
+template <bool kSymmetricDual, bool kUnitWeight>
+void SolveHighAdjointImpl(Problem& p,
+                          const std::vector<Row>& anchored,
+                          int low_last,
+                          int high_last,
+                          const char* probe_method)
 {
     std::vector<std::vector<int>> terminal_vertex;
     std::vector<std::vector<double>> terminal_value;
     ProbeTimer transpose_timer;
-    BuildTransposedTerminals(p, low_last, high_last, terminal_vertex, terminal_value);
+    BuildTransposedTerminals<kSymmetricDual, kUnitWeight>(p, low_last, high_last, terminal_vertex, terminal_value);
     EmitAbhssProbe(probe_method, "adjoint_transpose", p, transpose_timer.Seconds());
 
     std::vector<Row> backward(p.subset_count);
     std::vector<double> distance(p.graph.n + 1, fp::kInf);
     std::vector<double> prefix_cache(p.graph.n + 1);
-    std::vector<int> prefix_stamp(p.graph.n + 1);
+    std::vector<int> prefix_state(p.graph.n + 1);
     int stamp = 0;
     std::vector<int> touched;
     std::vector<int> settled;
@@ -350,23 +436,71 @@ void SolveHighAdjoint(Problem& p,
             settled.clear();
             ++stamp;
             const int included = p.anchor_bit | p.original_mask[mask];
-            // lambda：缓存当前 H 目标在顶点处的 farthest/tour/dual 公共前缀下界。
-            auto Prefix = [&](int vertex)
+            // lambda：一般加权图首次完整计算并缓存 H 前缀；strict-unit 图先以
+            // rooted/farthest/dual 逐级拒绝，未完成 tour 用负 stamp 保留可恢复阶段。
+            auto CanImprove = [&](int vertex, double value)
             {
-                if (prefix_stamp[vertex] == stamp)
-                    return prefix_cache[vertex];
-                prefix_stamp[vertex] = stamp;
-                const double farthest = FarthestRemaining(p, vertex, included);
-                double prefix = std::max(farthest, p.dual.At(vertex, included));
+                if constexpr (!kUnitWeight)
+                {
+                    if (prefix_state[vertex] != stamp)
+                    {
+                        const double farthest = FarthestRemaining(p, vertex, included);
+                        double prefix = p.dual.At(vertex, included);
+                        if constexpr (kSymmetricDual)
+                            prefix = std::max(prefix, SymmetricPackingBound(p, vertex, included));
+                        prefix = std::max(prefix, farthest);
+                        if (prefix < p.tour.UpperEnvelope(included, farthest))
+                            prefix = std::max(prefix, p.tour.At(vertex, included, p.group_distance));
+                        prefix_cache[vertex] = prefix;
+                        prefix_state[vertex] = stamp;
+                    }
+                    return value + prefix_cache[vertex] < p.best;
+                }
+
+                const int state = prefix_state[vertex];
+                if (state == stamp)
+                    return value + prefix_cache[vertex] < p.best;
+
+                double prefix = prefix_cache[vertex];
+                double farthest = -1.0;
+                if (state == -stamp)
+                {
+                    if (!(value + prefix < p.best))
+                        return false;
+                }
+                else
+                {
+                    farthest = FarthestRemaining(p, vertex, included);
+                    prefix = CloseCompletionLower(p, std::max(farthest, RootedEntryCoverLower(p, vertex, included)));
+                    if (!(value + prefix < p.best))
+                        return false;
+                    double dual_prefix = p.dual.At(vertex, included);
+                    if constexpr (kSymmetricDual)
+                        dual_prefix = std::max(dual_prefix, SymmetricPackingBound(p, vertex, included));
+                    prefix = CloseCompletionLower(p, std::max(prefix, dual_prefix));
+                    prefix_cache[vertex] = prefix;
+                    prefix_state[vertex] = -stamp;
+                    if (!(value + prefix < p.best))
+                        return false;
+                }
+                if (farthest < 0.0)
+                    farthest = FarthestRemaining(p, vertex, included);
                 if (prefix < p.tour.UpperEnvelope(included, farthest))
-                    prefix = std::max(prefix, p.tour.At(vertex, included, p.group_distance));
-                prefix_cache[vertex] = prefix;
-                return prefix_cache[vertex];
+                {
+                    bool tour_exact = false;
+                    prefix = p.tour.AtUntilRejected(vertex, included, p.group_distance, value, p.best, prefix, true, tour_exact);
+                    prefix = CloseCompletionLower(p, prefix);
+                    prefix_cache[vertex] = prefix;
+                    if (!tour_exact)
+                        return false;
+                }
+                prefix_state[vertex] = stamp;
+                return value + prefix < p.best;
             };
             // lambda：仅登记仍可能严格改善 incumbent 的 H 距离标签。
             auto Set = [&](int vertex, double value)
             {
-                if (value >= distance[vertex] || !(value + Prefix(vertex) < p.best))
+                if (value >= distance[vertex] || !CanImprove(vertex, value))
                     return;
                 if (distance[vertex] >= fp::kInf)
                     touched.push_back(vertex);
@@ -401,7 +535,7 @@ void SolveHighAdjoint(Problem& p,
                 for (const auto& edge : p.graph.adj[node.vertex])
                 {
                     const double next = node.distance + edge.w;
-                    if (next >= distance[edge.to] || !(next + Prefix(edge.to) < p.best))
+                    if (next >= distance[edge.to] || !CanImprove(edge.to, next))
                         continue;
                     if (distance[edge.to] >= fp::kInf)
                         touched.push_back(edge.to);
@@ -431,7 +565,7 @@ void SolveHighAdjoint(Problem& p,
                 // lambda：把互补辅助 H row 与锚组距离结算为真实平衡完成上界。
                 ForEachRowValueIntersection(row, other, [&](int vertex, double left, double right)
                 {
-                    const double anchor = p.group_distance[p.anchor_group].ExactValueOrInf(vertex);
+                    const double anchor = p.group_distance[p.anchor_group].value[vertex];
                     if (anchor < fp::kInf)
                         p.best = std::min(p.best, left + right + anchor);
                 });
@@ -445,6 +579,25 @@ void SolveHighAdjoint(Problem& p,
         EmitAbhssProbe(
             probe_method, "adjoint_layer", p, layer_timer.Seconds(), &backward, size);
     }
+}
+
+void SolveHighAdjoint(Problem& p,
+                      const std::vector<Row>& anchored,
+                      int low_last,
+                      int high_last,
+                      const char* probe_method)
+{
+    if (p.graph.all_edges_unit_weight)
+    {
+        if (p.symmetric_dual_ready)
+            SolveHighAdjointImpl<true, true>(p, anchored, low_last, high_last, probe_method);
+        else
+            SolveHighAdjointImpl<false, true>(p, anchored, low_last, high_last, probe_method);
+    }
+    else if (p.symmetric_dual_ready)
+        SolveHighAdjointImpl<true, false>(p, anchored, low_last, high_last, probe_method);
+    else
+        SolveHighAdjointImpl<false, false>(p, anchored, low_last, high_last, probe_method);
 }
 
 }  // namespace gst::methods::abhss::internal
