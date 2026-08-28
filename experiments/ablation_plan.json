@@ -1,19 +1,82 @@
 {
-  "schema_version": 1,
-  "status": "preregistered-before-results",
+  "interpretation_guards": [
+    "do not combine per-query best variants",
+    "do not use ablation to replace main experiments",
+    "report regressions and timeouts without removing cells"
+  ],
+  "panels": [
+    {
+      "id": "configuration_chain",
+      "new_tasks": 45,
+      "question": "incremental contribution of DirectedCut and the Adjoint replacement",
+      "variants": [
+        {
+          "arguments": [
+            "--enhancements=none"
+          ],
+          "executable": "build/abhss",
+          "id": "base",
+          "reuse_matching_main_records": true
+        },
+        {
+          "arguments": [
+            "--enhancements=directed-cut"
+          ],
+          "executable": "build/abhss",
+          "id": "directed_cut_only",
+          "reuse_matching_main_records": false
+        },
+        {
+          "arguments": [
+            "--enhancements=all"
+          ],
+          "executable": "build/abhss",
+          "id": "enhanced",
+          "reuse_matching_main_records": true
+        }
+      ]
+    },
+    {
+      "ablated_variants": [
+        "without_endpoint_floor_base",
+        "without_endpoint_floor_enhanced"
+      ],
+      "id": "common_a1_endpoint_floor",
+      "isolated_build": {
+        "exactness": "FarthestRemaining remains an admissible 1-Lipschitz continuation; this weakens pruning only",
+        "executable": "build-ablation-no-endpoint-floor/abhss",
+        "forbidden": "runtime switch, graph/g/time/state-dependent branch, or any other source/configuration change",
+        "only_allowed_semantic_change": {
+          "ablation": "FarthestRemaining(...)",
+          "production": "max(FarthestRemaining(...), TourLowerBound::EndpointFloorAt(...))"
+        },
+        "source_file": "src/abhss/core.cpp",
+        "symbol": "AnchoredSingletonContinuation"
+      },
+      "new_tasks": 90,
+      "production_variants": [
+        "base",
+        "enhanced"
+      ],
+      "question": "contribution of endpoint-floor inside the common A1 continuation cone"
+    }
+  ],
   "paper_role": "minimal mechanism ablation; separate from the formal P1/P2/S2 matrix",
-  "source_suite": "P2_cross_g",
-  "timeout_seconds_per_query": 10000,
+  "reporting": [
+    "completed/5",
+    "PAR-2",
+    "paired runtime on jointly completed queries",
+    "peak RSS",
+    "mask_vertex_states",
+    "timeout direction"
+  ],
+  "schema_version": 1,
   "selection": {
+    "cells": 9,
     "datasets": [
       "Musae-GPU4GST",
       "Youtube-GPU4GST",
       "Orkut-GPU4GST"
-    ],
-    "size_classes": [
-      "small",
-      "medium",
-      "large"
     ],
     "g": [
       6,
@@ -28,19 +91,21 @@
       5
     ],
     "panel_tranche": 1,
-    "cells": 9,
     "queries": 45,
-    "selection_rule": "fixed before ablation timing; one graph per size/structure regime, three predeclared group counts, and one query from each of five input-size strata"
+    "selection_rule": "fixed before ablation timing; one graph per size/structure regime, three predeclared group counts, and one query from each of five input-size strata",
+    "size_classes": [
+      "small",
+      "medium",
+      "large"
+    ]
   },
   "shared_execution_contract": {
-    "single_compute_thread": true,
-    "same_machine_and_toolchain_as_main": true,
-    "no_per_query_configuration_selection": true,
     "correctness_gate": [
       "repository CTest",
       "zero-weight witness fixture",
       "independent exact small-graph comparison"
     ],
+    "no_per_query_configuration_selection": true,
     "required_output": [
       "status",
       "solution_status",
@@ -48,81 +113,16 @@
       "solver_seconds",
       "peak_rss_mib",
       "mask_vertex_states"
-    ]
+    ],
+    "same_machine_and_toolchain_as_main": true,
+    "single_compute_thread": true
   },
-  "panels": [
-    {
-      "id": "configuration_chain",
-      "question": "incremental contribution of DirectedCut and the Adjoint replacement",
-      "variants": [
-        {
-          "id": "base",
-          "executable": "build/abhss",
-          "arguments": [
-            "--enhancements=none"
-          ],
-          "reuse_matching_main_records": true
-        },
-        {
-          "id": "directed_cut_only",
-          "executable": "build/abhss",
-          "arguments": [
-            "--enhancements=directed-cut"
-          ],
-          "reuse_matching_main_records": false
-        },
-        {
-          "id": "enhanced",
-          "executable": "build/abhss",
-          "arguments": [
-            "--enhancements=all"
-          ],
-          "reuse_matching_main_records": true
-        }
-      ],
-      "new_tasks": 45
-    },
-    {
-      "id": "common_a1_endpoint_floor",
-      "question": "contribution of endpoint-floor inside the common A1 continuation cone",
-      "production_variants": [
-        "base",
-        "enhanced"
-      ],
-      "ablated_variants": [
-        "without_endpoint_floor_base",
-        "without_endpoint_floor_enhanced"
-      ],
-      "isolated_build": {
-        "executable": "build-ablation-no-endpoint-floor/abhss",
-        "source_file": "src/abhss/core.cpp",
-        "symbol": "AnchoredSingletonContinuation",
-        "only_allowed_semantic_change": {
-          "production": "max(FarthestRemaining(...), TourLowerBound::EndpointFloorAt(...))",
-          "ablation": "FarthestRemaining(...)"
-        },
-        "forbidden": "runtime switch, graph/g/time/state-dependent branch, or any other source/configuration change",
-        "exactness": "FarthestRemaining remains an admissible 1-Lipschitz continuation; this weakens pruning only"
-      },
-      "new_tasks": 90
-    }
-  ],
-  "total_new_tasks": 135,
-  "reporting": [
-    "completed/5",
-    "PAR-2",
-    "paired runtime on jointly completed queries",
-    "peak RSS",
-    "mask_vertex_states",
-    "timeout direction"
-  ],
+  "source_suite": "P2_cross_g",
+  "status": "preregistered-before-results",
   "stop_conditions": [
     "any objective or feasibility mismatch",
     "isolated build diff is not exactly the registered semantic change"
   ],
-  "interpretation_guards": [
-    "do not combine per-query best variants",
-    "do not use ablation to replace main experiments",
-    "report regressions and timeouts without removing cells"
-  ]
+  "timeout_seconds_per_query": 3600,
+  "total_new_tasks": 135
 }

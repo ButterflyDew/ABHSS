@@ -29,13 +29,13 @@ sys.path.insert(0, str(RUNNER.parent))
 import run_experiments as experiment_runner  # noqa: E402
 
 CPUS = (4, 5)
-TIMEOUT = 10_000
+TIMEOUT = 3_600
 P1_SUITES = ("P1_monogstplus_published", "P1_gpu4gst_published")
 P2_SUITE = "P2_cross_g"
 S2_SUITE = "S2_controlled_gf"
 ABHSS_SHA256 = "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced"
 PRUNED_SHA256 = "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2"
-DEFAULT_RUN_DIR = ROOT / "results" / "paper_runs" / "final_g15_campaign_793d4e_20260820"
+DEFAULT_RUN_DIR = ROOT / "results" / "paper_runs" / "final_3600s_campaign_793d4e_20260828"
 P1_OURS_DIRS = (
     ROOT / "results" / "paper_runs" / "final_793d4e_p1_w0_cpu4_20260818",
     ROOT / "results" / "paper_runs" / "final_793d4e_p1_w1_cpu5_20260818",
@@ -47,6 +47,18 @@ ORKUT_DIRS = (
     ROOT / "results" / "paper_runs" / "final_793d4e_orkut_g15_w1_cpu5",
 )
 ORKUT_AUDIT = ROOT / "results" / "paper_runs" / "final_793d4e_orkut_g15_audit.json"
+NO_TL_ENHANCED_DIRS = (
+    ROOT / "results" / "paper_runs" / "enhanced_over3600_no_tl_793d4e_20260827" / "workers" / "cpu4",
+    ROOT / "results" / "paper_runs" / "enhanced_over3600_no_tl_793d4e_20260827" / "workers" / "cpu5",
+)
+P2_ENHANCED_DIRS = (
+    ROOT / "results" / "paper_runs" / "final_g15_campaign_793d4e_20260820" / "workers" / "cpu4",
+    ROOT / "results" / "paper_runs" / "final_g15_campaign_793d4e_20260820" / "workers" / "cpu5",
+    *ORKUT_DIRS,
+    *NO_TL_ENHANCED_DIRS,
+)
+S2_G15_ENHANCED_DIRS = NO_TL_ENHANCED_DIRS
+HISTORICAL_ENHANCED_DIRS = tuple(dict.fromkeys((*P2_ENHANCED_DIRS, *S2_G15_ENHANCED_DIRS)))
 OLD_P2_ESTIMATE_DIR = ROOT / "results" / "paper_runs" / "p2_dual_full_enhanced_adaptive_frontier_672bd253cdde_20260802"
 OLD_S2_ESTIMATE_DIR = ROOT / "results" / "paper_runs" / "gf_dual_q3_probe_1000s_clean_672bd253cdde_20260802"
 
@@ -97,6 +109,87 @@ def record_map_under(directory: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
+def historical_enhanced_map() -> dict[str, dict[str, Any]]:
+    """Return only reusable current P2 and S2 g=15 Enhanced outcomes.
+
+    Older S2 g=6/g=10 task keys collide with the revised grid but refer to
+    retired query contents, so they are deliberately excluded here.
+    """
+    result: dict[str, dict[str, Any]] = {}
+    for directory in HISTORICAL_ENHANCED_DIRS:
+        for row in records_from(directory):
+            reusable_p2 = row.get("suite") == P2_SUITE
+            reusable_s2 = row.get("suite") == S2_SUITE and int(row.get("g", -1)) == 15 and row.get("dataset") in {"DBLP-MonoGSTPlus", "Toronto-MonoGSTPlus"}
+            if row.get("method") != "abhss_enhanced" or not (reusable_p2 or reusable_s2):
+                continue
+            key = row["task_key"]
+            if key in result:
+                raise RuntimeError(f"duplicate historical Enhanced record for {key}")
+            result[key] = row
+    return result
+
+
+def historical_p1_rows() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for directory in P1_OURS_DIRS:
+        rows.extend(records_from(directory))
+    rows.extend(row for row in records_from(P1_PRUNED_DIR) if row.get("method") == "pruneddp_safe")
+    return rows
+
+
+def completed_within_formal_timeout(row: dict[str, Any] | None) -> bool:
+    if row is None or row.get("status") != "ok" or row.get("solver_seconds") is None:
+        return False
+    return float(row["solver_seconds"]) <= TIMEOUT
+
+
+def formalize_historical_record(row: dict[str, Any], run_id: str) -> dict[str, Any]:
+    formal = dict(row)
+    formal["source_run_id"] = row.get("run_id")
+    formal["source_timeout_seconds"] = row.get("timeout_seconds")
+    formal["run_id"] = run_id
+    formal["timeout_seconds"] = TIMEOUT
+    formal["formal_reuse"] = True
+    seconds = float(row.get("solver_seconds") or 0.0)
+    if row.get("status") == "ok" and seconds > TIMEOUT:
+        formal["formal_censored_from_completed"] = True
+        formal["raw_solver_seconds"] = seconds
+        formal["exact_reference_weight"] = row.get("weight")
+        formal["exact_reference_solution_status"] = row.get("solution_status")
+        formal["status"] = "timeout"
+        formal["solver_seconds"] = None
+        formal["weight"] = None
+        formal["solution_status"] = None
+        formal["query_memory_peak_mib"] = None
+        formal["mask_vertex_states"] = None
+        formal["watchdog_wall_seconds"] = TIMEOUT
+    return formal
+
+
+def write_historical_formal_records(run_dir: Path) -> dict[str, Any]:
+    raw_rows = historical_p1_rows() + list(historical_enhanced_map().values())
+    by_key = {row["task_key"]: row for row in raw_rows}
+    if len(raw_rows) != 25_714 or len(by_key) != len(raw_rows):
+        raise RuntimeError(f"historical formal materialization expected 25714 unique tasks, got {len(raw_rows)}/{len(by_key)}")
+    formal_rows = [formalize_historical_record(by_key[key], run_dir.name) for key in sorted(by_key)]
+    target = run_dir / "historical_formal_records.jsonl"
+    temporary = target.with_suffix(".jsonl.tmp")
+    with temporary.open("w", encoding="utf-8", newline="\n") as output:
+        for row in formal_rows:
+            output.write(json.dumps(row, sort_keys=True) + "\n")
+    temporary.replace(target)
+    censored = [row for row in formal_rows if row.get("formal_censored_from_completed")]
+    return {
+        "records": len(formal_rows),
+        "formal_timeouts_from_raw_completion": len(censored),
+        "censored_by_suite_method": {
+            str(key): value for key, value in sorted(Counter((row["suite"], row["method"]) for row in censored).items())
+        },
+        "path": str(target.relative_to(ROOT)),
+        "policy": "reporting-only TL=3600 view; source records remain unchanged and raw exact outcomes are used only for correctness checks",
+    }
+
+
 def load_cases() -> list[Any]:
     return experiment_runner.expand_cases(read_json(CONFIG))
 
@@ -135,6 +228,8 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
     production = static_plan.get("production_identity", {})
     if production.get("abhss_sha256") != ABHSS_SHA256 or production.get("pruneddp_sha256") != PRUNED_SHA256 or production.get("physical_cpus") != list(CPUS) or int(production.get("timeout_seconds_per_query", -1)) != TIMEOUT:
         raise RuntimeError("static campaign plan and scheduler production identities disagree")
+    if production.get("paper_matrix_sha256") != sha256_file(CONFIG) or production.get("query_feasibility_audit_sha256") != sha256_file(ROOT / "experiments" / "query_feasibility_audit.json"):
+        raise RuntimeError("static campaign plan does not pin the current matrix and feasibility audit")
     if sha256_file(ROOT / "build" / "abhss") != ABHSS_SHA256:
         raise RuntimeError("build/abhss is not the frozen production binary")
     if sha256_file(ROOT / "build" / "pruneddp") != PRUNED_SHA256:
@@ -152,24 +247,23 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
     if any(len(queries[case.case_id]) != 10 for case in p2_cases):
         raise RuntimeError("every P2 cell must contain ten queries")
     s2_cases = [case for case in cases if case.suite == S2_SUITE]
-    if len(s2_cases) != 30 or any(len(queries[case.case_id]) != 5 for case in s2_cases):
-        raise RuntimeError("S2 must contain 30 five-query cells")
+    s2_grid = {(case.dataset, int(case.attributes["g"]), int(case.attributes["f_target"])) for case in s2_cases}
+    if len(s2_cases) != 50 or {g for _, g, _ in s2_grid} != {3, 6, 9, 12, 15} or any(len(queries[case.case_id]) != 10 for case in s2_cases):
+        raise RuntimeError("S2 must contain 50 ten-query cells over g={3,6,9,12,15}")
 
     p1_audit = read_json(P1_AUDIT)
     if not p1_audit.get("correctness_passed") or not p1_audit.get("performance_passed"):
         raise RuntimeError("the frozen P1 audit did not pass")
     if p1_audit.get("binary_sha256") != ABHSS_SHA256:
         raise RuntimeError("the P1 audit used a different ABHSS binary")
-    p1_rows = []
     for directory in P1_OURS_DIRS:
         metadata = read_json(directory / "run_metadata.json")
         if metadata.get("binary_sha256", {}).get("abhss_base") != ABHSS_SHA256 or metadata.get("binary_sha256", {}).get("abhss_enhanced") != ABHSS_SHA256:
             raise RuntimeError(f"historical P1 worker has another ABHSS binary: {directory}")
-        p1_rows.extend(records_from(directory))
     pruned_metadata = read_json(P1_PRUNED_DIR / "run_metadata.json")
     if pruned_metadata.get("binary_sha256", {}).get("pruneddp_safe") != PRUNED_SHA256:
         raise RuntimeError("historical P1 baseline has another PrunedDP++ binary")
-    p1_rows.extend(row for row in records_from(P1_PRUNED_DIR) if row.get("method") == "pruneddp_safe")
+    p1_rows = historical_p1_rows()
     p1_actual = {row["task_key"] for row in p1_rows}
     p1_expected = expected_keys(cases, queries, set(P1_SUITES), ("abhss_base", "abhss_enhanced", "pruneddp_safe"))
     if len(p1_rows) != len(p1_actual) or p1_actual != p1_expected or any(row.get("status") != "ok" for row in p1_rows):
@@ -178,16 +272,42 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
     orkut_audit = read_json(ORKUT_AUDIT)
     if not orkut_audit.get("passed") or orkut_audit.get("binary_sha256") != ABHSS_SHA256:
         raise RuntimeError("the frozen Orkut g=15 audit is not reusable")
-    orkut_rows = []
-    for directory in ORKUT_DIRS:
+    for directory in HISTORICAL_ENHANCED_DIRS:
         metadata = read_json(directory / "run_metadata.json")
         if metadata.get("binary_sha256", {}).get("abhss_enhanced") != ABHSS_SHA256:
-            raise RuntimeError(f"historical Orkut worker has another ABHSS binary: {directory}")
-        orkut_rows.extend(records_from(directory))
-    orkut_case = next(case for case in p2_cases if case.dataset == "Orkut-GPU4GST" and int(case.attributes["g"]) == 15)
-    orkut_expected = {experiment_runner.task_key(orkut_case, "abhss_enhanced", query.index) for query in queries[orkut_case.case_id]}
-    if len(orkut_rows) != 10 or {row["task_key"] for row in orkut_rows} != orkut_expected or any(row.get("status") != "ok" for row in orkut_rows):
-        raise RuntimeError("historical Orkut g=15 records do not cover q1--q10 exactly")
+            raise RuntimeError(f"historical Enhanced worker has another ABHSS binary: {directory}")
+
+    historical = historical_enhanced_map()
+    p2_expected = expected_keys(cases, queries, {P2_SUITE}, ("abhss_enhanced",))
+    s2_g15_cases = [case for case in s2_cases if int(case.attributes["g"]) == 15]
+    s2_g15_expected = {
+        experiment_runner.task_key(case, "abhss_enhanced", query.index)
+        for case in s2_g15_cases
+        for query in queries[case.case_id]
+    }
+    historical_expected = p2_expected | s2_g15_expected
+    if set(historical) != historical_expected or len(p2_expected) != 660 or len(s2_g15_expected) != 100:
+        raise RuntimeError(f"historical Enhanced coverage is {len(set(historical) & historical_expected)}/{len(historical_expected)} with {len(set(historical) - historical_expected)} stale keys")
+    if any(row.get("status") != "ok" for row in historical.values()):
+        raise RuntimeError("historical Enhanced reuse contains a non-completed raw outcome")
+
+    case_by_id = {case.case_id: case for case in cases}
+    for row in historical.values():
+        case = case_by_id[row["case_id"]]
+        expected_graph = str(case.graph_path.relative_to(ROOT)).replace("\\", "/")
+        expected_query = str(case.query_path.relative_to(ROOT)).replace("\\", "/")
+        if row.get("graph_path") != expected_graph or row.get("query_path") != expected_query or int(row.get("g", -1)) != int(case.attributes["g"]):
+            raise RuntimeError(f"historical Enhanced input identity changed for {row['task_key']}")
+
+    frozen_g15_hashes = static_plan.get("historical_reuse", {}).get("S2_g15_Enhanced", {}).get("query_sha256", {})
+    if len(frozen_g15_hashes) != 10 or any(sha256_file(ROOT / path) != digest for path, digest in frozen_g15_hashes.items()):
+        raise RuntimeError("one or more retained S2 g=15 query files changed")
+    raw_s2_g15 = [historical[key] for key in s2_g15_expected]
+    p1_over_tl = sum(float(row.get("solver_seconds") or 0.0) > TIMEOUT for row in p1_rows)
+    p2_over_tl = sum(float(historical[key].get("solver_seconds") or 0.0) > TIMEOUT for key in p2_expected)
+    s2_over_tl = sum(float(row.get("solver_seconds") or 0.0) > TIMEOUT for row in raw_s2_g15)
+    if (p1_over_tl, p2_over_tl, s2_over_tl) != (2, 3, 6):
+        raise RuntimeError(f"historical TL=3600 censor counts changed: P1={p1_over_tl}, P2={p2_over_tl}, S2={s2_over_tl}")
 
     return {
         "validated_at": utc_now(),
@@ -195,8 +315,9 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
         "current_matrix_sha256": sha256_file(CONFIG),
         "binary_sha256": {"abhss": ABHSS_SHA256, "pruneddp": PRUNED_SHA256},
         "cpus": [{"cpu": cpu, "package_core": topology(cpu)} for cpu in CPUS],
-        "p1": {"status": "reused", "records": len(p1_rows), "sources": [str(path.relative_to(ROOT)) for path in (*P1_OURS_DIRS, P1_PRUNED_DIR)], "audit": str(P1_AUDIT.relative_to(ROOT))},
-        "p2_orkut_g15_enhanced": {"status": "reused", "records": len(orkut_rows), "sources": [str(path.relative_to(ROOT)) for path in ORKUT_DIRS], "audit": str(ORKUT_AUDIT.relative_to(ROOT))},
+        "p1": {"status": "reused", "records": len(p1_rows), "over_formal_timeout": p1_over_tl, "sources": [str(path.relative_to(ROOT)) for path in (*P1_OURS_DIRS, P1_PRUNED_DIR)], "audit": str(P1_AUDIT.relative_to(ROOT))},
+        "p2_enhanced": {"status": "reused", "records": len(p2_expected), "over_formal_timeout": p2_over_tl, "sources": [str(path.relative_to(ROOT)) for path in P2_ENHANCED_DIRS], "orkut_audit": str(ORKUT_AUDIT.relative_to(ROOT))},
+        "s2_g15_enhanced": {"status": "reused_raw_no_tl", "records": len(s2_g15_expected), "over_formal_timeout": s2_over_tl, "sources": [str(path.relative_to(ROOT)) for path in S2_G15_ENHANCED_DIRS]},
     }
 
 
@@ -214,8 +335,8 @@ def estimate_tables() -> tuple[dict[str, float], dict[str, str]]:
     for row in records_from(OLD_S2_ESTIMATE_DIR):
         if row.get("method") != "abhss_enhanced" or row.get("query_index") != 3:
             continue
-        values[row["case_id"]] = 5.0 * float(row.get("solver_seconds") or TIMEOUT)
-        sources[row["case_id"]] = "historical predeclared q3 Enhanced probe scaled to five queries"
+        values[row["case_id"]] = 10.0 * float(row.get("solver_seconds") or TIMEOUT)
+        sources[row["case_id"]] = "historical predeclared q3 Enhanced probe scaled to ten queries"
     return values, sources
 
 
@@ -229,7 +350,6 @@ class Job:
     query_indices: tuple[int, ...]
     estimate_seconds: float
     estimate_source: str
-    stop_on_timeout: bool = False
 
     @property
     def job_id(self) -> str:
@@ -240,26 +360,28 @@ class Job:
 def estimate_job(case: Any, estimate: dict[str, float], sources: dict[str, str], query_count: int) -> tuple[float, str]:
     if case.case_id in estimate:
         base = estimate[case.case_id]
-        total = 10 if case.suite == P2_SUITE else 5
+        total = 10
         return base * query_count / total, sources[case.case_id]
     g = int((case.attributes or {}).get("g", 1))
     with (case.graph_path / "graph.txt").open("r", encoding="utf-8") as source:
         n, m = map(int, source.readline().split()[:2])
-    return 1e9 + (2**g) * (n + m) * query_count / 1e6, "deterministic graph-size/subset-count fallback used only for queue ordering"
+    return max(0.001, (2**g) * (n + m) * query_count / 1e6), "deterministic graph-size/subset-count fallback used only for queue ordering"
 
 
 def build_enhanced_jobs(cases: list[Any], queries: dict[str, list[Any]]) -> list[Job]:
     estimate, sources = estimate_tables()
+    historical_keys = set(historical_enhanced_map())
     jobs = []
     for case in cases:
         if case.suite not in (P2_SUITE, S2_SUITE):
             continue
-        if case.suite == P2_SUITE and case.dataset == "Orkut-GPU4GST" and int(case.attributes["g"]) == 15:
+        indices = tuple(query.index for query in queries[case.case_id] if experiment_runner.task_key(case, "abhss_enhanced", query.index) not in historical_keys)
+        if not indices:
             continue
-        indices = tuple(query.index for query in queries[case.case_id])
         cost, source = estimate_job(case, estimate, sources, len(indices))
-        jobs.append(Job("enhanced_main", case.suite, case.case_id, case.dataset, "abhss_enhanced", indices, cost, source, True))
-    return sorted(jobs, key=lambda job: (job.estimate_seconds, job.suite, job.case_id))
+        jobs.append(Job("enhanced_main", case.suite, case.case_id, case.dataset, "abhss_enhanced", indices, cost, source))
+    case_by_id = {case.case_id: case for case in cases}
+    return sorted(jobs, key=lambda job: (int(case_by_id[job.case_id].attributes["g"]), job.estimate_seconds, job.case_id))
 
 
 def prepare(run_dir: Path) -> dict[str, Any]:
@@ -267,6 +389,8 @@ def prepare(run_dir: Path) -> dict[str, Any]:
     queries = case_query_map(cases)
     reuse = validate_identity(cases, queries)
     jobs = build_enhanced_jobs(cases, queries)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    historical_formal = write_historical_formal_records(run_dir)
     plan = {
         "schema_version": 1,
         "prepared_at": utc_now(),
@@ -274,17 +398,18 @@ def prepare(run_dir: Path) -> dict[str, Any]:
         "run_dir": str(run_dir.relative_to(ROOT)),
         "cpus": list(CPUS),
         "timeout_seconds_per_query": TIMEOUT,
-        "phase_order": ["reuse_p1_and_orkut_g15", "enhanced_main_fast_to_slow", "p2_base_pruned_ascending_g", "s2_base_pruned_fast_to_slow", "minimal_ablations"],
+        "phase_order": ["reuse_and_formal_censor", "enhanced_main_ascending_g_then_estimated_fast_to_slow", "p2_base_pruned_adaptive_frontier", "s2_base_pruned_adaptive_frontier", "minimal_ablations"],
         "enhanced_jobs": [asdict(job) | {"job_id": job.job_id} for job in jobs],
         "enhanced_new_tasks": sum(len(job.query_indices) for job in jobs),
-        "enhanced_reused_p2_tasks": 10,
+        "enhanced_reused_p2_tasks": 660,
+        "enhanced_reused_s2_g15_tasks": 100,
         "p1_reused_tasks": 24_954,
+        "historical_formal": historical_formal,
         "p2_competitor_tasks_before_likely_timeout_stops": 1_320,
-        "s2_competitor_tasks": 300,
+        "s2_competitor_tasks_before_likely_timeout_stops": 1_000,
         "ablation_new_tasks": 135,
     }
-    run_dir.mkdir(parents=True, exist_ok=True)
-    write_json(run_dir / "reuse_manifest.json", reuse)
+    write_json(run_dir / "reuse_manifest.json", reuse | {"historical_formal": historical_formal})
     write_json(run_dir / "execution_plan.json", plan)
     state_path = run_dir / "campaign_state.json"
     if not state_path.exists():
@@ -338,7 +463,7 @@ def terminate_active(active: dict[int, ActiveJob]) -> None:
         running.log.close()
 
 
-def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_name: str, config: Path = CONFIG, allow_timeout: bool = True) -> None:
+def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_name: str, config: Path = CONFIG) -> None:
     worker_root = run_dir / worker_name
     logs = run_dir / "scheduler_logs"
     logs.mkdir(parents=True, exist_ok=True)
@@ -367,8 +492,6 @@ def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_
                 command = ["taskset", "-c", str(cpu), sys.executable, str(RUNNER), "--config", str(config), "--run-id", run_dir.name, "--run-dir", str(worker_dir), "--suite", job.suite, "--case", job.case_id, "--method", job.method, "--timeout", str(TIMEOUT)]
                 for index in missing:
                     command += ["--query-index", str(index)]
-                if job.stop_on_timeout:
-                    command.append("--stop-on-timeout")
                 log.write(f"\n[{utc_now()}] {' '.join(command)}\n")
                 log.flush()
                 process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -390,8 +513,6 @@ def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_
                     raise CampaignStop(f"{running.job.job_id} exited with code {code}")
                 if any(status not in ("ok", "timeout") for status in statuses):
                     raise CampaignStop(f"{running.job.job_id} produced abnormal statuses {dict(statuses)}")
-                if not allow_timeout and statuses.get("timeout", 0):
-                    raise CampaignStop(f"Enhanced reached the 10000-second limit in {running.job.job_id}")
                 if code == 4:
                     raise CampaignStop(f"stop-on-timeout triggered in {running.job.job_id}")
                 if len(rows) != len(running.expected_keys):
@@ -407,18 +528,14 @@ def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_
     set_state(run_dir, active={})
 
 
-def historical_orkut_map() -> dict[str, dict[str, Any]]:
-    return {row["task_key"]: row for directory in ORKUT_DIRS for row in records_from(directory)}
-
-
 def validate_enhanced_complete(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]]) -> None:
-    rows = record_map_under(run_dir / "workers") | historical_orkut_map()
+    rows = record_map_under(run_dir / "workers") | historical_enhanced_map()
     expected = expected_keys(cases, queries, {P2_SUITE, S2_SUITE}, ("abhss_enhanced",))
     if set(rows) & expected != expected:
         raise CampaignStop(f"Enhanced coverage is {len(set(rows) & expected)}/{len(expected)}")
-    bad = [rows[key] for key in expected if rows[key].get("status") != "ok"]
+    bad = [rows[key] for key in expected if rows[key].get("status") not in ("ok", "timeout")]
     if bad:
-        raise CampaignStop(f"Enhanced has non-ok records: {Counter(row.get('status') for row in bad)}")
+        raise CampaignStop(f"Enhanced has abnormal records: {Counter(row.get('status') for row in bad)}")
 
 
 def write_predicted_stops(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -434,22 +551,23 @@ def write_predicted_stops(path: Path, rows: list[dict[str, Any]]) -> None:
     temporary.replace(path)
 
 
-def validate_completed_quality(run_dir: Path, case_by_id: dict[str, Any], suites: set[str]) -> None:
-    records = record_map_under(run_dir / "workers")
-    references = records | historical_orkut_map()
+def validate_completed_quality(run_dir: Path, suites: set[str]) -> None:
+    all_rows = list(historical_enhanced_map().values()) + list(record_map_under(run_dir / "workers").values())
+    grouped: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in all_rows:
+        if row.get("suite") in suites and row.get("method") in ("abhss_base", "abhss_enhanced", "pruneddp_safe") and row.get("status") == "ok":
+            grouped[(row["suite"], row["case_id"], int(row["query_index"]))].append(row)
     mismatches = []
-    for row in records.values():
-        if row.get("suite") not in suites or row.get("method") not in ("abhss_base", "pruneddp_safe") or row.get("status") != "ok":
+    for identity, rows in grouped.items():
+        statuses = {row.get("solution_status") for row in rows}
+        if len(statuses) > 1:
+            mismatches.append((identity, "solution_status", sorted(map(str, statuses))))
             continue
-        case = case_by_id[row["case_id"]]
-        key = experiment_runner.task_key(case, "abhss_enhanced", int(row["query_index"]))
-        reference = references.get(key)
-        if reference is None or reference.get("status") != "ok" or reference.get("solution_status") != row.get("solution_status"):
-            mismatches.append((row["task_key"], key, "status"))
-        elif row.get("solution_status") == "feasible" and abs(float(reference["weight"]) - float(row["weight"])) > 1e-6:
-            mismatches.append((row["task_key"], key, "weight"))
+        weights = [float(row["weight"]) for row in rows if row.get("solution_status") == "feasible"]
+        if weights and max(weights) - min(weights) > 1e-6:
+            mismatches.append((identity, "weight", weights))
     if mismatches:
-        raise CampaignStop(f"completed main-method quality mismatches: {mismatches[:5]}")
+        raise CampaignStop(f"completed exact-method quality mismatches: {mismatches[:5]}")
 
 
 def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]], case_by_id: dict[str, Any]) -> None:
@@ -457,7 +575,7 @@ def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[
     p2 = {(case.dataset, int(case.attributes["g"])): case for case in cases if case.suite == P2_SUITE}
     datasets = sorted({dataset for dataset, _ in p2})
     stopped: set[tuple[str, str]] = set()
-    predicted_path = run_dir / "predicted_stops.jsonl"
+    predicted_path = run_dir / "p2_likely_timeout_not_run.jsonl"
     if predicted_path.exists():
         for line in predicted_path.read_text(encoding="utf-8").splitlines():
             row = json.loads(line)
@@ -472,10 +590,10 @@ def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[
                 cost, source = estimate_job(case, estimate, sources, 5)
                 tranche1.append(Job("p2_competitors_tranche1", P2_SUITE, case.case_id, dataset, method, (1, 2, 3, 4, 5), cost, source))
         tranche1.sort(key=lambda job: (job.estimate_seconds, job.method, job.dataset))
-        run_jobs(run_dir, tranche1, case_by_id, "workers", allow_timeout=True)
-        validate_completed_quality(run_dir, case_by_id, {P2_SUITE})
+        run_jobs(run_dir, tranche1, case_by_id, "workers")
+        validate_completed_quality(run_dir, {P2_SUITE})
         main_records = record_map_under(run_dir / "workers")
-        enhanced_records = main_records | historical_orkut_map()
+        enhanced_records = historical_enhanced_map() | main_records
         tranche2 = []
         predicted = []
         for job in tranche1:
@@ -483,10 +601,10 @@ def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[
             rows = [main_records.get(experiment_runner.task_key(case, job.method, index)) for index in job.query_indices]
             if any(row is None for row in rows):
                 raise CampaignStop(f"missing completed tranche-1 records for {job.job_id}")
-            if all(row.get("status") == "timeout" for row in rows):
-                enhanced_keys = [experiment_runner.task_key(case, "abhss_enhanced", index) for index in job.query_indices]
-                if any(enhanced_records.get(key, {}).get("status") != "ok" for key in enhanced_keys):
-                    raise CampaignStop(f"cannot certify likely-timeout stop without solved Enhanced references for {job.job_id}")
+            enhanced_keys = [experiment_runner.task_key(case, "abhss_enhanced", index) for index in job.query_indices]
+            five_real_timeouts = all(row.get("status") == "timeout" for row in rows)
+            enhanced_five_within_tl = all(completed_within_formal_timeout(enhanced_records.get(key)) for key in enhanced_keys)
+            if five_real_timeouts and enhanced_five_within_tl:
                 evidence = [row["task_key"] for row in rows]
                 for later_g in range(g, 16):
                     later = p2[(job.dataset, later_g)]
@@ -497,7 +615,7 @@ def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[
                         key = experiment_runner.task_key(later, job.method, query.index)
                         if key in main_records:
                             continue
-                        predicted.append({"schema_version": 1, "task_key": key, "suite": P2_SUITE, "case_id": later.case_id, "dataset": job.dataset, "g": later_g, "method": job.method, "query_index": query.index, "status": "not_run_likely_timeout", "not_a_formal_timeout": True, "criterion": "all five preregistered tranche-1 size-stratum queries at the current g reached the real 10000-second limit while Enhanced solved all five", "evidence_timeout_task_keys": evidence, "recorded_at": utc_now()})
+                        predicted.append({"schema_version": 2, "task_key": key, "suite": P2_SUITE, "case_id": later.case_id, "dataset": job.dataset, "g": later_g, "method": job.method, "query_index": query.index, "status": "not_run_likely_timeout", "not_a_formal_timeout": True, "timeout_seconds": TIMEOUT, "scope": "same graph/method at current remaining tranche and larger g", "criterion": "all five fixed input-size-stratum tranche-1 queries reached the real 3600-second limit while Enhanced completed those five within the same limit", "evidence_timeout_task_keys": evidence, "evidence_enhanced_task_keys": enhanced_keys, "recorded_at": utc_now()})
                 stopped.add((job.method, job.dataset))
             else:
                 cost, source = estimate_job(case, estimate, sources, 5)
@@ -505,24 +623,63 @@ def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[
         if predicted:
             write_predicted_stops(predicted_path, predicted)
         tranche2.sort(key=lambda job: (job.estimate_seconds, job.method, job.dataset))
-        run_jobs(run_dir, tranche2, case_by_id, "workers", allow_timeout=True)
-        validate_completed_quality(run_dir, case_by_id, {P2_SUITE})
+        run_jobs(run_dir, tranche2, case_by_id, "workers")
+        validate_completed_quality(run_dir, {P2_SUITE})
     set_state(run_dir, phase="p2_competitors_complete", p2_likely_timeout_stopped_lanes=[{"method": method, "dataset": dataset} for method, dataset in sorted(stopped)])
 
 
 def run_s2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]], case_by_id: dict[str, Any]) -> None:
     estimate, sources = estimate_tables()
-    jobs = []
-    for case in cases:
-        if case.suite != S2_SUITE:
-            continue
-        indices = tuple(query.index for query in queries[case.case_id])
-        cost, source = estimate_job(case, estimate, sources, len(indices))
+    s2 = {(case.dataset, int(case.attributes["g"]), int(case.attributes["f_target"])): case for case in cases if case.suite == S2_SUITE}
+    datasets = sorted({dataset for dataset, _, _ in s2})
+    g_values = sorted({g for _, g, _ in s2})
+    f_values = sorted({f for _, _, f in s2})
+    stopped: set[tuple[str, str, int]] = set()
+    predicted_path = run_dir / "s2_likely_timeout_not_run.jsonl"
+    if predicted_path.exists():
+        for line in predicted_path.read_text(encoding="utf-8").splitlines():
+            row = json.loads(line)
+            stopped.add((row["method"], row["dataset"], int(row["f_target"])))
+    for g in g_values:
+        jobs = []
         for method in ("abhss_base", "pruneddp_safe"):
-            jobs.append(Job("s2_competitors", S2_SUITE, case.case_id, case.dataset, method, indices, cost, source))
-    jobs.sort(key=lambda job: (job.estimate_seconds, job.method, job.case_id))
-    run_jobs(run_dir, jobs, case_by_id, "workers", allow_timeout=True)
-    validate_completed_quality(run_dir, case_by_id, {S2_SUITE})
+            for dataset in datasets:
+                for f_target in f_values:
+                    if (method, dataset, f_target) in stopped:
+                        continue
+                    case = s2[(dataset, g, f_target)]
+                    indices = tuple(query.index for query in queries[case.case_id])
+                    cost, source = estimate_job(case, estimate, sources, len(indices))
+                    jobs.append(Job("s2_competitors", S2_SUITE, case.case_id, dataset, method, indices, cost, source))
+        jobs.sort(key=lambda job: (job.estimate_seconds, job.method, job.case_id))
+        run_jobs(run_dir, jobs, case_by_id, "workers")
+        validate_completed_quality(run_dir, {S2_SUITE})
+        main_records = record_map_under(run_dir / "workers")
+        enhanced_records = historical_enhanced_map() | main_records
+        predicted = []
+        for job in jobs:
+            case = case_by_id[job.case_id]
+            f_target = int(case.attributes["f_target"])
+            rows = [main_records.get(experiment_runner.task_key(case, job.method, index)) for index in job.query_indices]
+            if any(row is None for row in rows):
+                raise CampaignStop(f"missing completed S2 cell records for {job.job_id}")
+            enhanced_keys = [experiment_runner.task_key(case, "abhss_enhanced", index) for index in job.query_indices]
+            ten_real_timeouts = all(row.get("status") == "timeout" for row in rows)
+            enhanced_ten_within_tl = all(completed_within_formal_timeout(enhanced_records.get(key)) for key in enhanced_keys)
+            if not (ten_real_timeouts and enhanced_ten_within_tl):
+                continue
+            evidence = [row["task_key"] for row in rows]
+            for later_g in (value for value in g_values if value > g):
+                later = s2[(job.dataset, later_g, f_target)]
+                for query in queries[later.case_id]:
+                    key = experiment_runner.task_key(later, job.method, query.index)
+                    if key in main_records:
+                        continue
+                    predicted.append({"schema_version": 2, "task_key": key, "suite": S2_SUITE, "case_id": later.case_id, "dataset": job.dataset, "g": later_g, "f_target": f_target, "method": job.method, "query_index": query.index, "status": "not_run_likely_timeout", "not_a_formal_timeout": True, "timeout_seconds": TIMEOUT, "scope": "same graph/method/f at larger g only", "criterion": "all ten queries at the current fixed graph/method/f/g reached the real 3600-second limit while Enhanced completed those ten within the same limit", "evidence_timeout_task_keys": evidence, "evidence_enhanced_task_keys": enhanced_keys, "recorded_at": utc_now()})
+            stopped.add((job.method, job.dataset, f_target))
+        if predicted:
+            write_predicted_stops(predicted_path, predicted)
+    set_state(run_dir, phase="s2_competitors_complete", s2_likely_timeout_stopped_lanes=[{"method": method, "dataset": dataset, "f_target": f_target} for method, dataset, f_target in sorted(stopped)])
 
 
 def prepare_ablation_config(run_dir: Path) -> Path:
@@ -556,8 +713,8 @@ def run_ablations(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]]
         for method in ("abhss_directed_cut_only", "abhss_no_endpoint_base", "abhss_no_endpoint_enhanced"):
             jobs.append(Job("minimal_ablations", P2_SUITE, case.case_id, case.dataset, method, (1, 2, 3, 4, 5), cost, source))
     jobs.sort(key=lambda job: (job.estimate_seconds, job.method, job.case_id))
-    run_jobs(run_dir, jobs, case_by_id, "ablation_workers", config, allow_timeout=True)
-    main = record_map_under(run_dir / "workers") | historical_orkut_map()
+    run_jobs(run_dir, jobs, case_by_id, "ablation_workers", config)
+    main = record_map_under(run_dir / "workers") | historical_enhanced_map()
     ablated = record_map_under(run_dir / "ablation_workers")
     mismatches = []
     for row in ablated.values():
@@ -576,8 +733,12 @@ def status(run_dir: Path) -> int:
     state = read_json(run_dir / "campaign_state.json") if (run_dir / "campaign_state.json").exists() else {"status": "not prepared"}
     main = record_map_under(run_dir / "workers")
     ablation = record_map_under(run_dir / "ablation_workers")
-    predicted = [json.loads(line) for line in (run_dir / "predicted_stops.jsonl").read_text().splitlines()] if (run_dir / "predicted_stops.jsonl").exists() else []
-    print(json.dumps({"state": state, "main_records": len(main), "main_statuses": {str(key): value for key, value in Counter((row.get("method"), row.get("status")) for row in main.values()).items()}, "ablation_records": len(ablation), "likely_timeout_not_run": len(predicted)}, indent=2, sort_keys=True))
+    predicted_counts = {}
+    for suite, name in ((P2_SUITE, "p2_likely_timeout_not_run.jsonl"), (S2_SUITE, "s2_likely_timeout_not_run.jsonl")):
+        path = run_dir / name
+        predicted_counts[suite] = len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
+    historical = read_json(run_dir / "reuse_manifest.json").get("historical_formal", {}) if (run_dir / "reuse_manifest.json").exists() else {}
+    print(json.dumps({"state": state, "main_records": len(main), "main_statuses": {str(key): value for key, value in Counter((row.get("method"), row.get("status")) for row in main.values()).items()}, "ablation_records": len(ablation), "likely_timeout_not_run": predicted_counts, "historical_formal": historical}, indent=2, sort_keys=True))
     return 0
 
 
@@ -595,15 +756,16 @@ def run_campaign(run_dir: Path) -> int:
         case_by_id = {case.case_id: case for case in cases}
         try:
             jobs = [Job(**{key: tuple(value) if key == "query_indices" else value for key, value in row.items() if key != "job_id"}) for row in plan["enhanced_jobs"]]
-            run_jobs(run_dir, jobs, case_by_id, "workers", allow_timeout=False)
+            run_jobs(run_dir, jobs, case_by_id, "workers")
             validate_enhanced_complete(run_dir, cases, queries)
             set_state(run_dir, phase="enhanced_main_complete")
             run_p2_competitors(run_dir, cases, queries, case_by_id)
             run_s2_competitors(run_dir, cases, queries, case_by_id)
             set_state(run_dir, phase="main_matrix_complete")
             run_ablations(run_dir, cases, queries)
-            predicted = run_dir / "predicted_stops.jsonl"
-            final_status = "complete_with_likely_timeout_stops" if predicted.exists() and predicted.stat().st_size else "complete"
+            predicted_paths = (run_dir / "p2_likely_timeout_not_run.jsonl", run_dir / "s2_likely_timeout_not_run.jsonl")
+            has_predicted = any(path.exists() and path.stat().st_size for path in predicted_paths)
+            final_status = "complete_with_likely_timeout_stops" if has_predicted else "complete"
             set_state(run_dir, status=final_status, phase="complete", completed_at=utc_now())
             return 0
         except CampaignStop as error:

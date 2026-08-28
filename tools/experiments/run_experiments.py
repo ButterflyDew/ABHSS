@@ -2,7 +2,7 @@
 """Resumable, per-instance-deadline experiment supervisor.
 
 Native solvers keep a graph loaded while consecutive queries run.  The
-supervisor starts (and resets) the 10,000-second deadline on the solver's
+supervisor starts (and resets) the configured per-query deadline on the solver's
 ``[Ready]``/``[Query]`` markers.  If one query times out, only that process is
 killed; the next query resumes in a fresh process.  Thus easy queries do not
 subsidize hard queries and a timeout never discards completed results.

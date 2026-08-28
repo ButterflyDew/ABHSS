@@ -1,7 +1,7 @@
 {
-  "schema_version": 10,
-  "audited_at": "2026-08-20",
-  "weight_tolerance": 1e-06,
+  "schema_version": 11,
+  "audited_at": "2026-08-28",
+  "weight_tolerance": 0.000001,
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
@@ -25,12 +25,17 @@
   "repository_consistency_audit": {
     "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
     "github_markdown": "PASS: all 15 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub fenced math syntax for display equations, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, GitHub-rejected operatorname macros, repository-rejected cases environments or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; post-push browser review must still require one MathML child per display and inline renderer plus zero visible renderer error/source-fallback nodes",
-    "machine_matrix": "PASS: validate_environment.py --require-performance-binaries expanded 137 cases and exactly 27,384 performance tasks (P1=8,318, P2=660, S2=150 queries across three methods); the separate ablation plan adds 135 preregistered variant tasks without changing the main matrix",
+    "machine_matrix": "PASS: validate_environment.py expanded 157 cases and exactly 28,434 performance tasks (P1=8,318, P2=660, S2=500 queries across three methods); the separate ablation plan adds 135 preregistered variant tasks without changing the main matrix",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
     "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 66 cells and 660 queries in a temporary directory; all 132 panel/group-ID files and selected-query JSON/CSV were byte-identical, and cells.json was identical after removing only the two output-location fields; retained g=5..15 panel files are unchanged from the prior matrix",
     "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts, preregistered minimal ablations and source limitations as the code and machine manifests",
-    "current_paper_matrix_sha256": "9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7",
-    "current_query_feasibility_audit": "PASS: 26 graphs, 137 unique graph/query files, 9,140 query records, 9,085 feasible and the 55 published natural-query infeasible records retained; zero generated/gate infeasible records"
+    "current_paper_matrix_sha256": "12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab",
+    "current_query_feasibility_audit_sha256": "ce56defb4024730c3b39bb21d37889e3b6d18c59c02de0668257c53fa67edae0",
+    "final_campaign_contract": "PASS: the 3600-second common TL is locked in paper_matrix, environment_lock, ablation_plan and final_campaign_plan; historical raw outcomes are materialized non-destructively with 11 exact censor events; Enhanced continues after timeout; P2 and S2 apply symmetric, evidence-recorded likely-timeout frontiers to Base and PrunedDP++ without method-progress thresholds or early query kills",
+    "final_campaign_preflight": "PASS: 40 new S2 Enhanced jobs contain exactly 400 g={3,6,9,12} tasks and exclude retained g=15; 25714 unique historical formal records contain exactly 2 P1 PrunedDP++, 3 P2 Enhanced and 6 S2 Enhanced censored completions; synthetic online-frontier tests skipped exactly 105 P2 and 40 S2 tasks only under their registered criteria and did not extrapolate S2 across f",
+    "current_query_feasibility_audit": "PASS: 25 graphs, 157 unique graph/query files, 9,490 query records, 9,435 feasible and the 55 published natural-query infeasible records retained; zero generated/gate infeasible records",
+    "s2_data_freeze": "PASS: DBLP-MonoGSTPlus and Toronto-MonoGSTPlus exactly match P1 graph identities; 50 cells, 500 deterministic protocol-v2 queries over g={3,6,9,12,15}, seed 20260827 and the supplied generator RNG call order; all generated queries feasible; the ten g=15 query files are byte-identical to the pre-expansion files and their 100 raw no-TL Enhanced records remain unchanged",
+    "matrix_metadata_updated_at": "2026-08-28"
   },
   "dual_process_calibration": {
     "purpose": "measure concurrent-process interference only; these historical solver binaries do not replace the current release performance gate",

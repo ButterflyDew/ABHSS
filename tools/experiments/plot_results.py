@@ -100,7 +100,7 @@ def completion_by_g(records: list[dict], methods: list[str], output: Path) -> No
     axis.set_xticks(sorted({g for g, _ in grouped}))
     axis.set_ylim(0, 1.05)
     axis.set_xlabel("Number of groups g")
-    axis.set_ylabel("Completion rate within 10,000 s")
+    axis.set_ylabel("Completion rate within 3,600 s")
     axis.grid(True, alpha=0.25)
     axis.legend(frameon=False)
     save(fig, output, "completion_by_g")

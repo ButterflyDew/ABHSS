@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-19T18:04:50.514572+00:00",
+  "generated_at": "2026-08-28T05:33:42.079885+00:00",
   "scope": "all unique graph/query-file pairs referenced by paper_matrix.json",
   "policy": "retain and run infeasible queries present in the exact published P1 workload; require every generated P2/S2 and correctness-gate query to be feasible",
   "matrix_path": "experiments/paper_matrix.json",
-  "matrix_sha256": "9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7",
+  "matrix_sha256": "12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab",
   "audit_executable": "build/audit_query_feasibility",
   "totals": {
-    "graphs": 26,
-    "query_files": 137,
-    "unique_query_records": 9140,
-    "feasible": 9085,
+    "graphs": 25,
+    "query_files": 157,
+    "unique_query_records": 9490,
+    "feasible": 9435,
     "infeasible": 55,
     "published_workload_infeasible_retained": 55,
     "generated_or_gate_infeasible": 0
@@ -35,154 +35,254 @@
           "sha256": "b71cfc941c26f7611a42de71a1fc803d86564d7ab3c56a3500e512c1c4af7db9"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g10_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g12_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
+          "minimum_g": 12,
+          "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "bdd318abfdffc01b2871b48e11feb89dc614831ae0a058124446780099a0d9e6"
+          "sha256": "2e895cb22c056e9fdb04a5ad2ef1b8140127a36fd2399633279ead0fe5b0daf5"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g10_f200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g12_f200.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
+          "minimum_g": 12,
+          "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "7532c0b82c0f1e34c6ec52f611258e2eed677175d9842f56062d70225077d54e"
+          "sha256": "5e8fc8e428b8c6958585856ce0b8d8ff84f896742734ac001f43bcdf82728198"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g10_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g12_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
+          "minimum_g": 12,
+          "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "19b5688def07dee84cc643585bc7da479dd82e4ac450730ca65bbcd69ee27724"
+          "sha256": "d0c4fdeb1c07be5a139faa7877e29381fd07572059c7ac5a15844dc1ccbb983a"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g10_f400.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g12_f400.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
+          "minimum_g": 12,
+          "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "fe2d282f8cb2697a6a7d7be0d4fe0e89500a4a8d5fa75befae3af1783aebd326"
+          "sha256": "2d580e0532e150250d3a7c00918711a51d684ee923c1f05b2294093d62e7cbea"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g10_f800.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g12_f800.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
+          "minimum_g": 12,
+          "maximum_g": 12,
           "infeasible_query_indices": [],
-          "sha256": "97ea36ae9edc10c72e79273515a3c436cb2e7ef1e16053b5a2819688769e3f93"
+          "sha256": "93974ca4b675ed003ab3e5503bffabba3443a03b3316b7722eedf690a91534ce"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g14_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
+          "minimum_g": 15,
+          "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "a486097fb83c13bddb01d913102db52757c1b916e84b25d849f235ed768058a5"
+          "sha256": "d275ce2c5ecb80177e5789ebf21e2b7a56a6f46166cabe5a718992e28248c408"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g14_f200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f200.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
+          "minimum_g": 15,
+          "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "e9f99f099dcf3247ffcf9cd696e88d6fb16f3608e03f9f40961e4b42de1e801a"
+          "sha256": "cb1382454a36baadbc9053b54683222d24d3c46ba035f50d9da684cff745a0fb"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g14_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
+          "minimum_g": 15,
+          "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "344248256ee6431c61b46b2b23bfbc7cf1ac9aa708d4d51df02240d9683df584"
+          "sha256": "13be1e30a34afc0062819b29bc326bc1bc9c56f092632732b1ceb83386c17205"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g14_f400.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f400.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
+          "minimum_g": 15,
+          "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "db76859864cfb465ce801e09732063b9fdd3c05bf734c8e6a5acd85bf535bfa0"
+          "sha256": "7653b8c1308f6b05e40914bb388b179d38992e431c6f81232fcaa9cdca30748e"
         },
         {
-          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g14_f800.txt",
-          "queries": 5,
-          "feasible": 5,
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f800.txt",
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
+          "minimum_g": 15,
+          "maximum_g": 15,
           "infeasible_query_indices": [],
-          "sha256": "a91190dbcdd042f9c25dd09392e7a19a50a032c926e99639086bbd27ee2d7a14"
+          "sha256": "f67d9a200712458e6754484ea26bebde7585a7b4a7737feec4aca3584791617f"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g3_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "277964d82c6534bb1edaa408c8c10227a26a62a2a0ad918179d8bc9e7b4e2174"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g3_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "d509d145d26988b5acaebf4946deccbee1291c79d68d7ce17ad2585ae8962bb2"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g3_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "55e87ec8a60cde11e6cf2bcdedb87207cd054d37f1355c4e8d1c3c75ebbc3191"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g3_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "c3ce01a6b7ed4675349bd105aad0b161ea7244c66ee439fc4b91e60608ca80b8"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g3_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "c2ca629db5c998d8f50a7cb8f8e5c51a728db2ed17b3001bfb09fa0675f72b86"
         },
         {
           "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g6_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "7fca56156721240daf40cfc283cf61ca39a8cb42ed21e457f9e443ee7dfb66a6"
+          "sha256": "e9351585858af12a0bfd23273c8c1c5c9ff182c2f23dd58a8d13b153c50d1ae8"
         },
         {
           "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g6_f200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "3efedf38a623de82eaf8cf50a318d8f0c8162e06507ba2912558da9d74588787"
+          "sha256": "b740ba9e48c3a4c8ce9e22a8f2a567194785a63d609d600df70025f468f1d57c"
         },
         {
           "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g6_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "5ed3b4833636677043209adbfaf1694641ff8ff3d5add0c3b3599f79f3a3b9ff"
+          "sha256": "53307a6302e3b751f59c33d2008db15c55f17bb2b0cfcc534b69f79007723dc8"
         },
         {
           "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g6_f400.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "7d78c853edd0198444ba7279a0d12a5adc47d96dcc0de4042a3577e6f4a443f2"
+          "sha256": "012aad82dacf4c48c967994eac0f7d6870dbf1012efe7225eebc375b76e7c184"
         },
         {
           "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g6_f800.txt",
-          "queries": 5,
-          "feasible": 5,
+          "queries": 10,
+          "feasible": 10,
           "infeasible": 0,
           "minimum_g": 6,
           "maximum_g": 6,
           "infeasible_query_indices": [],
-          "sha256": "e006924f784fe149806481ec1efd6dbf06fd5801bcfc44911cb10d2ffe3350f9"
+          "sha256": "aa611431d8dfe2e3a3d2f3dc5185223dcfa2f584011fd33683984acd3c3527a5"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g9_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "bd9fb84921fda02add628e2b4735d0e8407f0d93fc00a0b40f7bdf2159e63809"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g9_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "75a5d101e42ec63fa35404ff8a69fa145b58202c9b826c9c483e02f041beaa96"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g9_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "7f4cc26c9b07ae2e2cb04bfbda55d21e6501b5951617a064149b8864d7ed1d50"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g9_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "120ef23fd1aca0cca4f2d55f152ae388b4779db332da85d339271e0ad2c641ed"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/dblp_monogstplus/g9_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "e9a6cd6cc15b9a86375b8cabdb42146041ee2fe37cbf3459cd06f52d6207970d"
         }
       ],
       "graph_sha256": "f3f60f5b3ed6689ac573b15946254cf3421fa9d76be4b0e70dcd6aed99e5e0e9",
@@ -1324,6 +1424,256 @@
           "maximum_g": 8,
           "infeasible_query_indices": [],
           "sha256": "a056b0c1c9ac9ec3de11146bcc1843f5b0d0297e0b593bef46fe69a522562296"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g12_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "b2b3fc26994073f67e50d89f437dc950e395ebffd8ee271888f123e4c2b429ac"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g12_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "26f07511f7eab37d9252ddbe4fa61d7f68fa0683b34fe743ec5e8f799477c9bc"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g12_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "71928a79e927ea5a66737f26bfab08cfd15348bb09fd4de4607b1ff98665a278"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g12_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "6f26320aacb5e2d6a3ef8fc09436ac4359b6be92fe3e87f680ba32303adfee28"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g12_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 12,
+          "maximum_g": 12,
+          "infeasible_query_indices": [],
+          "sha256": "be9dd3eb1499a371b0fd429aeacc07a349929d08fc4c6772429b9af707ac499b"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "d83b269310c21c2ec6be85cbb744a7cb544bd8357bd18d86e2de1bd78c83ebde"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "8ffec748f5ca6d818618aecc0f27bc319b3ad5b694e8686f0a8c5bfcb57008a2"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "e85e13ba43e3affa335f9aca75d7d6c17701a80f4b9a55753977394f0092f1c0"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "d7728b3c14de2f7d5745c9aa25bc6dbf9c324c0a36f13a059191a0b03d9f1f76"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 15,
+          "maximum_g": 15,
+          "infeasible_query_indices": [],
+          "sha256": "2732389649ec3587b4b7e8b5bfc68cae343f9351fe1f60d0fbd94ab8142463ea"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g3_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "211dfcf5763b87f795bb1fa097df5e78be9ad0375b3d5d36ab096ea989d58577"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g3_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "4110fc68ab1279f8b1b34bd92c872bfcd55623cd54074491e835205285a6906c"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g3_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "45cc7ab27309325b3d13601913f8c8bf86abf7a88503f2045c425537a53e21e6"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g3_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "d6fc9962f6a2d44664d201cbd176d51bbbbb63191ed59be1a35ea8dbdda918d8"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g3_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 3,
+          "maximum_g": 3,
+          "infeasible_query_indices": [],
+          "sha256": "fd5d864d37a66909c2a06fe22385d135889db2583fd7f34baa8f270a91684628"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g6_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "449b0f8fb49c07ae7258bf5448e3bf3d4d878f49bf2349a80b2d5ab25af62a4a"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g6_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "0725e700cc0bf57e5cb342ae80c79ac520a9e26aec9611389bd87eaee845ac01"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g6_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "fc63f4afc6d9f9d50aaffad536ba0af5a144a21a3ec1d2ce064b0c011ee5bfc2"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g6_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "abaf868d615c77f77b34bb210a32f38d55d2c7f82e2401e429c95586b1023770"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g6_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 6,
+          "maximum_g": 6,
+          "infeasible_query_indices": [],
+          "sha256": "36c4ca9ba99ac52110eac24d4eb617c283cabf2645a60237b848fedd6210ea73"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g9_f1600.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "f4c74fa905a83ac9a77113232c12df72ad1803a2ab4ec59c58d17989576fc955"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g9_f200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "77a48f0aec87fe747e4ab2a3724d2f4e25f635c71144cd5f2fdcca59d27b376a"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g9_f3200.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "d9127a3835a2b8436e21c2466322a7d6b18f9eff6642db8de31cfaf368250c2a"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g9_f400.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "c252727fc06a1fb9d449ba6337a9fc1588d18587c392da3b73176aa29fa9fc5b"
+        },
+        {
+          "path": "experiment_data/s1_controlled_gf/toronto_monogstplus/g9_f800.txt",
+          "queries": 10,
+          "feasible": 10,
+          "infeasible": 0,
+          "minimum_g": 9,
+          "maximum_g": 9,
+          "infeasible_query_indices": [],
+          "sha256": "874206b50fccc50d89456ad743b0c517e868dcdf39783eb813cb49bf0c72a2ac"
         }
       ],
       "graph_sha256": "4d82fe13e05168bf918c4f4cce3ee5fd189cd32b437c62d9a70255e98fa177b1",
@@ -1350,168 +1700,6 @@
       ],
       "graph_sha256": "82b9f764523e4eadaa1edb57c8a147b07d10df8dabb59571f7dd8310e57d363d",
       "largest_component_fraction": 1.0
-    },
-    {
-      "schema_version": 1,
-      "graph_path": "data/official-latest-20260722/imdb-20260722/graph.txt",
-      "vertices": 18588661,
-      "edges": 100556350,
-      "connected_components": 107160,
-      "largest_component_vertices": 18083600,
-      "query_files": [
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g10_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
-          "infeasible_query_indices": [],
-          "sha256": "1db7ffd68e2abbda2db85f16b9a997bfd0728abc5e772715e5383b239dba7077"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g10_f200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
-          "infeasible_query_indices": [],
-          "sha256": "01f31164eb585016b1440f4c239660e6cc6483b34b0d6a2f02468faa2f70474b"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g10_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
-          "infeasible_query_indices": [],
-          "sha256": "e3194bafdade7284851a39c57dfdb5491d76d6e4264500f797613ef15aebc4a1"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g10_f400.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
-          "infeasible_query_indices": [],
-          "sha256": "8e1d27596077e9aa33ebc9e7670eb47269e20b8c0b9238e29de214efaaf5fd32"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g10_f800.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 10,
-          "maximum_g": 10,
-          "infeasible_query_indices": [],
-          "sha256": "e9557d97eeb765b628793844b4c90f796934b1c015e62799ef36b06b910962a9"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g14_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
-          "infeasible_query_indices": [],
-          "sha256": "67daeebd880f455ec919a83942c8c71255110e1d15790432f1035458322d02f5"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g14_f200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
-          "infeasible_query_indices": [],
-          "sha256": "5c15d42f6025fc9370d3317ff4012a2eef74ce4943151b37504fa261e1eb200e"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g14_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
-          "infeasible_query_indices": [],
-          "sha256": "572ea899f0bcc9c6ce98da535c232590cefb7a274c68f9ad1806345770d78e05"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g14_f400.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
-          "infeasible_query_indices": [],
-          "sha256": "8b7076ae6857358181bcf33af90559a546444207086e3f162b5d7b41a443d327"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g14_f800.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 14,
-          "maximum_g": 14,
-          "infeasible_query_indices": [],
-          "sha256": "777d9cfe0420c01a14308c7b33baa4e8f313f027d2a411ab870ce414a8d9f3e1"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g6_f1600.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 6,
-          "maximum_g": 6,
-          "infeasible_query_indices": [],
-          "sha256": "72cc7a2b23eabe31c93384a270cc4aa4b3d11d149ab6971b7d9e0777014db77b"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g6_f200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 6,
-          "maximum_g": 6,
-          "infeasible_query_indices": [],
-          "sha256": "f149ca84e72956c847ccefe10b4c06ce350853f87a9304eac03584d8b6505f6d"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g6_f3200.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 6,
-          "maximum_g": 6,
-          "infeasible_query_indices": [],
-          "sha256": "1ce47cf3a961d3473994756ae7a5ce7b7d0138d1ad4af1565ea27a5c16efae75"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g6_f400.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 6,
-          "maximum_g": 6,
-          "infeasible_query_indices": [],
-          "sha256": "126e68dea2dc42e8b94ed0a9ee1f2e83559ab845ec1c4bb5099720ff22748b3a"
-        },
-        {
-          "path": "experiment_data/s1_controlled_gf/imdb_latest_20260722/g6_f800.txt",
-          "queries": 5,
-          "feasible": 5,
-          "infeasible": 0,
-          "minimum_g": 6,
-          "maximum_g": 6,
-          "infeasible_query_indices": [],
-          "sha256": "b5abdd50f769274c4d65d5204f681eec6f1ec6b3f55cd8990d3fedb5a104b449"
-        }
-      ],
-      "graph_sha256": "83f41038f6543c18ed4319006bedea58d780d7863f271f877117f678b784f90b",
-      "largest_component_fraction": 0.972829619089
     },
     {
       "schema_version": 1,

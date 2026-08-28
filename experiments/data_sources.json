@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "freeze_id": "published-workloads-plus-imdb-20260722",
+  "schema_version": 2,
+  "freeze_id": "published-workloads-controlled-s2-20260828",
   "sources": [
     {
       "id": "MonoGSTPlus-author-workload",
@@ -84,31 +84,17 @@
       "claim_boundary": "method-faithful newly generated extension with new seeds and input-only panel selection; not a recovery of any published query sample"
     },
     {
-      "id": "IMDb-latest-20260722",
-      "official_page": "https://developer.imdb.com/non-commercial-datasets/",
-      "snapshot_date": "2026-07-22",
-      "raw_files": [
-        "https://datasets.imdbws.com/title.basics.tsv.gz",
-        "https://datasets.imdbws.com/title.principals.tsv.gz",
-        "https://datasets.imdbws.com/name.basics.tsv.gz"
-      ],
-      "graph_transform": "one title or person per vertex; undirected title-person principal edges with positive unit weight; dense 1-based IDs",
-      "builder": "tools/data/build_imdb_graph.cpp",
-      "dataset_manifest": "data/official-latest-20260722/imdb-20260722/dataset_manifest.json",
-      "use": "secondary controlled <g,f> experiment only",
-      "license_note": "IMDb non-commercial dataset terms apply",
-      "claim_boundary": "dated official sensitivity graph, not the unavailable PrunedDP++ 2016 IMDb snapshot"
-    },
-    {
       "id": "controlled-gf",
       "graphs": [
         "DBLP-MonoGSTPlus",
-        "IMDb-latest-20260722"
+        "Toronto-MonoGSTPlus"
       ],
       "g_values": [
+        3,
         6,
-        10,
-        14
+        9,
+        12,
+        15
       ],
       "f_values": [
         200,
@@ -117,13 +103,30 @@
         1600,
         3200
       ],
-      "queries_per_cell": 5,
-      "base_seed": 20260723,
-      "protocol": "MonoGST+: independent rounded N(f,(0.15f)^2) sizes clamped to [0.5f,1.5f], then uniform vertices without replacement within each group",
+      "queries_per_cell": 10,
+      "base_seed": 20260827,
+      "protocol": "MonoGST+ reference call order: one Python Random stream per graph/g; for every group draw rounded N(f,(0.15f)^2) size clamped to [0.5f,1.5f], then sample that group uniformly without replacement",
       "reference_generator": "data/generate_queries_for_noGPU4GST.py",
       "generator": "tools/data/generate_controlled_queries.py",
       "manifest": "experiment_data/s1_controlled_gf/cells.json",
-      "adaptation": "retain the supplied sampling rule while changing the preregistered g/f grid and using five rather than ten queries per cell"
+      "adaptation": "retain the supplied sampling rule; the five-level g grid was fixed on 2026-08-28 after the g=15 resource run, whose byte-identical queries are retained; generate every added cell without solver-based query filtering",
+      "graph_identity_policy": "reuse the exact graph.txt files frozen for P1; no graph conversion or resnapshotting",
+      "graph_sha256": {
+        "DBLP-MonoGSTPlus": "f3f60f5b3ed6689ac573b15946254cf3421fa9d76be4b0e70dcd6aed99e5e0e9",
+        "Toronto-MonoGSTPlus": "4d82fe13e05168bf918c4f4cce3ee5fd189cd32b437c62d9a70255e98fa177b1"
+      },
+      "queries_per_graph": 250,
+      "total_queries": 500,
+      "protocol_version": 2,
+      "recorded_query_metadata": [
+        "RNG stream seed and query ordinal",
+        "realized group sizes",
+        "realized mean f",
+        "total and distinct memberships",
+        "cross-group overlap counts"
+      ],
+      "rng_stream": "Random seed string is {base_seed}:{graph-directory-name}:{g}; the stream continues through f values [200,400,800,1600,3200] and ten queries per f in that order",
+      "design_revision": "g=15 was generated and measured first; g={3,6,9,12} was added later with the same per-graph/g RNG protocol. Report every g separately as well as graph-level totals; do not describe the five-level grid as preregistered before the g=15 run."
     }
   ]
 }

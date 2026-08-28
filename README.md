@@ -6,9 +6,9 @@
 
 - P1：MonoGST+ 的 5 张作者图与 GPU4GST 的 8 张作者图，共 13 个独立图身份、29 个 query blocks 和全部 8,318 条作者查询；两个 DBLP 保持为不同图，论文主表每图每方法一行。
 - P2：在 Musae、Twitch、YouTube、DBLP-GPU4GST、Orkut、Reddit 上做 `g=5..15` related-group 扩展；每个 `(graph,g)` 从 300 条候选中按输入平均组大小分为五个等秩层，以稳定哈希分两轮、每层各选 1 条。第二轮只追加 q6--q10，不改变原 q1--q5，共 10 条/格、660 条。
-- S2：在 DBLP-MonoGSTPlus 与 `IMDb-latest-20260722` 上做受控 $\langle g,f\rangle$ 敏感性；`g={6,10,14}`、`f={200,400,800,1600,3200}`、每格 5 条，共 150 条。
+- S2：逐字节复用 P1 的 DBLP-MonoGSTPlus 与 Toronto-MonoGSTPlus 图，按 MonoGST+ 协议做受控 `<g,f>` 敏感性；`g={3,6,9,12,15}`、`f={200,400,800,1600,3200}`、每格 10 条，共 500 条。
 
-三个正式计时项为 ABHSS Base、ABHSS 全增强和 PrunedDP++-Safe，但只需两个性能二进制 `abhss`/`pruneddp`。逐查询 timeout 为 10,000 秒。准确的数据来源、查询数、报告方式与风险见 [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)。
+三个正式计时项为 ABHSS Base、ABHSS 全增强和 PrunedDP++-Safe，但只需两个性能二进制 `abhss`/`pruneddp`。逐查询 timeout 为 3,600 秒。准确的数据来源、查询数、报告方式与风险见 [`docs/EXPERIMENT_PLAN.md`](docs/EXPERIMENT_PLAN.md)。
 
 ## 快速开始
 
@@ -45,7 +45,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `data` | 统一 `graph.txt`/`query.txt` 运行接口；包含 tiny example，大图本体通常被 Git 忽略 | P1/S2 实际图接口，身份必须与 manifest 一致 |
 | `data_origin` | GPU4GST 作者 CSV、OneDrive 元数据、SHA-256 与下载/验证脚本；大型 `.in`/`.g` 不进 Git | GPU4GST 作者输入的证据层 |
 | `data_sources` | 不能直接随普通接口分发的官方快照和已知最优 benchmark 来源层 | 来源证据，不是 solver 直接入口 |
-| `data_sources/official` | 2026-07-22 IMDb 官方快照的 URL、raw hash、下载和构建说明 | 只用于 S2 IMDb，不替换 P1 作者图 |
+| `data_sources/official` | 2026-07-22 IMDb 官方快照的历史 URL、raw hash、下载和构建说明 | 已退出当前 P1/P2/S2 矩阵，仅保留历史来源证据 |
 | `data_sources/steinlib` | WRP3/WRP4 原实例或本地恢复位置 | 只用于已知最优正确性 gate |
 | `docs` | 仅保留当前实验方案、代码导读和详细方法三份活文档 | 是，人类可读真值 |
 | `docs/archive` | 旧的配置重构、baseline、数据沿革和第三方恢复细节 | 否，只作历史证据，冲突时以活文档/机器矩阵为准 |
@@ -53,7 +53,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `paper` | 面向 SIGMOD/VLDB 的章节初稿、版面取舍和伪代码设计 | 写作工作区；算法事实仍以 `docs/METHOD.md` 与源码为准 |
 | `experiment_data/p1_published_workloads` | 13 图、29 query blocks、8,318 查询的路径、哈希、查询分布与已知无解索引 | P1 输入身份真值 |
 | `experiment_data/p2_cross_g` | 66 个 `(graph,g)` cell、每格 10 条 panel 和选择证据；q1--q5 为原 panel，q6--q10 为追加 tranche | P2 输入身份真值 |
-| `experiment_data/s1_controlled_gf` | 30 个 $\langle graph,g,f\rangle$ cell、查询、seed 和实现后组大小 | S2 输入身份真值；目录名保留历史 `s1`，矩阵 suite 名为 `S2_controlled_gf` |
+| `experiment_data/s1_controlled_gf` | 50 个 $\langle graph,g,f\rangle$ cell、查询、seed 和实现后组大小 | S2 输入身份真值；目录名保留历史 `s1`，矩阵 suite 名为 `S2_controlled_gf` |
 | `experiment_data/steinlib` | SteinLib 转换后的图/查询与已知最优 index | 正确性真值 |
 | `experiments` | `paper_matrix.json`、来源/环境锁、可行性审计、正确性证据和报告设置 | 是，正式实验机器可读控制面 |
 | `src` | 全部 C++ 求解器、公共运行层和 baseline adapter | 代码真值 |
@@ -64,7 +64,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `src/baselines` | Basic+ 和 GPU4GST CPU PrunedDP++ 作者代码的可选 adapter | 只在恢复 `third_party` 后构建，不在冻结大图性能矩阵 |
 | `tests` | 图/查询 I/O、零权 witness、低组闭包、逐弧 residual、144 随机精确对照和双方实际状态计数 | 每次构建的快速 correctness gate |
 | `tools` | 数据转换、实验执行与第三方恢复构建脚本的总入口 | 工具代码真值 |
-| `tools/data` | P1/P2/S2/SteinLib 构建、IMDb 转换、哈希和可行性审计 | 输入生成与审计链 |
+| `tools/data` | P1/P2/S2/SteinLib 构建、历史 IMDb 转换、哈希和可行性审计 | 输入生成与审计链 |
 | `tools/experiments` | 环境校验、稳定分片运行、timeout/断点续跑、汇总和绘图 | 执行与报告链 |
 | `tools/gpu4gst_data` | GPU4GST `.in`/`.g`/CSV 到本仓库接口的 C++ 转换器 | GPU4GST 转换链 |
 
@@ -88,4 +88,4 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 - 当前 `abhss` 输出精确最优权值、feasibility 和实际发现的主状态项数，不序列化最优树边集。ABHSS 以“状态族、mask、vertex”为实际键，所以 D/A/H 中数值相同的 `(mask,v)` 是不同项；该指标不能冒充跨算法完全同成本的基本操作。在未增加决策回溯前，论文和 artifact 不得声称当前程序已输出树本身。
 - `pruneddp_safe` 是经已知最优值验证的 corrected reconstruction，不是 2016 原作者代码的 bit-for-bit 镜像。GPU4GST 2025 artifact 中的 CPU 实现保留为适用子集校准，它受非负整数边权与 $g\le14$ 限制。
 
-公开 artifact 前还必须逐项确认 MonoGST+ workload、GPU4GST 代码/数据包和 IMDb non-commercial 快照的获取与再分发方案。本地存在不等于可以随论文公开上传。
+公开 artifact 前还必须逐项确认 MonoGST+ workload 与 GPU4GST 代码/数据包的获取和再分发方案。历史 IMDb 快照不进入当前论文矩阵，也不应随正式输入误发布。本地存在不等于可以随论文公开上传。

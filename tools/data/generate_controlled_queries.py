@@ -4,8 +4,10 @@
 The protocol follows the MonoGST+ generator supplied with its data: every
 group size is sampled independently from ``N(f, (0.15f)^2)``, rounded and
 clamped to ``[0.5f, 1.5f]``; its vertices are then sampled uniformly without
-replacement from the whole graph.  Groups may overlap.  We deliberately do
-not rebalance a query to make its realized mean exactly ``f``.
+replacement from the whole graph.  The adapter also preserves the reference
+call order: one RNG stream per graph/g, then size and members for each group.
+Groups may overlap; we deliberately do not rebalance a query to make its
+realized mean exactly ``f``.
 """
 
 from __future__ import annotations
@@ -23,21 +25,14 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = ROOT / "experiment_data" / "s1_controlled_gf"
 DEFAULT_DATASETS = (
     ("DBLP-MonoGSTPlus", ROOT / "data" / "DBLP"),
-    (
-        "IMDb-latest-20260722",
-        ROOT / "data" / "official-latest-20260722" / "imdb-20260722",
-    ),
+    ("Toronto-MonoGSTPlus", ROOT / "data" / "Toronto"),
 )
-G_VALUES = (6, 10, 14)
+G_VALUES = (3, 6, 9, 12, 15)
 F_VALUES = (200, 400, 800, 1600, 3200)
-QUERIES_PER_CELL = 5
+QUERIES_PER_CELL = 10
 STD_RATIO = 0.15
-BASE_SEED = 20260723
-
-
-def stable_seed(*parts: object) -> int:
-    payload = ":".join(map(str, parts)).encode("utf-8")
-    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
+BASE_SEED = 20260827
+PROTOCOL_VERSION = 2
 
 
 def sha256(path: Path) -> str:
@@ -106,46 +101,69 @@ def main() -> int:
     for dataset, graph_dir in datasets:
         graph_dir = graph_dir.resolve()
         vertices, edges = graph_header(graph_dir)
+        graph_path = graph_dir / "graph.txt"
+        graph_hash = sha256(graph_path)
         dataset_output = output_root / slug(dataset)
         dataset_output.mkdir(parents=True, exist_ok=True)
         for g in G_VALUES:
+            rng_stream_seed = f"{args.seed}:{graph_dir.name}:{g}"
+            rng = random.Random(rng_stream_seed)
+            stream_query_ordinal = 0
             for f_target in F_VALUES:
                 path = dataset_output / f"g{g}_f{f_target}.txt"
                 realized_means: list[float] = []
                 all_sizes: list[int] = []
+                repeated_memberships: list[int] = []
+                overlapping_vertices: list[int] = []
                 with path.open("w", encoding="utf-8", newline="\n") as output:
                     output.write(f"{QUERIES_PER_CELL}\n")
                     for query_index in range(1, QUERIES_PER_CELL + 1):
-                        derived_seed = stable_seed(
-                            args.seed, dataset, g, f_target, query_index
-                        )
-                        rng = random.Random(derived_seed)
-                        sizes = [
-                            sampled_size(rng, f_target, vertices) for _ in range(g)
-                        ]
+                        stream_query_ordinal += 1
                         output.write(f"{g}\n")
-                        for size in sizes:
+                        sizes: list[int] = []
+                        multiplicity: dict[int, int] = {}
+                        for _ in range(g):
+                            size = sampled_size(rng, f_target, vertices)
+                            sizes.append(size)
                             members = rng.sample(range(1, vertices + 1), size)
                             output.write(f"{size} {' '.join(map(str, members))}\n")
+                            for vertex in members:
+                                multiplicity[vertex] = multiplicity.get(vertex, 0) + 1
                         mean_f = sum(sizes) / g
+                        total_memberships = sum(sizes)
+                        distinct_vertices = len(multiplicity)
+                        repeated = total_memberships - distinct_vertices
+                        overlap_vertices = sum(count > 1 for count in multiplicity.values())
                         realized_means.append(mean_f)
                         all_sizes.extend(sizes)
+                        repeated_memberships.append(repeated)
+                        overlapping_vertices.append(overlap_vertices)
                         queries.append(
                             {
+                                "protocol_version": PROTOCOL_VERSION,
                                 "dataset": dataset,
+                                "query_path": str(path.relative_to(ROOT)).replace("\\", "/"),
                                 "g": g,
                                 "f_target": f_target,
                                 "query_index": query_index,
-                                "derived_seed": derived_seed,
+                                "rng_stream_seed": rng_stream_seed,
+                                "rng_stream_query_ordinal": stream_query_ordinal,
                                 "group_sizes": sizes,
                                 "f_realized": mean_f,
+                                "total_memberships": total_memberships,
+                                "distinct_member_vertices": distinct_vertices,
+                                "repeated_memberships_across_groups": repeated,
+                                "vertices_in_multiple_groups": overlap_vertices,
+                                "maximum_group_multiplicity": max(multiplicity.values()),
                             }
                         )
 
                 cells.append(
                     {
+                        "protocol_version": PROTOCOL_VERSION,
                         "dataset": dataset,
                         "graph_path": str(graph_dir.relative_to(ROOT)).replace("\\", "/"),
+                        "graph_sha256": graph_hash,
                         "graph_vertices": vertices,
                         "graph_edges": edges,
                         "query_path": str(path.relative_to(ROOT)).replace("\\", "/"),
@@ -158,8 +176,15 @@ def main() -> int:
                         "f_realized_max": max(realized_means),
                         "minimum_group_size": min(all_sizes),
                         "maximum_group_size": max(all_sizes),
+                        "repeated_memberships_mean": sum(repeated_memberships) / len(repeated_memberships),
+                        "repeated_memberships_min": min(repeated_memberships),
+                        "repeated_memberships_max": max(repeated_memberships),
+                        "vertices_in_multiple_groups_mean": sum(overlapping_vertices) / len(overlapping_vertices),
+                        "vertices_in_multiple_groups_min": min(overlapping_vertices),
+                        "vertices_in_multiple_groups_max": max(overlapping_vertices),
                         "base_seed": args.seed,
-                        "sampling": "MonoGST+ protocol: independent rounded/clamped Gaussian group sizes; uniform vertices without replacement within each group",
+                        "rng_stream_seed": rng_stream_seed,
+                        "sampling": "MonoGST+ reference call order: for each graph/g stream and group, draw one rounded/clamped Gaussian size and then sample its vertices uniformly without replacement",
                     }
                 )
 
@@ -173,7 +198,7 @@ def main() -> int:
     with (output_root / "cells.csv").open(
         "w", encoding="utf-8", newline=""
     ) as output:
-        writer = csv.DictWriter(output, fieldnames=list(cells[0]))
+        writer = csv.DictWriter(output, fieldnames=list(cells[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(cells)
     print(

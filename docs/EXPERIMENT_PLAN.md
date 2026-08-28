@@ -22,7 +22,7 @@
 - 运行监控：native solver 在同一个 query block 内常驻并连续处理多条查询，因此 `ps etime`、tmux pane 存活时间和 native 进程启动时间都只是整个 block 的累计墙钟，不能解释为当前单条查询耗时。单条时间与 timeout 状态只能读取 supervisor 的任务记录、已完成的 `[Query i]` 行或 watchdog 当前 deadline；没有这些直接证据时只报告“当前查询尚未完成”。
 - 预处理公平性：若采用 2-core、叶剥离、度二压缩等改变共同输入图的 kernel，必须对 ABHSS 与 PrunedDP++ 使用同一实现并计入同一口径；不得只替本文方法缩图。endpoint-floor 属于 ABHSS 的算法内部下界，Base/Enhanced 都执行且其构造时间计入各自 query timer，不要求 baseline 实现本文下界。
 - I/O 审计：`graph_load_seconds` 与 `query_load_seconds` 单独写入 header；它们用于发现 artifact 工程瓶颈，不并入算法 speedup。图加载包含 8 MiB 数字扫描、精确邻接容量预留和一次 $O(n+m)$ 连通分量建索引；逐查询可行性检查只按组成员求分量交，不重复扫描整图。
-- timeout：每条查询 10,000 秒；图加载 watchdog 1,800 秒。
+- timeout：每条查询 3,600 秒；图加载 watchdog 1,800 秒。
 - 顺序：同一 case 的首个方法由稳定哈希轮换，避免固定方法总是占用冷机或热机位置。
 - 正确性：所有完成的可行查询必须目标值一致；已审计无解的查询必须一致返回 infeasible。
 - 失败记录：timeout、graph-load-timeout、OOM、error 分开保存，不能删掉失败行后计算平均值。
@@ -37,7 +37,7 @@
 | MonoGST+ P1 五图与全查询 | *A Practical Sublinear Approximation for Group Steiner Tree* 作者提供的处理后接口；论文已被 VLDB 2026 录用但截至冻结日未公开 | 不重新下载图、不重生成查询；`build_published_workloads.py` 只转为统一文件名并记录 SHA-256 | “使用 MonoGST+ 作者实验接口的字节级冻结” | 论文/数据的公开获取路径和再分发许可仍需作者确认；不能只用公开前作 [GroupSteinerTree artifact](https://github.com/YahuiSun/GroupSteinerTree) 冒充这五个最终输入 |
 | GPU4GST P1 八图与全查询 | [GPU4GST 作者 artifact](https://github.com/toziki/GPU4GST-sigmod) 指向的 OneDrive `.in`/`.g`/CSV 产品 | `prepare_gpu4gst` 保留图边语义，将每个 `g={3,5,7}` CSV 的前 300 行转为统一 query 接口；原文件元数据和哈希在 `data_origin` | “使用作者 artifact 实际发布的成品图与全部登记查询” | GitHub 仓库/数据包未见清晰的仓库级再分发许可；公开 artifact 前应获取许可或只发布下载步骤与哈希 |
 | P2 related-group 扩展 | [Approximating Probabilistic Group Steiner Trees in Graphs](https://www.vldb.org/pvldb/vol16/p343-sun.pdf) 的组共现图、均匀根组、最小可用 BFS 深度和近邻均匀抽样协议 | 在 GPU4GST 作者 `.g` 候选组上用新 seed 生成 300 条/格，再只按实现后平均组大小分为五层，以两轮稳定哈希选择每层 2 条；第二轮不改变第一轮的 5 条 | “按原论文的 related-group 方法类生成的新扩展 panel” | 原论文/GPU4GST 没有公开能恢复其已发表查询的完整 seed 链；P2 不能写成“原作者查询”或“复现其具体随机样本” |
-| S2 IMDb | [IMDb 官方 non-commercial datasets](https://developer.imdb.com/non-commercial-datasets/) 在 2026-07-22 取得的每日快照 | 从 `title.basics`、`title.principals`、`name.basics` 构建 title–person 无向单位权二部图，密集重编号并冻结三个 raw hash | “在明确日期的官方 IMDb 快照上做敏感性实验” | 该页面是可变的每日导出且适用 non-commercial 条款；它不是 PrunedDP++ 2016 的历史 IMDb 快照，不得声称复现旧论文绝对数值 |
+| S2 受控查询 | MonoGST+ 作者 workload 中已经用于 P1 的 DBLP 与 Toronto 成品图 | 图文件不再转换，直接复用 P1 路径与 SHA-256；只按 MonoGST+ 生成协议和冻结 seed 新建受控查询 | “在相同 published graph identities 上研究 g 与 f 的敏感性” | 新查询是本文预登记的合成样本，不能称为 MonoGST+ 作者原查询或 PrunedDP++ 历史查询 |
 | SteinLib 正确性 gate | [SteinLib 官方 test sets](https://steinlib.zib.de/testset.php) 的 WRP3/WRP4 | `convert_steinlib.py` 保留实例与已知最优值映射 | “在公开已知最优实例上做多实现精确性核验” | 只是 correctness panel，不应将其小规模时间当作大图性能结论 |
 
 上表的机器可读版本是 [`experiments/data_sources.json`](../experiments/data_sources.json)。正式论文的 reproducibility 附录应对每个 P1 图同时报“论文表数值”、“作者成品实测数值”和“最终接口 SHA-256”，不应用同名推断图相同。
@@ -97,7 +97,7 @@ GPU4GST 论文表与作者成品还存在两个已记录差异：作者 DBLP 成
 每个图、每种方法报告：`n`、`m`、查询总数、完成数、其中 infeasible 数、timeout、error、峰值内存摘要和总时间。
 
 - 如果全部查询完成，主时间列使用 `observed_total_seconds_if_all_solved`。
-- 如果存在 timeout/error，主排序先看完成数；同时报告已完成查询总时间和 `capped_total_seconds`。后者给每个未完成查询计一次 10,000 秒，而不是把部分时间伪装成全图总时间。
+- 如果存在 timeout/error，主排序先看完成数；同时报告已完成查询总时间和 `capped_total_seconds`。后者给每个未完成查询计一次 3,600 秒，而不是把部分时间伪装成全图总时间。
 - `g` 只留在审计文件和补充分析中，不进入 P1 主表拆分。
 
 预期 claim：在不改变已有论文 workload 的情况下，ABHSS 在小组数不明显退化，并在更难图/查询上获得显著总体完成率或数量级优势。若某图不支持该结论，应保留并分析，不得因为 P2 另有高 `g` 实验而移除。
@@ -143,9 +143,9 @@ P2 只使用同一 GPU4GST 作者图族，使图转换、候选组和 related-gr
 
 P2 的核心 claim 是从 `g=5` 到 15 的趋势和转折位置，而不是六图平均后的单一倍率。小图必须保留，即使 ABHSS 固定成本导致轻微劣势。
 
-### 4.4 已完成的 Orkut `g=15` Enhanced 硬门
+### 4.4 已完成的 Orkut `g=15` Enhanced 资源门
 
-Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在相同的 10,000 秒逐查询 TL 下完成 q1--q10；最慢的 q10 为 9,544.561 秒，返回精确权值 54 和 1,459,398,194 个主状态。该结果证明当前 Enhanced 配置能够覆盖预登记 panel，不允许据此删除 q10、放宽 TL 或按 `mean_f` 添加经验开关。逐条时间、空间与状态见第 8.4 节；旧错误二进制、优化轨迹和诊断分解已移入[历史门禁卷](archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-human-experiment-plan-legacy-gates-20260820)。
+Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制在旧 10,000 秒资源运行中完成 q1--q10；最慢的 q10 为 9,544.561 秒，返回精确权值 54 和 1,459,398,194 个主状态。统一改用 3,600 秒正式口径后，q5 与 q10 必须记为 timeout，因此该 cell 的正式完成数是 8/10；两条原始最终权值只作精确性参考。该资源结果证明查询可解且长尾真实存在，不允许据此删除查询、按 `mean_f` 添加经验开关或把超 TL 的最终解记成按时完成。逐条时间、空间与状态见第 8.4 节；旧错误二进制、优化轨迹和诊断分解已移入[历史门禁卷](archive/ACCEPTED_OPTIMIZATIONS_AND_GATES.md#history-human-experiment-plan-legacy-gates-20260820)。
 
 ## 5. 副实验： $\langle g,f\rangle$ 受控敏感性
 
@@ -154,9 +154,13 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 | 图 | `n` | `m` | 用途 |
 |---|---:|---:|---|
 | DBLP-MonoGSTPlus | 2,497,782 | 12,786,329 | 在 published graph 上观察 `g,f` 交互 |
-| IMDb-latest-20260722 | 18,588,661 | 100,556,350 | 补入 PrunedDP++ 脉络常见的大型 IMDb 图；没有冒充 2016 快照 |
+| Toronto-MonoGSTPlus | 46,073 | 68,353 | 在同一 P1 小型稀疏图上观察 g、f 与组重叠的交互 |
 
-网格为 `g={6,10,14}` 与 `f={200,400,800,1600,3200}` 的笛卡尔积，每格 5 条。因此每图 15 cells、75 条，总计 30 cells、150 条。
+两张图不建立 S2 专用副本。DBLP 的 `graph.txt` SHA-256 为 `f3f60f5b3ed6689ac573b15946254cf3421fa9d76be4b0e70dcd6aed99e5e0e9`，Toronto 为 `4d82fe13e05168bf918c4f4cce3ee5fd189cd32b437c62d9a70255e98fa177b1`，均与 P1 manifest 完全一致。DBLP 提供大规模 published graph，Toronto 提供同一来源的小型稀疏图并显式暴露高 `f` 时的组重叠效应。
+
+网格为 `g={3,6,9,12,15}` 与 `f={200,400,800,1600,3200}` 的笛卡尔积，每格 10 条。因此每图 25 cells、250 条，总计 50 cells、500 条。五个 `g` 以步长 3 覆盖共同低组基例、中间过渡和高组状态爆炸；`g=3` 只承担低端敏感性点，不与高 `g` 合并形成复杂度结论。固定 base seed 为 `20260827`；每个图和 `g` 使用与参考脚本相同形式的一条独立连续 RNG 流，并依次遍历五个 `f` 和每格 10 条查询。生成前不运行求解器，也不根据求解结果删换查询。
+
+这是一项必须公开说明的后置设计修订：`g=15` 的 10 个查询文件和 100 条 Enhanced 无 TL 结果先于五层网格产生；2026-08-28 才增加 `g={3,6,9,12}`。由于 RNG 按 `(graph,g)` 隔离，重新生成后原 `g=15` 文件的 SHA-256 逐个不变，原结果也未删除或替换。论文不能把五层网格写成在 `g=15` 资源运行前预登记，也不能只用扩大后的按图分母淡化 `g=15` 长尾；每个 `g` 的完成数和 timeout 比例必须与按图汇总同时报告。
 
 ### 5.2 MonoGST+ 查询协议
 
@@ -166,19 +170,34 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 |S_i|=\mathrm{clamp}\left(\mathrm{round}(N(f,(0.15f)^2)),0.5f,1.5f\right).
 ```
 
-随后从 `1..n` 中无放回均匀选择 `|S_i|` 个顶点。不同组之间允许重叠。本文不再把多个组大小强行平衡为“每条查询恰好平均等于 `f`”，因为那会改变 MonoGST+ 原生成方法；manifest 同时记录目标 `f` 和真实 `mean_f/min_f/max_f`。
+随后从 `1..n` 中无放回均匀选择 `|S_i|` 个顶点。不同组之间允许重叠。本文不再把多个组大小强行平衡为“每条查询恰好平均等于 `f`”，因为那会改变 MonoGST+ 原生成方法；manifest 同时记录目标 `f`、每组实际大小、真实平均值、组成员并集大小、跨组重复 membership 与多组顶点数。
 
-该实验不是复刻 PrunedDP++ 的历史数值：DBLP 使用 MonoGST+ 作者图，IMDb 使用 2026-07-22 官方冻结。它只研究本文算法对 `g` 与目标平均组大小的敏感性。
+下表按图和目标 `f` 汇总五个 `g` 的 50 条查询。“重复比例”是跨组重复 membership 总数除以总 membership 数；它不是重复顶点率。Toronto 顶点较少，因此大 `f` 下的自然组重叠明显更高，这属于冻结生成协议的结果，不能在看到运行时间后重采样。
+
+| 图 | 目标 `f` | 实际平均组大小范围 | 平均重复 membership | 重复比例 |
+|---|---:|---:|---:|---:|
+| DBLP-MonoGSTPlus | 200 | 182.0--222.0 | 0.72 | 0.0400% |
+| DBLP-MonoGSTPlus | 400 | 316.7--496.3 | 3.22 | 0.0892% |
+| DBLP-MonoGSTPlus | 800 | 670.7--889.3 | 12.10 | 0.1662% |
+| DBLP-MonoGSTPlus | 1600 | 1474.0--1711.1 | 46.14 | 0.3215% |
+| DBLP-MonoGSTPlus | 3200 | 2678.0--3821.7 | 184.00 | 0.6368% |
+| Toronto-MonoGSTPlus | 200 | 173.0--218.8 | 39.34 | 2.1610% |
+| Toronto-MonoGSTPlus | 400 | 347.0--451.7 | 152.36 | 4.2612% |
+| Toronto-MonoGSTPlus | 800 | 630.3--892.7 | 582.54 | 8.1502% |
+| Toronto-MonoGSTPlus | 1600 | 1454.3--1882.7 | 2283.76 | 15.6220% |
+| Toronto-MonoGSTPlus | 3200 | 2689.3--3972.0 | 8179.80 | 28.0205% |
+
+该实验不是复刻 PrunedDP++ 的历史数值，也不把新查询称为作者原查询。两张图都逐字节复用 P1 的 MonoGST+ 作者接口，因此 S2 不再引入第三种图来源，只研究本文算法对 `g`、目标平均组大小和由图规模自然导致的组重叠的敏感性。
 
 ### 5.3 报告
 
-使用 2×3 或分面图：每个数据集分别给 `g=6,10,14`，横轴 `f` 使用 2 倍对数刻度。每点报告完成数/5、PAR-2、成对加速比和实际 `f` 范围。不能只展示 `g=14` 或 `f=3200` 的有利区域。
+使用 2×5 分面图或每图五条曲线：每个数据集完整给出 `g=3,6,9,12,15`，横轴 `f` 使用 2 倍对数刻度。每点报告完成数/10、PAR-2、成对加速比、实际平均组大小范围和重复 membership 比例；另给每图 250 条的完成/timeout 总数作为补充汇总。按图总比例不能替代逐 `g` 分母，不能只展示 `g=15`、`f=3200` 或任何有利区域。
 
-### 5.4 当前远端前置探针与正式 S2 的边界
+### 5.4 已完成的 `g=15` 资源运行与正式口径
 
-在正式 150 条 S2 之前，允许运行一个固定且不可扩选的资源探针：每个 `(dataset,g,f)` cell 只取预生成文件中的第 3 条查询，共 30 条/方法；每查询 TL 为 1,000 秒。先完整运行 Enhanced，再以预先声明的规则冻结 Base 与 PrunedDP++ 的共同探针 TL：若 Enhanced 有 timeout，则取 1,000 秒；否则取 `min(1000, ceil(2 * Enhanced 最大完成时间))`。该规则只用于避免探针先消耗数天，不是算法参数，也不得按结果逐 cell 调整。
+原 100 条 `g=15` Enhanced 在 `results/paper_runs/enhanced_over3600_no_tl_793d4e_20260827` 以无 TL 方式完整运行，用于取得精确目标值和观察真实长尾；DBLP 有 6 条超过 3,600 秒、5 条超过 5,000 秒、2 条超过 10,000 秒，Toronto 没有超过 3,600 秒。扩展为每图 250 条后，在尚未运行新增四层时只能说这 6 条占 DBLP 全设计分母的 2.4%，不能预设新增层没有 timeout，也不能用 2.4% 取代 `g=15` 的 6/50。
 
-探针必须单列 `target_f`、实际 `mean_f`、完成/timeout 方向、时间、峰值内存和实际 `(mask,v)` 状态数。它只用于判断正式 S2 的可运行性、识别长尾并检查预期趋势，不能替代每格 5 条、每查询 10,000 秒的正式 S2，不能与 P1/P2 正式主表混算。
+这些原始记录与查询保留不动。正式 S2 统一使用每查询 3,600 秒：上述 6 条超出正式 TL 的 DBLP 原始完成必须按 timeout 计入完成数和 PAR-2，同时可用其最终精确权值核验其他方法在 TL 内返回的目标值。新增 `g={3,6,9,12}` 不得根据该资源运行换查询。Base 与 PrunedDP++ 只能在同图、同方法、同 `f` 的某一较小 `g` 出现 10/10 真实 timeout，且 Enhanced 对应十条均在 TL 内完成时，标记该 `f` 的更大 `g` 为 `not_run_likely_timeout`；不得跨 `f` 外推，预测停止项也不得冒充正式 timeout。
 
 ## 6. 最小消融实验
 
@@ -186,7 +205,7 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 
 消融只回答方法章节中的两个核心因果问题，不逐个关闭缓存、布局或调度微优化。面板在读取消融结果前固定为 P2 的 Musae-GPU4GST、Youtube-GPU4GST、Orkut-GPU4GST，取 $g\in\{6,10,14\}$，每个 cell 只取原 tranche 1 的 q1--q5。三图分别代表 small、medium sparse 和 large dense；三个 $g$ 覆盖低、中、高组数；五条查询恰好来自五个输入组大小等秩层。共 9 cells、45 条查询，不根据方法运行时间换图、换查询或增加有利样本。
 
-消融沿用正式服务器、编译器、单线程计时边界和每查询 10,000 秒 TL。生产 Base/Enhanced 若与消融处于相同 commit、二进制和机器，可直接复用 P2 正式记录；否则必须重跑，不能跨环境拼接。所有变体先通过仓库 CTest、固定零权反例和独立小图精确对照，完成查询的目标值必须与生产配置一致。
+消融沿用正式服务器、编译器、单线程计时边界和每查询 3,600 秒 TL。生产 Base/Enhanced 若与消融处于相同 commit、二进制和机器，可直接复用 P2 正式记录；否则必须重跑，不能跨环境拼接。所有变体先通过仓库 CTest、固定零权反例和独立小图精确对照，完成查询的目标值必须与生产配置一致。
 
 ### 6.2 消融 A：配置链贡献
 
@@ -215,15 +234,15 @@ Orkut `g=15` 是当前 P2 中已知最重的 cell。冻结生产二进制已在�
 | `P1_monogstplus_published` | 主 1 | 5 | 1,118 | 3,354 |
 | `P1_gpu4gst_published` | 主 1 | 24 | 7,200 | 21,600 |
 | `P2_cross_g` | 主 2 | 66 | 660 | 1,980 |
-| `S2_controlled_gf` | 副 | 30 | 150 | 450 |
-| 合计 | 性能 | 125 | 9,128 | 27,384 |
+| `S2_controlled_gf` | 副 | 50 | 500 | 1,500 |
+| 合计 | 性能 | 145 | 9,478 | 28,434 |
 
-本轮冻结二进制的 P1 已完整结束，因此不再重跑。新 campaign 的顺序是：身份/正确性 gate 与历史记录复用审计 → 剩余 P2 和全部 S2 的 Enhanced（按只读历史估计从快到慢）→ P2 的 Base/PrunedDP++ 递增 `g` frontier → S2 的 Base/PrunedDP++ → 最小消融。所有长任务使用 CPU 4/5 两个已校准物理核、独立 worker directory 和逐任务记录断点续跑。
+本轮冻结二进制的 P1 与 P2 Enhanced 已完整结束，S2 `g=15` Enhanced 也已有保留的无 TL 原始结果，因此都不重跑。新 campaign 的顺序是：身份/正确性 gate 与历史记录复用审计 → 新增 S2 `g={3,6,9,12}` Enhanced（按只读历史估计从快到慢）→ P2 的 Base/PrunedDP++ 递增 `g` frontier → S2 的 Base/PrunedDP++ → 最小消融。所有长任务使用 CPU 4/5 两个已校准物理核、独立 worker directory 和逐任务记录断点续跑。
 
 ## 8. 统计、图表与 claim guardrails
 
 - P1 的主要量是数据集级总工作量，不对 13 图按查询数再次加权成一个“总体平均倍率”。
-- P2 的十条/格与 S2 的五条/格均先报告原始分母和 timeout 方向；共同完成的 geomean speedup 不能代表 timeout 查询。P2 还保留 tranche 字段，必要时可分别报告原 q1--q5 与追加 q6--q10，检查扩样是否改变结论。
+- P2 与 S2 的十条/格均先报告原始分母和 timeout 方向；共同完成的 geomean speedup 不能代表 timeout 查询。P2 还保留 tranche 字段，必要时可分别报告原 q1--q5 与追加 q6--q10，检查扩样是否改变结论。
 - 同时保留 query-weighted 与 dataset-equal-weight 的补充汇总，但正文结论以逐图/逐层趋势为主。
 - 任何目标值或 feasibility 不一致都会冻结相应性能结论。
 - 不比较不同完成子集的平均时间。
@@ -268,11 +287,11 @@ P1 哨兵已在候选不可见的冻结结果上一次选定：每图取其最�
 
 这套哨兵只用于后续小改的“无可识别退化”决策，不替代本轮冻结二进制的 P1 正式结果。若候选二进制不同，论文和 artifact 必须保留两者身份，不能把哨兵外推成候选已完整复跑。
 
-### 8.4 冻结版最终 P1、Orkut 硬门与哨兵基准
+### 8.4 冻结版 P1 原始结果、Orkut 资源门与哨兵基准
 
-冻结求解器源码提交为 `12d6adb`，正式 ABHSS 二进制 SHA-256 为 `793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced`，PrunedDP++ 二进制 SHA-256 为 `4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2`，矩阵 SHA-256 为 `aed5db1ed83d134f5882f4c9d4544bf26549e9ee5a5392d74c3066b96c273162`。机器为 `test-PowerEdge-R630`，Linux `6.14.0-24-generic`，每个求解器严格单线程，正式 TL 均为 10,000 秒。Base 与 Enhanced 来自同一可执行文件；P1 当前结果固定在 CPU 4/5。PrunedDP++ 没有因 ABHSS 改码而变化，因此复用同机、同矩阵、同 TL、同 baseline 哈希的 `p1_full` 记录，避免无意义重跑；独立审计按 task key 对齐了三方法全部 8,318 个查询身份。
+冻结求解器源码提交为 `12d6adb`，正式 ABHSS 二进制 SHA-256 为 `793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced`，PrunedDP++ 二进制 SHA-256 为 `4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2`，矩阵 SHA-256 为 `aed5db1ed83d134f5882f4c9d4544bf26549e9ee5a5392d74c3066b96c273162`。机器为 `test-PowerEdge-R630`，Linux `6.14.0-24-generic`，每个求解器严格单线程。下列 P1 与 Orkut 数字来自旧 10,000 秒资源运行；本轮不重跑同一二进制，而是生成只读的 3,600 秒正式视图：任何原始完成时间超过 3,600 秒的任务改记为 timeout，原记录不覆盖、最终权值只作正确性参考。Base 与 Enhanced 来自同一可执行文件；P1 原始结果固定在 CPU 4/5。PrunedDP++ 没有因 ABHSS 改码而变化，因此复用同机、同 baseline 哈希的 `p1_full` 原始记录；独立审计按 task key 对齐了三方法全部 8,318 个查询身份。
 
-P1 共 16,636 条当前 ABHSS 记录和 8,318 条 PrunedDP++ 记录，任务键全部唯一，55 个原始 infeasible 查询在三方法间逐项一致，没有目标值、feasibility 或 expected-status 不一致。表中时间是该图全部查询的 `solver_seconds` 总和；`min/P` 是 `min(Base, Enhanced) / PrunedDP++`，只用于验收“每图至少一个 ABHSS 配置不劣”，不把逐查询挑快者虚构成第三种算法。
+P1 共 16,636 条当前 ABHSS 记录和 8,318 条 PrunedDP++ 记录，任务键全部唯一，55 个原始 infeasible 查询在三方法间逐项一致，没有目标值、feasibility 或 expected-status 不一致。下表保留原始完整解资源时间，不是 3,600 秒正式主表；正式汇总中 DBpedia 的两条 PrunedDP++ 长完成分别按 timeout 处理。表中时间是该图全部原始完成查询的 `solver_seconds` 总和；`min/P` 是 `min(Base, Enhanced) / PrunedDP++`，只用于验收“每图至少一个 ABHSS 配置不劣”，不把逐查询挑快者虚构成第三种算法。
 
 | 图 | 每方法查询数 | Base / 秒 | Enhanced / 秒 | PrunedDP++ / 秒 | 最快 ABHSS | `min/P` |
 |---|---:|---:|---:|---:|---|---:|
@@ -308,7 +327,7 @@ P1 共 16,636 条当前 ABHSS 记录和 8,318 条 PrunedDP++ 记录，任务键�
 | Twitch-GPU4GST | 10.125 | 15.980 | 147.320 | 20,964,233 | 10,710,978 | 40,520,002 |
 | Youtube-GPU4GST | 122.812 | 221.379 | 408.125 | 80,248,354 | 73,109,126 | 12,450,269 |
 
-Orkut `g=15` 正式十条使用同一生产二进制、同一 10,000 秒逐查询 TL。q10 最紧，但仍有 455.439 秒余量；全部权值与精确参考一致。
+Orkut `g=15` 下表保留旧 10,000 秒资源运行的十条精确结果。按当前 3,600 秒正式口径，q5 和 q10 记为 timeout，其余 8 条完成；超 TL 行的权值、空间和最终状态数不得进入正式完成查询统计，只保留为诊断与精确性参考。
 
 | 查询 | CPU | 权值 | 秒 | 查询峰值 MiB | `(mask,v)` states |
 |---:|---:|---:|---:|---:|---:|
@@ -327,13 +346,13 @@ CPU 5 标准化 P1 哨兵由 14 条跨图/历史风险项与 100 条 Musae 固�
 
 ### 8.5 本轮双核全量 campaign 与提前停跑语义
 
-机器计划冻结在 [`experiments/final_campaign_plan.json`](../experiments/final_campaign_plan.json)，调度入口为 `tools/experiments/run_parallel_campaign.py`。生产二进制仍是第 8.4 节的两个哈希；当前矩阵删除 P2 `g=16` 后的 SHA-256 为 `9f8f6fadcd1569382bf7eb3e0e43ea2dc3a7021e6e00484c99372b462e80dae7`。P1 的 24,954 个三方法任务和 Orkut `g=15` Enhanced q1--q10 不重跑，但调度器启动前必须重新展开当前矩阵，并验证任务键全集、查询路径、方法二进制和历史 audit；不能仅因目录名相似就复用。
+机器计划冻结在 [`experiments/final_campaign_plan.json`](../experiments/final_campaign_plan.json)，调度入口为 `tools/experiments/run_parallel_campaign.py`。生产二进制仍是第 8.4 节的两个哈希；当前 P1/P2/S2 矩阵的 SHA-256 为 `12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab`。P1 的 24,954 个三方法任务、全部 660 条 P2 Enhanced 和原 100 条 S2 `g=15` Enhanced 不重跑；调度器启动前必须重新展开当前矩阵，验证历史任务键全集、查询路径、方法二进制和现有 audit，且明确排除旧设计中 task key 同名但查询内容已经退役的 S2 `g=6/10` 记录。
 
-Enhanced 优先运行剩余 P2 与全部 S2。队列只使用旧版只读探针估计排序：P2 把旧 q1--q5 cell 时间按十条缩放，S2 把预登记 q3 时间按五条缩放；缺失项才使用图规模与子集数的确定性分数。排序只决定先后，不改变 solver、timeout、结果筛选或论文统计。任何 Enhanced 查询真实达到 10,000 秒时，supervisor 先写入 timeout 记录，再以退出码 4 通知父调度器；父调度器停止发新任务并终止另一核的当前进程组，整个 campaign 标为 `stopped`，不得继续用部分 Enhanced 结果拼表。
+新 campaign 使用空目录 `results/paper_runs/final_3600s_campaign_793d4e_20260828`。`prepare` 先物化 25,714 条历史记录的只读正式视图，其中 P1 PrunedDP++ 2 条、P2 Enhanced 3 条、S2 `g=15` Enhanced 6 条按 3,600 秒截断为 timeout；源记录和超时后取得的精确权值不被覆盖。`run` 首先运行 S2 新增 `g={3,6,9,12}` 的 40 cells、400 条 Enhanced。队列先按 `g` 递增，同一 `g` 内只使用旧同参数探针或图规模与子集数的确定性估计，不改变 solver、timeout、结果筛选或论文统计。Enhanced 出现真实 timeout 时正常落盘并继续，既没有 campaign 级硬停止，也不按结果删换查询。
 
-Base 与 PrunedDP++ 使用完全相同的 P2 保守 frontier。每个固定 `(graph,g,method)` 先运行预登记 tranche 1 的 q1--q5，它们恰好覆盖五个实现后组大小等秩层。只有五条都真实达到 10,000 秒、且对应 Enhanced 五条全部完成时，才不启动当前格 q6--q10 和该图更大 `g`；每个未运行任务写入单独的 `not_run_likely_timeout` 清单，并保存五个真实 timeout 的 task key。该清单不是正式 timeout：不得进入完成数、PAR-2、时间总和或“已完成矩阵”统计，需要完整纸面点时必须后续重跑。只要五条中有一条完成，就继续 q6--q10 和下一个 `g`。该规则同时作用于 Base/PrunedDP++，没有图名、方法特例或可调阈值。
+Base 与 PrunedDP++ 使用完全相同的 P2 保守 frontier。每个固定 `(graph,g,method)` 先运行预登记 tranche 1 的 q1--q5，它们恰好覆盖五个实现后组大小等秩层。只有五条都真实达到 3,600 秒、且对应 Enhanced 五条全部在同一 TL 内完成时，才不启动当前格 q6--q10 和该图同方法更大 `g`；每个未运行任务写入单独的 `not_run_likely_timeout` 清单，并保存五个真实 timeout 与五个 Enhanced 完成 task key。只要五条中有一条完成，或 Enhanced 对应项存在 timeout，就继续 q6--q10 和下一个 `g`。该规则同时作用于 Base/PrunedDP++，没有图名、方法特例或可调阈值。它不读取方法特有的队列/状态增长率，也不提前杀死正在运行的查询，避免以不可比的进度阈值制造 baseline 偏置。
 
-S2 不使用上述外推，因为目标 `f` 与运行时间不具备预先可声称的单调关系；Base 与 PrunedDP++ 的 150 条各自完整运行。消融最后运行：DirectedCutOnly 使用生产二进制；without-endpoint-floor 从当前提交的隔离 `git archive` 构建，只允许把 `max(farthest, endpoint-floor)` 一处改成 `farthest`，随后完整 CTest。任一完成项与 Enhanced 的权值/feasibility 不一致，或 isolated build 身份不满足唯一差异，立即停止。
+S2 只允许更窄的同 `f` 跨 `g` frontier：固定 `(graph,method,f,g)` 的十条全部真实达到 3,600 秒，且 Enhanced 对应十条都在 TL 内完成后，才把同图、同方法、同 `f` 的更大 `g` 标成 `not_run_likely_timeout`；绝不跨 `f` 外推。P2 与 S2 的预测停止项都不是正式 timeout，不得进入完成数、PAR-2、时间总和或“已完成矩阵”统计；它们必须保留任务键、作用域和真实证据，论文需要完整曲线时再按清单补跑。消融最后运行：DirectedCutOnly 使用生产二进制；without-endpoint-floor 从当前提交的隔离 `git archive` 构建，只允许把 `max(farthest, endpoint-floor)` 一处改成 `farthest`，随后完整 CTest。任一完成项与 Enhanced 的权值/feasibility 不一致，或 isolated build 身份不满足唯一差异，立即停止。
 
 正式命令先执行 `prepare` 审计，再在 tmux 中执行 `run`；`status` 只读汇总状态。CPU 固定为 4/5，两个 worker 各自保存 metadata、日志和任务 JSON；父进程持有排他锁，重复命令只恢复缺失 task key，不会同时启动第二个 campaign。具体命令见 [`RUN.md`](../RUN.md)。
 
@@ -345,7 +364,7 @@ S2 不使用上述外推，因为目标 `f` 与运行时间不具备预先可声
 - [ ] P1 manifest 仍为 29 个 query blocks、8,318 条全询问。
 - [ ] GPU4GST 每个 `g=3,5,7` 恰好使用作者前 300 条 CSV。
 - [ ] P1 图/查询哈希与 manifest 一致；论文表与作者成品差异仍有说明。
-- [ ] IMDb raw 哈希、日期和 non-commercial 条款有记录。
+- [ ] S2 的 DBLP/Toronto 路径、点边数和图哈希与 P1 manifest 完全一致。
 - [ ] MonoGST+ 作者数据的公开获取/再分发方案已获确认，未用公开前作偷换最终 workload。
 - [ ] GPU4GST 代码与 OneDrive 数据的再分发方案已确认；若未获许可，公开包只含官方下载指针、哈希和转换器。
 
@@ -353,13 +372,13 @@ S2 不使用上述外推，因为目标 `f` 与运行时间不具备预先可声
 
 - [ ] P2 是六图、`g=5..15`、10 条/格，共 660 条；q1--q5 与原 panel 一致，q6--q10 是五个原 size strata 各追加一条。
 - [ ] P2 选择只使用输入组大小与固定哈希，不读取任何 solver 结果。
-- [ ] S2 是两图、3 个 `g`、5 个 `f`、5 条/格，共 150 条。
+- [ ] S2 是两图、5 个 `g`、5 个 `f`、10 条/格，共 500 条；seed 为 `20260827`。
 - [ ] S2 未把实际平均组大小强制调成目标 `f`。
 - [ ] 新增查询全部可行；P1 的 55 条已知 infeasible 原查询仍完整保留。
 
 ### 执行与报告
 
-- [ ] 三种正式计时项使用同一编译环境、timer 边界和 10,000 秒 timeout。
+- [ ] 三种正式计时项使用同一编译环境、timer 边界和 3,600 秒 timeout。
 - [ ] 两个 ABHSS 配置调用同一 `abhss` 可执行文件，开关在查询前冻结，没有 oracle。
 - [ ] Linux `make release` 和 Ubuntu CI 通过；正式服务器的硬件/系统/编译器/IPO 状态已写入运行记录。
 - [ ] 本地全部 CTest、5,000 个随机精确实例、500 个正权互异单终端实例、160 个 $g=7..16$ omitted-half transpose 压力实例、12 点辅助半层固定反例、状态计数契约和 SteinLib 已知最优 gate 通过。

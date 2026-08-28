@@ -4,17 +4,19 @@
     "endpoint_floor": "build in an isolated git archive with exactly one registered expression changed from max(farthest, endpoint-floor) to farthest, pass all CTest, then run Base and Enhanced on the fixed 45-query panel",
     "stop_on": "any completed objective/feasibility mismatch or any build diff outside the registered expression"
   },
-  "enhanced_hard_stop": {
-    "applies_to": [
-      "P2_cross_g",
-      "S2_controlled_gf"
-    ],
-    "predicted_timeout_not_allowed": true,
-    "rule": "after the first real 10000-second Enhanced timeout is durably recorded, run_experiments exits 4; the parent stops launching work, terminates the other process group, records the anomaly, and ends the campaign"
+  "enhanced_timeout_policy": {
+    "historical_formal_timeouts": {
+      "P1_pruneddp_safe": 2,
+      "P2_Enhanced": 3,
+      "S2_g15_Enhanced": 6
+    },
+    "historical_reuse": "raw same-binary exact outcomes are retained; a reporting-only copy uses timeout_seconds=3600 and censors every raw solver_seconds>3600 completion to timeout without modifying the source record",
+    "rule": "run every not-yet-performed Enhanced task with the common 3600-second per-query limit and continue after timeout; no result-dependent query replacement or campaign-wide hard stop"
   },
   "historical_reuse": {
     "P1": {
       "action": "do not rerun",
+      "formal_reporting": "materialize all 24954 records at TL=3600; two PrunedDP++ DBpedia completions above 3600 become formal timeout, while all Base/Enhanced P1 records remain completed",
       "requirements": [
         "current task-key set exactly equals the archived 8318 queries times three methods",
         "ABHSS and PrunedDP++ hashes match",
@@ -23,56 +25,102 @@
       ],
       "tasks": 24954
     },
-    "P2_Orkut_g15_Enhanced": {
-      "action": "reuse q1--q10",
+    "P2_Enhanced": {
+      "action": "reuse all 660 q1--q10 records",
+      "formal_reporting": "three Orkut completions above 3600 become formal timeout; all raw exact objectives remain read-only correctness references",
       "requirements": [
-        "current task keys and query path match",
-        "ABHSS hash matches",
-        "all ten records are ok",
-        "final_793d4e_orkut_g15_audit.json passed"
+        "the current 660 task keys, graph/query paths and g values match exactly",
+        "the ABHSS binary hash matches",
+        "all 660 records contain exact completed outcomes"
       ],
-      "tasks": 10
+      "sources": [
+        "results/paper_runs/final_g15_campaign_793d4e_20260820/workers/cpu4",
+        "results/paper_runs/final_g15_campaign_793d4e_20260820/workers/cpu5",
+        "results/paper_runs/final_793d4e_orkut_g15_w0_cpu4",
+        "results/paper_runs/final_793d4e_orkut_g15_w1_cpu5",
+        "results/paper_runs/enhanced_over3600_no_tl_793d4e_20260827/workers/cpu4",
+        "results/paper_runs/enhanced_over3600_no_tl_793d4e_20260827/workers/cpu5"
+      ],
+      "tasks": 660
+    },
+    "S2_g15_Enhanced": {
+      "action": "retain and reuse all 100 byte-identical g=15 query outcomes; do not rerun or overwrite them",
+      "design_chronology": "g=15 was generated and measured first; g={3,6,9,12} was added on 2026-08-28 and must not be described as preregistered before the g=15 run",
+      "formal_reporting": "retain exact objectives, but count every solver_seconds>3600 record as timeout under the common formal TL; report every g separately as well as graph totals",
+      "query_sha256": {
+        "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f1600.txt": "d275ce2c5ecb80177e5789ebf21e2b7a56a6f46166cabe5a718992e28248c408",
+        "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f200.txt": "cb1382454a36baadbc9053b54683222d24d3c46ba035f50d9da684cff745a0fb",
+        "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f3200.txt": "13be1e30a34afc0062819b29bc326bc1bc9c56f092632732b1ceb83386c17205",
+        "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f400.txt": "7653b8c1308f6b05e40914bb388b179d38992e431c6f81232fcaa9cdca30748e",
+        "experiment_data/s1_controlled_gf/dblp_monogstplus/g15_f800.txt": "f67d9a200712458e6754484ea26bebde7585a7b4a7737feec4aca3584791617f",
+        "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f1600.txt": "d83b269310c21c2ec6be85cbb744a7cb544bd8357bd18d86e2de1bd78c83ebde",
+        "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f200.txt": "8ffec748f5ca6d818618aecc0f27bc319b3ad5b694e8686f0a8c5bfcb57008a2",
+        "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f3200.txt": "e85e13ba43e3affa335f9aca75d7d6c17701a80f4b9a55753977394f0092f1c0",
+        "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f400.txt": "d7728b3c14de2f7d5745c9aa25bc6dbf9c324c0a36f13a059191a0b03d9f1f76",
+        "experiment_data/s1_controlled_gf/toronto_monogstplus/g15_f800.txt": "2732389649ec3587b4b7e8b5bfc68cae343f9351fe1f60d0fbd94ab8142463ea"
+      },
+      "raw_no_timeout_run": {
+        "ok_records": 100,
+        "over_10000_seconds": 2,
+        "over_3600_seconds": 6,
+        "over_5000_seconds": 5
+      },
+      "source": "results/paper_runs/enhanced_over3600_no_tl_793d4e_20260827",
+      "tasks": 100
     }
   },
   "likely_timeout_stop": {
-    "action": "do not start q6--q10 at that g or any query at larger g for that graph/method",
-    "applies_equally_to": [
-      "abhss_base",
-      "pruneddp_safe"
-    ],
-    "evidence": "for one fixed graph, g and method, all preregistered tranche-1 q1--q5 (one from each realized-group-size stratum) reach the real 10000-second limit and Enhanced solves all five",
-    "record_status": "not_run_likely_timeout",
-    "reporting": "never count these records as formal timeout, solved, elapsed time, PAR-2 input, or a completed matrix cell; retain task keys and five timeout evidence keys so they can be rerun later",
-    "suite": "P2_cross_g",
-    "why_no_S2_extrapolation": "runtime need not be monotone in target f, so the controlled grid is run in full"
+    "P2_cross_g": {
+      "action": "do not start q6--q10 at that g or any query at larger g for that graph/method",
+      "evidence": "for one fixed graph, g and method, all preregistered tranche-1 q1--q5 (one per input-size stratum) reach the real 3600-second limit and Enhanced completes those five within 3600 seconds",
+      "scope": "same graph and method; larger g only"
+    },
+    "S2_controlled_gf": {
+      "action": "do not start the same f at larger g for that graph/method",
+      "evidence": "for one fixed graph, f, g and method, all ten queries reach the real 3600-second limit and Enhanced completes those same ten within 3600 seconds",
+      "scope": "same graph, method and f; larger g only; never extrapolate across f"
+    },
+    "shared": {
+      "applies_equally_to": [
+        "abhss_base",
+        "pruneddp_safe"
+      ],
+      "no_solver_progress_threshold": "do not infer from method-specific queue/state rates or kill a currently running query early; only completed real-timeout records trigger a lane decision",
+      "record_status": "not_run_likely_timeout",
+      "reporting": "never count a predicted-stop task as formal timeout, solved, elapsed time, PAR-2 input, or a completed matrix cell; retain every skipped task key, scope and real timeout evidence key for optional later rerun",
+      "timeout_seconds": 3600
+    }
   },
   "ordering": {
-    "P2_Enhanced_estimate": "old five-query Enhanced cell time scaled to ten queries",
-    "S2_Enhanced_estimate": "old preregistered q3 Enhanced time scaled to five queries",
+    "P2_Enhanced_estimate": "not used: all 660 current-binary P2 Enhanced tasks are already complete and identity-audited",
+    "S2_Enhanced_estimate": "schedule g={3,6,9,12} in ascending g; within one g use a same-graph/g/f historical probe when available, otherwise deterministic graph-size times subset-count work; retained g=15 is not rescheduled",
+    "S2_competitors": "ascending g frontier; deterministic estimated fast-to-slow order within each g so the same-f 10/10 timeout rule can be updated online",
     "fallback": "deterministic graph-size times subset-count score, used only if a historical estimate is absent",
     "scientific_effect": "none; ordering changes neither solver, timeout nor reporting"
   },
   "paper_scope": "P1/P2/S2 main matrix plus the separately preregistered minimal ablations",
   "phase_order": [
-    "validate binary/matrix/input identities and historical reuse",
-    "run every remaining P2 and all S2 Enhanced cell, ordered by read-only historical estimates from fast to slow",
-    "run P2 Base and PrunedDP++ in ascending g frontiers, with estimated fast-to-slow order inside each g",
-    "run all S2 Base and PrunedDP++ cells from fast to slow without cross-f extrapolation",
-    "run the two preregistered minimal ablation panels"
+    "validate binary/matrix/input identities; materialize non-destructive 3600-second views of historical P1/P2/S2-g15 records",
+    "run the 40 new S2 g={3,6,9,12} cells (400 queries) for Enhanced from estimated fast to slow and continue after timeout",
+    "run P2 Base and PrunedDP++ in ascending g frontiers, applying the symmetric five-timeout likely-stop rule online",
+    "run S2 Base and PrunedDP++ in ascending g frontiers, applying the symmetric same-f ten-timeout likely-stop rule online",
+    "run the two preregistered minimal ablation panels at the same 3600-second limit"
   ],
   "production_identity": {
     "abhss_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
     "graph_load_timeout_seconds": 1800,
+    "paper_matrix_sha256": "12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab",
+    "query_feasibility_audit_sha256": "ce56defb4024730c3b39bb21d37889e3b6d18c59c02de0668257c53fa67edae0",
     "physical_cpus": [
       4,
       5
     ],
     "pruneddp_sha256": "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2",
     "same_abhss_binary_for_base_and_enhanced": true,
-    "timeout_seconds_per_query": 10000
+    "timeout_seconds_per_query": 3600
   },
-  "result_root": "results/paper_runs/final_g15_campaign_793d4e_20260820",
+  "result_root": "results/paper_runs/final_3600s_campaign_793d4e_20260828",
   "runner": "tools/experiments/run_parallel_campaign.py",
   "schema_version": 1,
-  "status": "frozen-before-new-campaign-results"
+  "status": "frozen-before-3600s-campaign-results"
 }

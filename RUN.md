@@ -28,7 +28,7 @@ make validate-paper-binaries
 make release BUILD_DIR=build-gcc CMAKE=cmake JOBS=16
 ```
 
-使用 `CC`/`CXX` 环境变量选定 compiler 后，不得在同一 build directory 中更换 generator/compiler。CMake 会检测 IPO/LTO 和浮点 `std::from_chars`；不支持时分别关闭 IPO 或回退 `strtod`，不会伪装支持。使用非默认构建目录时，后续命令中的 `./build/...` 应同步替换；IMDb 包装脚本另可显式传 `--executable build-gcc/build_imdb_graph`。
+使用 `CC`/`CXX` 环境变量选定 compiler 后，不得在同一 build directory 中更换 generator/compiler。CMake 会检测 IPO/LTO 和浮点 `std::from_chars`；不支持时分别关闭 IPO 或回退 `strtod`，不会伪装支持。使用非默认构建目录时，后续命令中的 `./build/...` 应同步替换。
 
 ### 1.2 Windows
 
@@ -94,16 +94,24 @@ data/DBpedia/{graph.txt,query.txt}
 
 不从最新官方站点替换这五张 P1 图，不重生成它们的查询。最终图/查询哈希在 `experiment_data/p1_published_workloads/manifest.json`。MonoGST+ 已录用手稿与 workload 在当前 freeze 下尚无公开独立获取路径；公开 artifact 前必须取得作者许可或作者认可的获取说明。
 
-### 2.3 S2 IMDb 图
+### 2.3 S2 受控查询
 
-IMDb freeze 只使用 2026-07-22 取得的 `title.basics.tsv.gz`、`title.principals.tsv.gz`、`name.basics.tsv.gz`。URL、目标路径和 SHA-256 在 `data_sources/official/official-latest-20260722/download_manifest.json`：
+S2 不再构建或使用 IMDb 图，而是逐字节复用 P1 的两个 MonoGST+ 作者接口：
 
-```bash
-make tools JOBS=16
-python3 tools/data/prepare_imdb_dataset.py --replace-existing
+```text
+data/DBLP/graph.txt
+data/Toronto/graph.txt
 ```
 
-Windows 将 `python3` 换为 `python`。不得在 `IMDb-latest-20260722` 名下重新下载 IMDb 每日“latest”；不同日期必须创建新图身份并完整重跑 S2。该数据适用 IMDb non-commercial 条款。
+生成前必须确认二者仍与 `experiment_data/p1_published_workloads/manifest.json` 中的 `DBLP-MonoGSTPlus` 和 `Toronto-MonoGSTPlus` 图哈希一致。随后运行：
+
+```bash
+python3 tools/data/generate_controlled_queries.py
+```
+
+该命令固定生成 `g={3,6,9,12,15}`、`f={200,400,800,1600,3200}`、每格 10 条、base seed `20260827` 的 500 条查询；每个图和 `g` 延续一条随机流，并按“组大小、该组成员”的参考调用顺序抽样，同时重建 `cells.json`、`cells.csv` 与 `queries.json`。每个查询文件第一行是查询数；每条查询先写一行 `g`，再写 `g` 行 `组大小 顶点1 ... 顶点k`。顶点使用 `1..n`，组内无重复，组间允许重叠。展开后的 `.txt` 被 Git 忽略；新服务器可以重新执行同一命令，或连同整个 `experiment_data/s1_controlled_gf` 查询目录一起传输。不得在 S2 名义下换图、换 seed、重采样或按 solver 结果筛选。旧 IMDb 获取定义只保留为历史来源证据，不进入当前 P1/P2/S2。
+
+`g=15` 的 10 个查询文件在 2026-08-27 已生成并完成 Enhanced 无 TL 资源运行；2026-08-28 扩展网格时，生成器按独立的 `(graph,g)` RNG 流重建全部文件，逐字节哈希确认这 10 个文件未变，原 100 条结果也原地保留。`g={3,6,9,12}` 是后加的 400 条，不得把五层网格表述为在 `g=15` 运行前预登记。
 
 ### 2.4 SteinLib 正确性输入
 
@@ -136,8 +144,8 @@ Windows 将 `python3` 换为 `python`。开发期若图与查询哈希完全不�
 | P1 MonoGST+ | 1,118 | 3 | 3,354 |
 | P1 GPU4GST | 7,200 | 3 | 21,600 |
 | P2 cross-`g` | 660 | 3 | 1,980 |
-| S2 controlled $\langle g,f\rangle$ | 150 | 3 | 450 |
-| 性能矩阵合计 | 9,128 | 3 | 27,384 |
+| S2 controlled `<g,f>` | 500 | 3 | 1,500 |
+| 性能矩阵合计 | 9,478 | 3 | 28,434 |
 
 可行性审计必须恰好保留 P1 中已知 55 条无解自然查询（LinkedMDB 46、DBpedia 9），并要求 P2、S2 与 gate 的新查询无一条不可行。
 
@@ -191,7 +199,7 @@ python3 tools/experiments/run_experiments.py --run-id p2_extra --run-dir results
 
 汇总成十条/格的正式结果时必须同时保留旧 run directory、新增 tranche run directory、各自 commit 与机器环境记录；不得覆盖或重新编号旧 q1--q5。
 
-每条查询有独立 10,000 秒 solver deadline。图加载在 `[Ready]` 前完成，不进入逐查询 timer，另由 1,800 秒 watchdog 保护。加载包含一次连通分量建索引；它是所有本地方法共享的 I/O 成本，只作 artifact usability 指标，不得并入算法 speedup。
+每条查询有独立 3,600 秒 solver deadline。图加载在 `[Ready]` 前完成，不进入逐查询 timer，另由 1,800 秒 watchdog 保护。加载包含一次连通分量建索引；它是所有本地方法共享的 I/O 成本，只作 artifact usability 指标，不得并入算法 speedup。
 
 每个 native `weights.txt` 查询记录固定为四列：
 
@@ -211,17 +219,17 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 
 分配只由稳定 case hash 决定。同一 `run-dir` 中每个 `(case,method,query)` 有独立 JSON 记录，已完成 key 会跳过，因此可直接重复原命令续跑。不得在同一物理机器上并发运行多个内存带宽重的正式 shard；不得将不同 CPU/编译器的 shard 直接合并为同一时间表。
 
-本轮最终 campaign 固定使用已校准的 CPU 4/5。先执行只读身份审计和队列展开；确认输出为 95 个 Enhanced cell job、800 个新 Enhanced 任务、24,954 个复用 P1 任务后，再启动后台会话：
+本轮最终 campaign 固定使用已校准的 CPU 4/5。先执行只读身份审计和队列展开；确认输出为 40 个 Enhanced cell job、400 个新 Enhanced 任务、24,954 个复用 P1 任务、660 个复用 P2 Enhanced 任务和 100 个复用 S2 `g=15` Enhanced 任务后，再启动后台会话：
 
 ```bash
 python3 tools/experiments/run_parallel_campaign.py prepare
-tmux new-session -d -s abhss-final -c "$PWD" 'python3 tools/experiments/run_parallel_campaign.py run > results/paper_runs/final_g15_campaign_793d4e_20260820/scheduler.log 2>&1'
+tmux new-session -d -s abhss-final -c "$PWD" 'python3 tools/experiments/run_parallel_campaign.py run > results/paper_runs/final_3600s_campaign_793d4e_20260828/scheduler.log 2>&1'
 python3 tools/experiments/run_parallel_campaign.py status
 ```
 
-`prepare` 验证生产二进制哈希、CPU 物理核、当前 P1/P2/S2 task key，并只在任务身份完全相同时复用完整 P1 与 Orkut `g=15` Enhanced q1--q10。`run` 先按只读历史估计从快到慢运行剩余 P2 和全部 S2 Enhanced；首个真实 10,000 秒 Enhanced timeout 落盘后，runner 返回 4，父调度器终止另一核当前进程组并停止整个 campaign。
+`prepare` 验证生产二进制哈希、CPU 物理核、当前 P1/P2/S2 task key、查询路径和历史记录全集，并只在身份完全相同时复用完整 P1、全部 660 条 P2 Enhanced 与原 100 条 S2 `g=15` Enhanced。它在新目录生成 25,714 条只读历史记录的正式视图：按统一 3,600 秒口径把 P1 PrunedDP++ 的 2 条、P2 Enhanced 的 3 条和 S2 `g=15` Enhanced 的 6 条原始长完成记为 timeout，但不覆盖原始精确结果。`run` 先按 `g` 递增、同一 `g` 内按确定性估计从快到慢调度新增 `g={3,6,9,12}` 的 400 条 Enhanced；真实 timeout 正常落盘并继续，不触发 campaign 级硬停止，也不据此更换查询。
 
-Enhanced 全部通过后，P2 的 Base/PrunedDP++ 按 `g` 递增运行。每格先跑覆盖五个组大小层的 q1--q5；仅当 5/5 均真实 timeout 且 Enhanced 5/5 已完成，才把当前 q6--q10 与更大 `g` 写为 `not_run_likely_timeout` 而不启动。这些项不是正式 timeout，也不进入 PAR-2/完成数；要补齐正式曲线必须后续重跑。S2 不按 `f` 外推，两个方法都跑完整 150 条。最后执行冻结的最小消融；endpoint-floor 变体由隔离构建器创建并通过完整 CTest。精确协议见 `experiments/final_campaign_plan.json` 和 `docs/EXPERIMENT_PLAN.md` 第 8.5 节。
+Enhanced 全部得到完成或 timeout 记录后，P2 的 Base/PrunedDP++ 按 `g` 递增运行。每格先跑覆盖五个组大小层的 q1--q5；仅当 5/5 都真实达到 3,600 秒且 Enhanced 对应 5/5 均在 3,600 秒内完成，才把当前 q6--q10 与同图同方法更大 `g` 写为 `not_run_likely_timeout` 而不启动。S2 按同一思想但不跨 `f` 外推：固定图、方法、`f`、`g` 的 10/10 全部真实 timeout，且 Enhanced 同十条均在 TL 内完成时，才跳过同图同方法同 `f` 的更大 `g`。这些预测停止项不是正式 timeout，不进入完成数、PAR-2 或时间总和；清单保留全部 task key 与真实 timeout 证据，论文需要完整点时再补跑。最后执行冻结的最小消融；endpoint-floor 变体由隔离构建器创建并通过完整 CTest。精确协议见 `experiments/final_campaign_plan.json` 和 `docs/EXPERIMENT_PLAN.md` 第 8.5 节。
 
 调度器持有排他锁且每个 task key 独立落盘；后台会话中断后重复同一 `run` 命令即可恢复。换机器或换 CPU 前必须重新校准并修改机器计划，不能直接沿用 CPU 4/5 的正式时间口径。
 
@@ -237,14 +245,16 @@ python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results
 
 诊断运行不自动进入论文汇总。若 PrunedDP++ 明显更快或 ABHSS 超时，保留原数据，再同时检查图的 $n,m$、密度/分量、实现后组大小、双方状态数、上界收紧、row 密度与各 phase 时间，不得仅用“图更大”解释。
 
-对可能越过正式 TL 的单条长询问，可在单独 probe 构建与新 run directory 中追加 `--probe-diagnostics`，并把外层诊断预算设得足以跑完整轨迹。该预算只用于定位，不能替换矩阵中的正式 10,000 秒 TL。runner 会把 `[ProbeDiag]` 行解析进任务 JSON 的 `probe_diagnostics`：`prepare_end`、`singleton_anchor_end`、`ordinary_layer` 和 `adjoint_transpose` 给出阶段边界；`adjoint_layer` 同时给出该 H 层的秒数、row/scalar 数与当前上界；`adjoint_complementary_half_upper` 表示互补辅助半格严格收紧上界。最终还必须保留 solver time、查询峰值 RSS、watchdog 峰值 RSS、返回值和状态数，不能用中途 row 数冒充完成结果。
+对可能越过正式 TL 的单条长询问，可在单独 probe 构建与新 run directory 中追加 `--probe-diagnostics`，并把外层诊断预算设得足以跑完整轨迹。该预算只用于定位，不能替换矩阵中的正式 3,600 秒 TL。runner 会把 `[ProbeDiag]` 行解析进任务 JSON 的 `probe_diagnostics`：`prepare_end`、`singleton_anchor_end`、`ordinary_layer` 和 `adjoint_transpose` 给出阶段边界；`adjoint_layer` 同时给出该 H 层的秒数、row/scalar 数与当前上界；`adjoint_complementary_half_upper` 表示互补辅助半格严格收紧上界。最终还必须保留 solver time、查询峰值 RSS、watchdog 峰值 RSS、返回值和状态数，不能用中途 row 数冒充完成结果。
 
 ## 8. 汇总与出图
 
 ```bash
-python3 tools/experiments/summarize_results.py --input results/paper_runs/paper --output results/paper_runs/paper/summary
-python3 tools/experiments/plot_results.py --input results/paper_runs/paper --suite P2_cross_g --suite S2_controlled_gf --output results/paper_runs/paper/figures
+python3 tools/experiments/summarize_results.py --input results/paper_runs/final_3600s_campaign_793d4e_20260828/historical_formal_records.jsonl --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu4 --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu5 --output results/paper_runs/final_3600s_campaign_793d4e_20260828/summary
+python3 tools/experiments/plot_results.py --input results/paper_runs/final_3600s_campaign_793d4e_20260828/historical_formal_records.jsonl --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu4 --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu5 --suite P2_cross_g --suite S2_controlled_gf --output results/paper_runs/final_3600s_campaign_793d4e_20260828/figures
 ```
+
+`p2_likely_timeout_not_run.jsonl` 和 `s2_likely_timeout_not_run.jsonl` 不作为 `--input`；它们只登记未运行项，不能混入正式分母。消融结果位于独立的 `ablation_workers`，按消融面板另行汇总。
 
 关键产物：
 
@@ -253,7 +263,7 @@ python3 tools/experiments/plot_results.py --input results/paper_runs/paper --sui
 - `paired_speedups.csv`：双方共同完成的成对加速比与 timeout 方向。
 - `quality_mismatches.csv` 和 `feasibility_mismatches.csv`：使用任何性能 claim 前必须为空。
 
-P1 只在全部查询完成时填写 `observed_total_seconds_if_all_solved`。若有 timeout/error，先报完成数，再报已完成查询时间与将每个未完成查询按 10,000 秒计的 `capped_total_seconds`；不得把部分 solved time 当作整图总时间。
+P1 只在全部查询完成时填写 `observed_total_seconds_if_all_solved`。若有 timeout/error，先报完成数，再报已完成查询时间与将每个未完成查询按 3,600 秒计的 `capped_total_seconds`；不得把部分 solved time 当作整图总时间。
 
 `summary_by_cell.csv` 另给完成查询的平均/中位/p90 `mask_vertex_states`；`summary_by_dataset.csv` 给已完成查询的状态总数，并且仅在全图查询全部完成且计数都可用时填写全 workload 状态总数。`paired_speedups.csv` 的 `baseline_over_contender` 状态倍率只使用双方均完成且状态数都为正的配对；倍率大于 1 表示 ABHSS 发现的主状态更少。timeout 进程没有最终计数，不能以已运行时间或内存反推，也不能把完成子集的状态倍率宣称为全查询倍率。
 

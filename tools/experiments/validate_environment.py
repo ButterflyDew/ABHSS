@@ -37,7 +37,7 @@ P2_SIZE_CLASSES = {
     "Orkut-GPU4GST": "large",
     "Reddit-GPU4GST": "large",
 }
-S2_DATASETS = {"DBLP-MonoGSTPlus", "IMDb-latest-20260722"}
+S2_DATASETS = {"DBLP-MonoGSTPlus", "Toronto-MonoGSTPlus"}
 
 
 def load_json(path: str | Path) -> Any:
@@ -108,14 +108,14 @@ def main() -> int:
     warnings: list[str] = []
 
     config = load_json("experiments/paper_matrix.json")
-    if config.get("schema_version") != 4:
-        failures.append("paper_matrix schema_version must be 4")
+    if config.get("schema_version") != 5:
+        failures.append("paper_matrix schema_version must be 5")
     if config.get("submission_target") != "SIGMOD or VLDB":
         failures.append("submission target changed")
     if config.get("primary_baseline") != "pruneddp_safe":
         failures.append("primary baseline must be pruneddp_safe")
-    if float(config.get("timeout_seconds", 0)) != 10_000:
-        failures.append("per-query timeout must be 10,000 seconds")
+    if float(config.get("timeout_seconds", 0)) != 3_600:
+        failures.append("per-query timeout must be 3,600 seconds")
 
     base_method = config["methods"].get("abhss_base", {})
     enhanced_method = config["methods"].get("abhss_enhanced", {})
@@ -231,7 +231,7 @@ def main() -> int:
     if (
         ablation.get("schema_version") != 1
         or ablation.get("source_suite") != "P2_cross_g"
-        or int(ablation.get("timeout_seconds_per_query", -1)) != 10_000
+        or int(ablation.get("timeout_seconds_per_query", -1)) != 3_600
         or selection.get("datasets") != expected_ablation_datasets
         or selection.get("g") != [6, 10, 14]
         or selection.get("panel_query_indices") != [1, 2, 3, 4, 5]
@@ -261,20 +261,29 @@ def main() -> int:
     campaign = load_json("experiments/final_campaign_plan.json")
     production = campaign.get("production_identity", {})
     likely_stop = campaign.get("likely_timeout_stop", {})
-    hard_stop = campaign.get("enhanced_hard_stop", {})
+    shared_stop = likely_stop.get("shared", {})
+    p2_stop = likely_stop.get("P2_cross_g", {})
+    s2_stop = likely_stop.get("S2_controlled_gf", {})
+    enhanced_timeout = campaign.get("enhanced_timeout_policy", {})
     if (
         campaign.get("schema_version") != 1
-        or campaign.get("status") != "frozen-before-new-campaign-results"
+        or campaign.get("status") != "frozen-before-3600s-campaign-results"
         or production.get("physical_cpus") != [4, 5]
+        or production.get("paper_matrix_sha256") != sha256(ROOT / "experiments" / "paper_matrix.json")
+        or production.get("query_feasibility_audit_sha256") != sha256(ROOT / "experiments" / "query_feasibility_audit.json")
         or production.get("abhss_sha256") != "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced"
         or production.get("pruneddp_sha256") != "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2"
-        or int(production.get("timeout_seconds_per_query", -1)) != 10_000
+        or int(production.get("timeout_seconds_per_query", -1)) != 3_600
         or production.get("same_abhss_binary_for_base_and_enhanced") is not True
-        or hard_stop.get("predicted_timeout_not_allowed") is not True
-        or likely_stop.get("applies_equally_to") != ["abhss_base", "pruneddp_safe"]
-        or likely_stop.get("suite") != "P2_cross_g"
-        or likely_stop.get("record_status") != "not_run_likely_timeout"
-        or "never count" not in likely_stop.get("reporting", "")
+        or "continue after timeout" not in enhanced_timeout.get("rule", "")
+        or shared_stop.get("applies_equally_to") != ["abhss_base", "pruneddp_safe"]
+        or int(shared_stop.get("timeout_seconds", -1)) != 3_600
+        or shared_stop.get("record_status") != "not_run_likely_timeout"
+        or "never count" not in shared_stop.get("reporting", "")
+        or "q1--q5" not in p2_stop.get("evidence", "")
+        or "larger g" not in p2_stop.get("scope", "")
+        or "all ten queries" not in s2_stop.get("evidence", "")
+        or "never extrapolate across f" not in s2_stop.get("scope", "")
         or not (ROOT / campaign.get("runner", "missing")).is_file()
     ):
         failures.append("final dual-core campaign identity or stop/reporting contract changed")
@@ -283,17 +292,30 @@ def main() -> int:
     expected_s2_grid = {
         (dataset, g, f)
         for dataset in S2_DATASETS
-        for g in (6, 10, 14)
+        for g in (3, 6, 9, 12, 15)
         for f in (200, 400, 800, 1600, 3200)
     }
     actual_s2_grid = {
         (row["dataset"], int(row["g"]), int(row["f_target"])) for row in s2
     }
-    if len(s2) != 30 or actual_s2_grid != expected_s2_grid:
+    if len(s2) != 50 or actual_s2_grid != expected_s2_grid:
         failures.append("S2 controlled <g,f> grid changed")
-    if any(int(row["queries"]) != 5 for row in s2):
-        failures.append("S2 must retain five queries per cell")
+    if any(
+        int(row["queries"]) != 10
+        or int(row.get("base_seed", -1)) != 20260827
+        or int(row.get("protocol_version", -1)) != 2
+        for row in s2
+    ):
+        failures.append("S2 must retain protocol v2, seed 20260827 and ten queries per cell")
     for row in s2:
+        source = graph_by_dataset.get(row["dataset"], {})
+        if (
+            row.get("graph_path") != source.get("graph_path")
+            or row.get("graph_sha256") != source.get("graph_sha256")
+            or int(row.get("graph_vertices", -1)) != int(source.get("vertices", -2))
+            or int(row.get("graph_edges", -1)) != int(source.get("edges", -2))
+        ):
+            failures.append(f"S2 does not reuse the exact P1 graph identity: {row['dataset']}")
         check_hash(
             ROOT / row["query_path"],
             row.get("query_sha256"),
@@ -337,11 +359,11 @@ def main() -> int:
         failures.append("P1 GPU4GST must expand to 24 executable blocks")
     if case_counts.get("P2_cross_g") != 66:
         failures.append("P2 must expand to 66 cells")
-    if case_counts.get("S2_controlled_gf") != 30:
-        failures.append("S2 must expand to 30 cells")
-    if primary_query_tasks != 27_384:
+    if case_counts.get("S2_controlled_gf") != 50:
+        failures.append("S2 must expand to 50 cells")
+    if primary_query_tasks != 28_434:
         failures.append(
-            f"primary/secondary performance task total is {primary_query_tasks}, expected 27,384"
+            f"primary/secondary performance task total is {primary_query_tasks}, expected 28,434"
         )
 
     if args.require_binaries or args.require_performance_binaries:
@@ -376,7 +398,7 @@ def main() -> int:
             failures.append(
                 "the 55 audited infeasible MonoGST+ natural queries were changed or dropped"
             )
-        if int(totals.get("unique_query_records", -1)) != 9_140:
+        if int(totals.get("unique_query_records", -1)) != 9_490:
             failures.append("query-feasibility audit query total changed")
 
     for warning in warnings:
@@ -387,7 +409,7 @@ def main() -> int:
         return 1
     print(
         f"Validated {len(cases)} cases and {primary_query_tasks} performance tasks "
-        f"(P1=8,318, P2=660, S2=150 queries across three methods)"
+        f"(P1=8,318, P2=660, S2=500 queries across three methods)"
     )
     return 0
 

@@ -1,13 +1,13 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "freeze_id": "imdb-20260722",
   "download_root": "data_sources/official/official-latest-20260722/raw",
   "interface_root": "data/official-latest-20260722/imdb-20260722",
   "datasets": [
     {
       "id": "IMDb-latest-20260722",
-      "status": "include",
-      "tier": "secondary-controlled",
+      "status": "retired_not_in_current_P1_P2_S2_matrix",
+      "tier": "historical-only",
       "official_page": "https://developer.imdb.com/non-commercial-datasets/",
       "snapshot": "mutable daily non-commercial export retrieved and frozen on 2026-07-22",
       "files": [
@@ -28,8 +28,10 @@
         }
       ],
       "transform": "Build the frozen title-person bipartite graph with one positive unit edge per title.principals row and dense 1-based identifiers.",
-      "queries": "Secondary <g,f> queries use the MonoGST+ Gaussian-size and uniform-vertex protocol; they do not use IMDb labels.",
+      "queries": "No current formal query set uses this graph.",
       "comparability_note": "This is a current official IMDb freeze for sensitivity analysis, not the unavailable PrunedDP++ 2016 snapshot."
     }
-  ]
+  ],
+  "status": "retired_from_formal_matrix",
+  "retirement_reason": "The controlled S2 experiment now reuses the exact P1 DBLP-MonoGSTPlus and Toronto-MonoGSTPlus graphs; this dated IMDb source is retained only as historical acquisition metadata."
 }
