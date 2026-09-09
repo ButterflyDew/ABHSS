@@ -1,59 +1,43 @@
-# ABHSS review branch
+# ABHSS
 
-本分支只保留论文方法的人类审阅版本：一个单线程精确 Group Steiner Tree 求解器，以及同一求解器的 Base 与 Enhanced 两种最终模式。baseline、实验调度器、中间消融态、探针、格式核验工具和历史文档均不在本分支中。
+单线程精确 Group Steiner Tree 求解器。Base 和 Enhanced 是同一算法的两种模式：共享预处理、普通子集 DP、提前 A1 与条件式见证树 DP；Enhanced 增加对偶证书，并用反向 H 完成高层状态。
 
-## 目录
+本分支提供随论文阅读和运行的算法代码，不包含 baseline、实验调度器和历史结果。
 
-| 路径 | 内容 |
-|---|---|
-| `src/main.cpp` | 最小批处理入口，只负责加载、模式选择、计时和逐查询输出 |
-| `src/abhss/` | ABHSS 算法；按预处理、ordinary DP、前向 A、反向 H 分为多个模块 |
-| `src/common/` | 图与查询快速读取、连通分量可行性判断、浮点路径恢复辅助 |
-| `docs/CODE_GUIDE.md` | 从入口到热循环的逐文件、逐函数代码导读 |
-| `docs/METHOD.md` | 论文方法章节的详细中文底稿，包含递推、证明、复杂度和实现目的 |
-| `data/example/` | 唯一随仓库提交的最小运行示例；正式大图由 `.gitignore` 排除 |
+## 编译与运行
 
-## 编译
-
-Linux、macOS 或安装了 GNU Make 的环境：
+需要 Linux、CMake 3.16 以上，以及支持 C++17 的 GCC 或 Clang。
 
 ```bash
-make release JOBS=16
-```
-
-等价的 CMake 命令：
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 16
-```
-
-需要 CMake 3.16 以上及支持 C++17 的 GCC、Clang 或 MSVC。Release 构建开启编译器优化和跨过程优化；程序本身不创建计算线程。
-
-## 运行
-
-```bash
-./build/abhss <graph_folder> <query_file> <base|enhanced> [first_query] [query_count]
-```
-
-最小示例：
-
-```bash
+make release JOBS=4
 ./build/abhss data/example data/example/query.txt base
 ./build/abhss data/example data/example/query.txt enhanced
 ```
 
-`first_query` 使用从 1 开始的编号；省略区间时运行整个查询文件。每行输出：
+也可以单独指定构建目录：
+
+```bash
+cmake -S . -B build-paper -DCMAKE_BUILD_TYPE=Release
+cmake --build build-paper --parallel 4
+```
+
+程序本身不创建计算线程；`JOBS` 只控制编译并行数。运行接口为：
+
+```text
+abhss <graph_folder> <query_file> <base|enhanced> [first_query] [query_count]
+```
+
+查询编号从 1 开始；省略区间时运行整个查询文件。每完成一条查询立即输出一行：
 
 ```text
 query_index seconds best_weight mask_vertex_states
 ```
 
-`seconds` 只覆盖单条查询的预处理与搜索，不包含图和查询文件加载。不可行查询的 `best_weight` 为 `-1`。
+`seconds` 是本条查询的预处理与搜索时间，不含输入加载；不可行时 `best_weight=-1`。最后一列是 D/A/H 各逻辑行首次发现的状态数，既不是堆操作次数，也不是峰值内存。程序输出最优权值，不输出最优树的边集合。
 
-## 输入合同
+## 输入
 
-图目录中必须存在小写 `graph.txt`：
+图目录包含小写 `graph.txt`：
 
 ```text
 n m
@@ -62,8 +46,33 @@ u_1 v_1 w_1
 u_m v_m w_m
 ```
 
-顶点编号为 `1..n`，图无向，边权为 `double` 可表示的有限非负数；允许零权边、重边和自环。查询文件格式为：首个整数是查询数；每条查询先给组数 `g`，之后每组依次给 `size vertex_1 ... vertex_size`。组非空、顶点合法，组之间允许重叠，且 `g <= 16`。review 分支按竞赛代码约定信任正式输入满足这些条件，不保留针对损坏文件的完整合法性框架。
+每条边只列一次，程序按无向边加载。顶点编号为 `1..n`；边权为有限非负数，按 `double` 读取。允许零权边、重边、自环和非连通图。实现以 `1e100` 为无穷哨兵，输入应保证涉及的有限路径、候选费用和中间和远小于它。
 
-## 两种模式
+查询文件开头是查询数。随后每条查询先写组数 `g`，每组写 `size` 和对应顶点编号：
 
-Base 与 Enhanced 共用 `SolveOneQuery`、预处理主线、A1、ordinary D、witness rent-or-buy 调度器、树 DP、稀疏 `Row` 和前向 A 内核。最终的 `bool enhanced` 只控制四类论文可说明的差异：组距离采用有界或完整表示；root-path witness 替换为 dual-primal witness；完整前向高层 A 替换为低层 A 加高层 H；Enhanced 安全新增有向割下界和 primal/facility 上界。具体对应关系及精确性证明见 [`docs/METHOD.md`](docs/METHOD.md)。
+```text
+2
+2
+2 1 3
+1 4
+3
+1 1
+1 2
+2 3 4
+```
+
+上例有两条查询，分别包含两个组和三个组。组之间可以重叠；输入应满足组非空、顶点编号合法、`0 <= g <= 16`。读取器信任这些条件，不检查损坏的输入。大图和正式查询集不随本分支提交；已有相同格式的数据可以直接使用，无需其他运行时依赖。
+
+## 阅读路径
+
+| 路径 | 内容 |
+|---|---|
+| `src/main.cpp` | 命令行、逐查询计时与输出 |
+| `src/graph.h`、`src/io.cpp` | 图和查询结构、缓冲读取、连通分量 |
+| `src/abhss/` | 预处理、普通 D、前向 A、反向 H 和证书模块 |
+| `src/common/` | 路径恢复使用的浮点辅助比较 |
+| `docs/CODE_GUIDE.md` | 入口、函数调用和关键实现的代码导读 |
+| `docs/METHOD.md` | 状态定义、递推、正确性与复杂度 |
+| `data/example/` | 可直接运行的小示例 |
+
+建议先读[代码导读](docs/CODE_GUIDE.md)，再沿[方法说明](docs/METHOD.md)中的公式定位实现。源代码为每个函数、lambda 及较长函数的主要步骤保留中文注释。

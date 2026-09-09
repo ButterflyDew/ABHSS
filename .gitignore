@@ -1,4 +1,4 @@
-# Editor and local-agent state
+# Local workspace
 /.agents/
 /.codex/
 /.vs/
@@ -31,6 +31,7 @@ cmake_install.cmake
 /results*/
 /.tmp_*/
 /tmp/
+/dist/
 /ABHSS_ignored_data_before_workload_redesign_*.tar.gz
 
 # Local paper copies and third-party code

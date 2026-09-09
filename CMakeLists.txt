@@ -8,17 +8,12 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 add_executable(abhss
     src/main.cpp
-    src/common/graph_io.cpp
-    src/common/query_io.cpp
-    src/common/query_feasibility.cpp
+    src/io.cpp
     src/abhss/preprocess.cpp
+    src/abhss/path_growth_upper.cpp
     src/abhss/core.cpp
     src/abhss/forward.cpp
     src/abhss/adjoint.cpp
     src/abhss/solver.cpp)
 
-if(MSVC)
-    target_compile_options(abhss PRIVATE /utf-8 /W4)
-else()
-    target_compile_options(abhss PRIVATE -Wall -Wextra -Wpedantic)
-endif()
+target_compile_options(abhss PRIVATE -Wall -Wextra -Wpedantic)

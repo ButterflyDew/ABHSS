@@ -1,274 +1,117 @@
-# ABHSS 代码入口与审阅指南
+# 代码导读
 
-本文档面向第一次阅读本分支代码的人，说明怎样编译、怎样运行、一条查询经过哪些函数，以及 Base 与 Enhanced 究竟在哪些代码位置不同。数学定义、正确性证明和复杂度见 [`METHOD.md`](METHOD.md)。
+阅读顺序是 `main.cpp → solver.cpp → preprocess.cpp → core.cpp → forward.cpp / adjoint.cpp`。先理解一条查询如何经过这些模块，再查看稀疏行和证书缓存。数学定义与证明见[方法说明](METHOD.md)，输入与命令见 [README](../README.md)。
 
-## 1. 分支边界
+## 1. 入口与数据
 
-本分支刻意只保留最终论文方法，不包含 baseline、中间消融态、实验调度器、探针、运行时配置账本或输入合法性测试框架。公开 API 只有：
+`src/main.cpp` 一次读入图和查询文件，对指定区间逐条调用 `SolveOneQuery`。模式在整次运行中固定；计时包含单条查询的全部算法工作，不包含加载。输出四列：查询号、秒数、最优权值、累计状态数。
 
-```cpp
-SolveResult SolveOneQuery(const Graph& graph, const Query& query, bool enhanced = false);
-```
+`src/graph.h` 定义 `Graph`、`UndirectedEdge`、`AdjEdge` 和 `Query`。图保留原边编号，邻接表的两个方向指向同一条原边；恢复上界时因此可以按边编号去重。`minimum_edge_weight` 和 `component_of` 在加载时计算，供全部查询共享。
 
-`enhanced=false` 是 Base，`enhanced=true` 是 Enhanced。这个布尔值在一条查询开始前确定，搜索过程中不会根据图名、组数、状态密度、时间或内存切换模式。
+`src/io.cpp` 的 `Reader` 使用 8 MiB `fread` 缓冲。整数直接解析，边权用 `std::from_chars` 转成 `double`，不会先转成单精度。`LoadGraph` 先统计度数并预留邻接空间，再填入原顺序的邻接项。`IsQueryFeasible` 判断是否存在一个连通分量同时触及全部组；它是不可行性求解步骤，不是输入合法性检查。
 
-建议按以下顺序阅读：
+## 2. 一条查询的控制流
 
-```text
-src/main.cpp
-  -> src/abhss/abhss.h
-  -> src/abhss/solver.cpp
-  -> src/abhss/internal.h
-  -> src/abhss/preprocess.cpp
-  -> src/abhss/core.{h,cpp}
-  -> src/abhss/forward.{h,cpp}
-  -> src/abhss/adjoint.{h,cpp}
-  -> src/abhss/dual_cut.h
-```
-
-## 2. 编译、运行与接口
-
-Linux 推荐入口：
-
-```bash
-make release JOBS=16
-```
-
-直接使用 CMake：
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel 16
-```
-
-程序调用格式：
-
-```bash
-./build/abhss <graph_folder> <query_file> <base|enhanced> [first_query] [query_count]
-```
-
-`graph_folder` 下固定读取小写 `graph.txt`，`query_file` 是显式查询文件。图和全部查询只加载一次，单条查询计时从 `SolveOneQuery` 调用前开始。输出每行依次为：
+`src/abhss/abhss.h` 只公开 `SolveResult` 和 `SolveOneQuery(graph, query, enhanced)`。`enhanced=false` 为 Base，`true` 为 Enhanced。
 
 ```text
-query_index seconds best_weight mask_vertex_states
+SolveOneQuery
+  空查询、不可行查询、单组查询
+  PrepareProblem
+    分量覆盖下界与距离—根初始化
+    根路径并集、锚组、tour
+    构造当前模式的 witness
+    共同三元路径生长上界
+  WitnessUpperScheduler（rent=0）
+  BuildReusableAnchoredSingletonLayer（q>0）
+  BuildOrdinaryRows
+  释放 A1 查询缓存，保留 A1 行
+  BuildForwardAnchoredRows
+  SolveHighAdjoint（存在非空 H 后缀）
 ```
 
-程序按竞赛代码约定信任正式输入满足 README 的格式和取值范围。保留的入口判断只有参数个数、最终模式名和查询区间；算法内部的 `assert(g <= 16)` 表达方法适用域，不是另一套配置合法性系统。
+令 `h=g/2`、`q=max(0,h-1)`。Base 的前向 A 到 `q`；Enhanced 的前向 A 到 `min(1,q)`。后者小于 `q` 时才需要 H，此时 D 到 `q`、H 从 `h` 递减；否则两边都使用 D 到 `h` 的完整前向完成方式。判断来自状态范围，不是额外的组数调优参数。
 
-## 3. 一条查询的完整调用线
+## 3. 公共结构：internal.h
 
-```text
-main
-  LoadGraph
-    BuildConnectedComponentIndex
-  LoadQueries
-  for selected query
-    SolveOneQuery(graph, query, enhanced)
-      SolveTrivialQuery
-      Problem(graph, query, enhanced)
-      PrepareProblem
-        ComputeComponentCover
-        BuildDistanceRootInitialization
-          bounded representation     [Base]
-          complete representation    [Enhanced]
-          RootStarUpper               [共同]
-        BuildRootPathUnion            [共同]
-        choose anchor + build masks   [共同]
-        TourLowerBound::Build         [共同]
-        BuildRootPathWitness          [Base witness]
-        DualCutPotential + facility   [Enhanced certificates]
-        BuildDualWitness              [Enhanced witness]
-      WitnessUpperScheduler           [共同，rent=0]
-      BuildCommonA1
-        BuildReusableAnchoredSingletonLayer
-      BuildOrdinaryRows
-      ReleaseLookupCache
-      FinishBase
-        BuildForwardAnchoredRows through all required layers
-      or FinishEnhanced
-        BuildForwardAnchoredRows through the low prefix
-        SolveHighAdjoint for the remaining high suffix
-      return SolveResult
-```
-
-其中 `BuildCommonA1` 只判断由递推推导出的最高逻辑层是否为 0。它不读取 `enhanced`，没有经验性的组数阈值。只要 A1 层存在，Base 与 Enhanced 都调用同一个构造函数、同一个 witness 调度器和同一种所有权移交。
-
-## 4. 核心数据对象
-
-### 4.1 `Graph` 与 `Query`
-
-`Graph::edges` 按输入顺序保存无向原边，`edge_id` 永远等于原边下标；`Graph::adj` 保存双向邻接项。读图时先统计每个顶点的精确度数，再一次预留邻接容量，最后构造 `component_of`。这避免大图逐边扩容，也让每条查询的可行性判断不再扫描整图。
-
-`Query::groups[i]` 是第 `i` 个组的候选顶点。组可以重叠；一个顶点可同时覆盖多个组。
-
-### 4.2 `Problem`
-
-`Problem` 是一条查询的全部上下文，只保存输入引用、一个 `enhanced` 位和算法状态。重要字段分为：
-
-- 图与组编号：`g`、`anchor_group`、`bit_to_group`、`original_mask`；
-- 状态域：`nonanchor_count`、`subset_count`、`full_mask`、`half`；
-- 上下界：`best`、`component_cover`、`tour`、`dual`；
-- 上界 witness：`root_path_union`、`witness_tree`；
-- DP：`ordinary`、`ordinary_minimum`；
-- 报告量：`mask_vertex_states`。
-
-构造函数不做预处理。所有字段的建立顺序集中在 `PrepareProblem`，审阅时不需要追踪配置对象或延迟合法性映射。
-
-### 4.3 `Row`
-
-ordinary D、前向 A 和反向 H 共用唯一物理格式：
-
-```text
-vertex[]       严格递增的顶点
-value[]        与 vertex 对齐的精确状态值
-branch_bits[]  ordinary D 专用的规范 branch 位图
-branch_count   branch 数量
-ready          已计算标志；与 payload 是否为空无关
-```
-
-`ready=false` 表示依赖尚未生成；`ready=true` 且数组为空表示该逻辑 row 已完整处理，但严格上界锥体中没有候选。三种状态不各自维护 dense/hash 容器。
-
-### 4.4 `GroupRow`
-
-`GroupRow` 保存一个查询组到全图的多源最短距离。Base 使用安全 cutoff 下的有界表示，Enhanced 使用完整 dense 表。有界表示可以是 dense cutoff 数组，也可以是“递增顶点和值 + membership/rank 位图”。所有布局只暴露三种共同操作：读取值、`IsExact`、枚举精确值。
-
-cutoff 外的位置不是精确距离，不能作为 singleton seed。所有需要真实子树值的交集都通过 `IsExact` 或 `ForEachExact` 进入；作为下界读取时，cutoff 值仍然安全。
-
-### 4.5 `WitnessTree` 与 `AnchoredSingletonFuture`
-
-`WitnessTree` 只存局部顶点、父亲和父边权。Base 与 Enhanced 的树来源不同，但随后交给同一个 `WitnessUpperScheduler` 和同一个 `EvaluateWitnessTree`。
-
-`AnchoredSingletonFuture` 同时持有标准 A1 row 与 ordinary 阶段需要的只读 top-two 索引。ordinary 结束后只释放索引缓存，随后把原 A1 row 移动到前向 A 容器；不会重新生成，也不会重复计数。
-
-## 5. 逐文件与逐函数导读
-
-### 5.1 `src/main.cpp`
-
-`main` 只做四件事：解析最终模式和查询区间、加载输入、逐条调用求解器、打印结果。没有结果目录管理、RSS 线程、baseline 分派或诊断开关，因此计时边界可以直接从函数看出。
-
-### 5.2 `src/common/`
-
-| 函数或类型 | 作用 |
+| 结构/函数 | 阅读时关注的内容 |
 |---|---|
-| `FastNumericReader` | 以 8 MiB 缓冲无分配扫描整数和浮点 token；`ReadDouble` 使用 C++17 `from_chars` |
-| `BuildConnectedComponentIndex` | 一次遍历邻接表，建立稠密分量编号 |
-| `LoadGraph` | 两遍构造图：保存原边和度数，再按精确容量建立双向邻接表 |
-| `LoadQueries` | 从显式路径一次读取全部查询 |
-| `GroupComponents` | 把一个组映射为去重、递增的分量集合 |
-| `IsQueryFeasible` | 在非连通图上逐组求分量集合交；连通图直接返回 |
-| `fp::Eq` | 只用于从浮点距离等式恢复真实路径；上下界闭合不用容差 |
+| `Problem` | 本条查询的组编号映射、上界、距离、证书和 ordinary 行；`best` 只下降 |
+| `Row` | 顶点有序的 `vertex/value`，D 专用 `branch_bits`，以及发布标记 `ready` |
+| `GroupRow` | 完整或有界组距离；`operator[]` 可返回 cutoff 下界，`ExactValueOrInf` 才能用作真实状态种子 |
+| `QueueNode` | 按 `key`、真实 `distance`、顶点编号依次排序；过期项在弹出时跳过 |
+| `BuildInitialQueue` | 从聚合后的每顶点标签线性 heapify，避免每个拆分单独入堆 |
+| `AccountMaskVertexStates` | 每行批量累加首次变为有限值的顶点数；A1 移交后不重复计数 |
+| `CertificateSupportDpCache` | Enhanced 购买证书更新后使用的固定支撑图度量与增量子集 DP |
 
-### 5.3 `src/abhss/solver.cpp`
+`original_mask` 使用输入组编号，供 tour、组距离和 dual 查询；D/A/H 的 mask 则只编码非锚组。两者不能混用。空 ordinary 集合在合并中取零；单组 D 直接读 `GroupRow`，不复制一张状态行。
 
-| 函数 | 作用 |
+## 4. 预处理与真实上界
+
+`preprocess.cpp` 按以下职责组织：
+
+| 函数 | 职责 |
 |---|---|
-| `SolveTrivialQuery` | 处理空查询、单组查询和不存在共同可行分量的查询 |
-| `BuildCommonA1` | 逻辑 A 正层存在时调用共同 A1；否则返回空 future 指针 |
-| `FinishBase` | 把 A1 移入共同前向内核，并把前向 A 做到最高必需层 |
-| `FinishEnhanced` | 用同一前向内核做到固定低层边界，再调用 H 完成高层 |
-| `SolveOneQuery` | 唯一公开求解主线；公共阶段只写一次，末尾选择完成方式 |
+| `ComputeComponentCover` | 零权分量覆盖下界；纯正权图只处理查询涉及的顶点 |
+| `BuildDistanceRootInitialization` | 统一返回组距离、候选根与真实上界；Base 有界，Enhanced 完整 |
+| `BuildRootPathUnion` | 在候选根处恢复到各组的路径，对真实边去重 |
+| `TourLowerBound::Build / At` | 组维度固定端点路径 DP，以及指定顶点的 tour 下界 |
+| `BuildRootPathWitness / BuildDualWitness` | 两种来源的真实树，交给同一个上界调度器 |
+| `EvaluateWitnessTree` | 在树上组合单组距离、已发布 D 和父子边，返回可行上界 |
+| `BuildPrimalFacilityUpper` | 在 primal 设施点及允许的真实路径上做小型 DP |
+| `RefreshPurchasedPathGrowthCertificate` | 四元路径严格改善时，登记它与 primal 的边并图 |
+| `CertificateSupportDpCache::Evaluate` | 对支撑图上的受影响 mask 重新合并和闭包 |
 
-最高锚定层直接由 `max(0, g / 2 - 1)` 得出。Enhanced 的低层边界在最高层为 0 时取 0，否则取 `max(1, highest_layer / 2)`。这两个值来自状态分解域，不是性能启发式。
+`path_growth_upper.cpp` 共用一个生长内核：先枚举有序组对和第三组，再按最近未覆盖组连接；购买增强证书后多固定一个早期组。`Recover` 只沿 tight edges 找真实路径，并用访问标记避开零权环；边费用始终取原图值。
 
-### 5.4 `src/abhss/preprocess.cpp`
+两种模式在预处理中只构造各自 witness，不立即运行树 DP。`core.cpp` 的 `WitnessUpperScheduler` 从零累计 A1/D 的堆弹出和边扫描工作；达到树大小决定的购买点、且输入 D 有新修订时才求值。新证书收紧上界后会重滤已发布 D。
 
-| 函数 | 作用 |
-|---|---|
-| `ComputeComponentCover` | 压缩零权连通分量并在组 mask 上做 set-cover DP，产生零代价判定与下界 |
-| `BootstrapBoundedDistanceUpper` | 在统一距离—根职责内部，为有界距离构造真实 cutoff |
-| `BuildGroupDistances` | 对每组运行多源 Dijkstra，形成有界或完整 `GroupRow` |
-| `RootStarUpper` | 在共同根连接全部组；严格小于 cutoff 的判断阻止非精确占位更新上界 |
-| `BuildDistanceRootInitialization` | 屏蔽两种距离表示差异，一次返回距离表、根和上界 |
-| `BuildRootPathUnion` | 沿真实最短路边连接各组，按原 `edge_id` 去重计价 |
-| `BuildWitnessFromEdges` | 把一组真实原边严格重根为无父指针环的树 |
-| `BuildRootPathWitness` | 把共同路径并集转成 Base witness |
-| `BuildDualWitness` | 把 Enhanced primal bitmap 转成相同格式的 witness |
-| `TourLowerBound::Build` | 在组间松弛度量上预计算固定端点 Hamilton 路径 |
-| `TourLowerBound::At` | 把当前顶点接到路径两端，返回可采纳 tour 下界 |
-| `EvaluateWitnessTree` | 在真实 witness 上执行唯一一份 subset DP 上界求值 |
-| `BuildPrimalFacilityUpper` | 在 Enhanced primal facilities 上构造支撑度量并做小型 DP 上界 |
-| `FarthestRemaining` | 返回当前顶点到剩余组的最大单组距离 |
-| `FutureBound` | Base 取 farthest/tour 最大值；Enhanced 再与 dual 取最大值 |
-| `PrepareProblem` | 按固定顺序建立上述对象，并只构造当前模式的 witness |
+## 5. core.cpp：提前 A1 与普通 D
 
-`PrepareProblem` 是最长的预处理编排函数，按代码块依次阅读：零权闭合；距离—根合同；真实路径并集；锚组与 mask；farthest 缓存；tour；witness 分支；ordinary 容器初始化。只有 witness 块按模式分支，其余控制流共同。
+`BuildReusableAnchoredSingletonLayer` 为每个非锚组构造同一 A1 cone。其 `Continuation` 同时服务 cone 判定和缺项下界，不读取 dual。若条件式树 DP 在中途收紧上界，当前 pass 丢弃，以新 cutoff 重启，最终发布完整的一份 A1。
 
-### 5.5 `src/abhss/core.{h,cpp}`
+`AnchoredSingletonFuture` 在 D 中查询“剩余组的最大 A1 值”。第一次触及顶点时缓存前两名及其原值下标；累计查询成本达到顺序扫描成本后物化全图前两名；尾部二分的累计成本再达到排序成本时购买完整 byte 排名。排名不存距离值。D 完成后 `ReleaseLookupCache` 释放这些缓存，A1 行本身移交前向模块。
 
-| 函数或类型 | 作用 |
-|---|---|
-| `EstimateWitnessTreeDpWork` | 按 witness 顶点数和非锚组数计算共同 buy |
-| `WitnessUpperScheduler::Account` | 让 A1 与 D 连续支付实际 queue/edge 工作，达到 buy 后调用树 DP |
-| `AnchoredSingletonFuture::ValueWithLocator` | 二分读取精确 A1，或返回 cone 外正下界并编码 locator |
-| `AnchoredSingletonFuture::Future` | 每顶点缓存最大、次大 singleton future，常见查询 O(1) |
-| `BuildReusableAnchoredSingletonLayer` | 在 ordinary 前构造两种模式完全共用的 A1 |
-| `ForEachRowBranchIntersection` | 在双指针与较小侧二分之间按估计工作量选择同一交集结果 |
-| `ForEachCommonValue` | 统一 singleton 和多组 ordinary 的同顶点交集 |
-| `ForEachPivotBranch` | 只让一个互补块走规范 branch，消除重复拆分 |
-| `ForEachTriple` | 用三个 ordinary 块加锚组及时结算完整上界 |
-| `BuildOrdinaryRows` | 按 mask 大小生成 ordinary D、做图闭包、标 branch、更新上界和 witness rent |
+`BuildOrdinaryRowsImpl` 的一张 D 行可按五块阅读：
 
-`BuildReusableAnchoredSingletonLayer` 的块顺序是：固定本轮 cutoff；逐 singleton 初始化精确 seed；以 farthest continuation 做 A* 闭包；在安全点向共同 scheduler 支付 rent；若树 DP 收紧上界则整轮重启；最终发布所有 A1 row；建立 top-two locator 缓存。函数体中不存在 `p.enhanced`。
+1. `Gather` 聚合同根拆分，形成每个顶点的 `split` 值；`ForEachPivotBranch` 消除可进一步同根拆分的重复分支。
+2. `CanImprove` 求候选的剩余下界；Base 使用完整缓存，Enhanced 按 dual、farthest、A1、tour 逐阶段求值。
+3. `BuildInitialQueue` 后做非负边图闭包；更小距离仍可重新入堆，不使用“访问过即永久关闭”。
+4. 对存活顶点排序并发布 `Row`；严格小于同根拆分值的位置才标记为 branch。
+5. 更新上下界调度器，并尝试已有行的两块、三块完成。
 
-`BuildOrdinaryRows` 的块顺序是：枚举规范 split；分阶段计算 dual、farthest、A1、tour 下界；多源闭包；写回有序 row 与 branch bitmap；登记状态；支付 witness rent；执行两块和三块完整完成式；清理 touched 工作区。
+Enhanced 的拒绝前沿复用 `distance` 工作区存放证书已经拒绝的阈值。它不是实际标签：不入堆、不写 row、不计状态；更小候选通过证书后才登记真实首次发现，行结束时复位剩余虚拟位置。
 
-### 5.6 `src/abhss/forward.{h,cpp}`
+`core.h` 的有序交集函数按比较次数选择双指针或较小侧二分，枚举的候选集合相同。值交集与 branch 交集是两种不同的数学用途，不能互换。
 
-| 函数或类型 | 作用 |
-|---|---|
-| `ForwardAnchoredPlan` | 只表达前向内核要做到哪一层、是否用隐式 A0 完成、末层是否保留 |
-| `AnchoredAvailable` | 判断隐式 A0 或物化 A row 是否可读 |
-| `ForEachAnchoredSum` | 枚举 A 与 ordinary branch 的同根 seed |
-| `CompleteAnchoredRow` | 用 A 加至多两个 ordinary 块结算完整解 |
-| `BuildForwardAnchoredRows` | 复用已有 A1，生成其余前向 A，并持续收紧上界 |
+## 6. forward.cpp 与 adjoint.cpp
 
-这里不读取 `p.enhanced`。公共代码直接查看 `GroupRow::bounded`：有界 singleton 必须检查 `IsExact`，完整表天然精确。A 的递推、闭包、稀疏 row 和完成式始终是同一实现。
+`BuildForwardAnchoredRows` 接收公共 A1，然后按子集大小增加 A。`ForEachAnchoredSum` 合并锚定前缀与 ordinary branch；`CompleteAnchoredRow` 在同根补上至多两块 D。最后一层若没有 H 消费者，只完成答案而不持久保存。
 
-### 5.7 `src/abhss/dual_cut.h`
+`adjoint.cpp` 按补集反向计算 H：
 
-`DualCutPotential` 只在 Enhanced 预处理中构造。`BuildChangedArcs` 按组建立有向割势和 residual；`MarkChangedArc` 记录本轮真正改变的弧；`RecoverPrimal` 在数值零 residual 支撑上恢复真实原图路径；`At` 与 `GroupAt` 读取可采纳势；`ReleaseResidual` 在 facility 与 witness 完成后释放 `2m` 临时数组。
+- `BuildTransposedTerminals` 每次处理 64 个连续顶点，把 mask-major D 行转成顶点局部的单块/双块终端。64 只是位图 word 对齐的块宽。
+- `ForEachBackwardValueSum` 用 H successor 加 ordinary 的全部值生成递减 H。此处不能要求 ordinary 侧也是 branch。
+- `ForEachBackwardBranchSum` 只用于 H 与低层 A 的前向边界完成，此处保留 branch 约束。
+- `SolveHighAdjoint` 对每个 H mask 做图闭包和边界结算；必要时另做两个互补辅助 H 半层加锚距离的完成。
 
-该文件是 header-only 模块，因为热访问器需要内联。每个 lambda 都有紧邻中文注释；64-bit changed-arc 位图只是串行批处理结构，不表示 64 线程。
+## 7. dual_cut.h：增强证书
 
-### 5.8 `src/abhss/adjoint.{h,cpp}`
+`DualCutPotential::Build` 逐组构造截断可行势，只重松弛已改变 residual 的弧。势更新只需处理 cone 涉及的边；每条无向边最多一个方向具有正梯度。
 
-| 函数 | 作用 |
-|---|---|
-| `AnchoredValue` | 统一读取低层 A；空 mask 映射为隐式锚组距离 |
-| `ForEachBackwardBranchSum` | 合并 H 与一个 ordinary singleton 或规范 branch |
-| `BuildTransposedTerminals` | 以 64 顶点块把 mask-major ordinary row 转成高层 H 终端 |
-| `SolveHighAdjoint` | 按 mask 大小递减构造 H，并与低层 A 做边界结算 |
+`At` 求剩余组势之和。`CanImproveAllExcept` 在 residual 全势闭包后可先用全势减已覆盖势的浮点包围区间判定；区间不能判定时回到逐组求和，不改变 `double` 精度。分阶段缓存区分“足够安全的区间下端”和“已经完整求过的势”。
 
-64 顶点块与一个 `uint64_t` membership word 对齐，只限制临时工作集；不是并行单元。H 的含义不是另一棵树 DP，而是“mask 外侧已经支付的代价”。
+`CompleteResidualClosure` 在 `ResidualClosureScheduler` 达到结构购买条件时仅执行一次：恢复 residual，补全未支付容量上的势，再恢复 primal。之后释放 residual 临时数组；持久保存的势继续服务 D/H。
 
-## 6. Base 与 Enhanced 的代码级差异
+## 8. Base 与 Enhanced 的对应关系
 
-整个活动源码中，模式位只在下列位置产生算法效果：
+| 职责 | Base | Enhanced |
+|---|---|---|
+| 距离—根初始化 | 上界截断的组距离 | 为对偶势构造完整距离；相同输出结构 |
+| 初始 witness | 根路径树 | dual-primal 树；相同树 DP 与购买公式 |
+| 提前 A1 | 共同 cone、fallback、缓存、移交 | 相同内核 |
+| 普通 D | 共同合并、闭包、branch 发布 | 相同递推；增加对偶证书及分阶段缓存 |
+| 高层完成 | 前向 A，加 ordinary 半层 | A1 加 H；辅助 H 半层承担省略 D 半层的职责 |
+| 增强上界 | — | primal/facility，以及条件式 residual/support 更新 |
 
-| 位置 | Base | Enhanced | 关系 |
-|---|---|---|---|
-| `BuildDistanceRootInitialization` | 先构造 cutoff，保存有界组距离 | 保存完整组距离 | 同一距离—根职责的两种表示 |
-| `PrepareProblem` witness 块 | root-path witness | dual/primal、facility 上界、dual-primal witness | witness 来源替换，并安全新增 dual/facility 证书 |
-| `FutureBound` 与 ordinary `CanImprove` | farthest、A1、tour | 再与 dual 取最大值 | 可采纳下界安全新增 |
-| `SolveOneQuery` 末尾 | 完整前向高层 A | 低层 A 后以 H 完成高层 | 同一完成职责的方向替换 |
-
-有界或完整表示的后果由公共 `GroupRow::bounded`、`IsExact` 和 `ForEachExact` 消费，不再读取模式位。以下操作也明确没有模式分支：A1 的 seed、cone、fallback、图闭包和所有权移交；ordinary D 的状态定义、split 和 branch；witness rent 从 0 开始；buy 公式；`EvaluateWitnessTree`；稀疏 `Row`；前向 A 内核。审阅者可以直接搜索 `enhanced`，除入口解析和字段传递外，有算法效果的命中应只对应上表四行。
-
-## 7. 状态数口径
-
-`mask_vertex_states` 统计 D、A、H 每张逻辑 row 中首次进入工作区的不同顶点数。一个顶点在同一 row 内被改进多次只计一次；同一 `(mask,v)` 出现在不同状态族时分别计数。A1 在提前构造时计数，移动到前向容器后不重复。组距离、dual、tour、转置临时候选、队列过期项和完整解结算不计。
-
-## 8. 人工 review 清单
-
-1. 搜索 `enhanced`，确认模式差异没有越出第 6 节。
-2. 搜索所有 lambda，确认紧邻中文注释说明枚举集合或缓存语义。
-3. 检查写 `best` 的位置，确认候选可展开为真实原图边或精确 DP 状态。
-4. 检查 singleton 消费者，确认 Base 的 bounded 位置经过 `IsExact`。
-5. 检查所有剪枝，确认形式是“已付值 + 可采纳下界不可能严格优于真实上界”。
-6. 检查 row 生命周期，确认构造完成后才设 `ready`，A1 移交不重复生成或计数。
-7. 检查 H 的 mask 方向，确认 target、successor、boundary 三者的集合并恰好覆盖非锚全集。
-8. 检查长函数的中文块注释是否仍与紧随代码一致；若移动代码块，应同时移动说明。
-
-## 9. GitHub Markdown 注意
-
-后续修改本文档或 `METHOD.md` 时，块公式统一使用 GitHub 支持的 `math` 围栏，不使用单独三行的 `$$`。不要使用 GitHub 曾拒绝的 `\operatorname`，用 `\mathrm{name}`；表格中的绝对值使用 `\lvert S\rvert`，避免裸竖线被当成列分隔符。行内公式开界前留空格，尤其不要写成中文标点后立即接 `$`。上传后应在 GitHub 网页逐段检查，确认没有黄色错误框、灰色公式源码回退或未解析的 `$`。
+`bool enhanced` 只选择这两套最终执行方式。源码没有中间模式、查询自选模式或按运行结果选择曲线的接口。
