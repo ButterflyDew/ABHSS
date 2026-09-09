@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the frozen dual-core paper campaign with strict stop/provenance rules."""
+"""Run the dual-core paper matrix to real per-query outcomes with strict provenance."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "tools" / "experiments" / "run_experiments.py"
 CONFIG = ROOT / "experiments" / "paper_matrix.json"
-PLAN = ROOT / "experiments" / "final_campaign_plan.json"
+HISTORICAL_PLAN = ROOT / "experiments" / "final_campaign_plan.json"
 ABLATION_PLAN = ROOT / "experiments" / "ablation_plan.json"
 ABLATION_BUILDER = ROOT / "tools" / "experiments" / "build_endpoint_floor_ablation.py"
 sys.path.insert(0, str(RUNNER.parent))
@@ -36,6 +36,8 @@ S2_SUITE = "S2_controlled_gf"
 ABHSS_SHA256 = "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced"
 PRUNED_SHA256 = "4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2"
 DEFAULT_RUN_DIR = ROOT / "results" / "paper_runs" / "final_3600s_campaign_793d4e_20260828"
+FORMAL_BACKFILL_DIR = ROOT / "results" / "paper_runs" / "final_3600s_backfill_793d4e_20260907"
+CANONICAL_COMPLETE_DIR = ROOT / "results" / "paper_runs" / "final_3600s_complete_793d4e"
 P1_OURS_DIRS = (
     ROOT / "results" / "paper_runs" / "final_793d4e_p1_w0_cpu4_20260818",
     ROOT / "results" / "paper_runs" / "final_793d4e_p1_w1_cpu5_20260818",
@@ -109,6 +111,29 @@ def record_map_under(directory: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
+def formal_backfill_map() -> dict[str, dict[str, Any]]:
+    """读取并严格验证已完成的 75 条真实回填记录，供断点恢复复用。"""
+    rows = record_map_under(FORMAL_BACKFILL_DIR / "workers")
+    expected_keys: set[str] = set()
+    for name in ("p2_likely_timeout_not_run.jsonl", "s2_likely_timeout_not_run.jsonl"):
+        path = DEFAULT_RUN_DIR / name
+        if not path.exists():
+            raise RuntimeError(f"missing historical task-key audit: {path}")
+        expected_keys.update(json.loads(line)["task_key"] for line in path.read_text(encoding="utf-8").splitlines() if line)
+    if len(expected_keys) != 75 or set(rows) != expected_keys:
+        raise RuntimeError(f"formal backfill coverage is {len(set(rows) & expected_keys)}/75 with {len(set(rows) - expected_keys)} unexpected keys")
+    if any(row.get("status") not in {"ok", "timeout"} or float(row.get("timeout_seconds", -1)) != TIMEOUT for row in rows.values()):
+        raise RuntimeError("formal backfill contains a non-real outcome or another timeout")
+    for cpu in CPUS:
+        metadata = read_json(FORMAL_BACKFILL_DIR / "workers" / f"cpu{cpu}" / "run_metadata.json")
+        binaries = metadata.get("binary_sha256", {})
+        if metadata.get("run_id") != FORMAL_BACKFILL_DIR.name or metadata.get("config_sha256") != sha256_file(CONFIG) or float(metadata.get("timeout_seconds", -1)) != TIMEOUT:
+            raise RuntimeError(f"formal backfill cpu{cpu} identity changed")
+        if binaries.get("abhss_base") != ABHSS_SHA256 or binaries.get("abhss_enhanced") != ABHSS_SHA256 or binaries.get("pruneddp_safe") != PRUNED_SHA256 or metadata.get("probe_diagnostics") is not None:
+            raise RuntimeError(f"formal backfill cpu{cpu} binary or diagnostic mode changed")
+    return rows
+
+
 def historical_enhanced_map() -> dict[str, dict[str, Any]]:
     """Return only reusable current P2 and S2 g=15 Enhanced outcomes.
 
@@ -136,11 +161,6 @@ def historical_p1_rows() -> list[dict[str, Any]]:
     rows.extend(row for row in records_from(P1_PRUNED_DIR) if row.get("method") == "pruneddp_safe")
     return rows
 
-
-def completed_within_formal_timeout(row: dict[str, Any] | None) -> bool:
-    if row is None or row.get("status") != "ok" or row.get("solver_seconds") is None:
-        return False
-    return float(row["solver_seconds"]) <= TIMEOUT
 
 
 def formalize_historical_record(row: dict[str, Any], run_id: str) -> dict[str, Any]:
@@ -224,12 +244,12 @@ def topology(cpu: int) -> tuple[int, int]:
 def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[str, Any]:
     if subprocess.run(["git", "diff", "--quiet"], cwd=ROOT).returncode or subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode:
         raise RuntimeError("tracked files must be clean before preparing or running the formal campaign")
-    static_plan = read_json(PLAN)
-    production = static_plan.get("production_identity", {})
+    historical_plan = read_json(HISTORICAL_PLAN)
+    production = historical_plan.get("production_identity", {})
     if production.get("abhss_sha256") != ABHSS_SHA256 or production.get("pruneddp_sha256") != PRUNED_SHA256 or production.get("physical_cpus") != list(CPUS) or int(production.get("timeout_seconds_per_query", -1)) != TIMEOUT:
-        raise RuntimeError("static campaign plan and scheduler production identities disagree")
+        raise RuntimeError("historical campaign plan and scheduler production identities disagree")
     if production.get("paper_matrix_sha256") != sha256_file(CONFIG) or production.get("query_feasibility_audit_sha256") != sha256_file(ROOT / "experiments" / "query_feasibility_audit.json"):
-        raise RuntimeError("static campaign plan does not pin the current matrix and feasibility audit")
+        raise RuntimeError("historical campaign plan does not pin the current matrix and feasibility audit")
     if sha256_file(ROOT / "build" / "abhss") != ABHSS_SHA256:
         raise RuntimeError("build/abhss is not the frozen production binary")
     if sha256_file(ROOT / "build" / "pruneddp") != PRUNED_SHA256:
@@ -299,10 +319,11 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
         if row.get("graph_path") != expected_graph or row.get("query_path") != expected_query or int(row.get("g", -1)) != int(case.attributes["g"]):
             raise RuntimeError(f"historical Enhanced input identity changed for {row['task_key']}")
 
-    frozen_g15_hashes = static_plan.get("historical_reuse", {}).get("S2_g15_Enhanced", {}).get("query_sha256", {})
+    frozen_g15_hashes = historical_plan.get("historical_reuse", {}).get("S2_g15_Enhanced", {}).get("query_sha256", {})
     if len(frozen_g15_hashes) != 10 or any(sha256_file(ROOT / path) != digest for path, digest in frozen_g15_hashes.items()):
         raise RuntimeError("one or more retained S2 g=15 query files changed")
     raw_s2_g15 = [historical[key] for key in s2_g15_expected]
+    formal_backfill = formal_backfill_map()
     p1_over_tl = sum(float(row.get("solver_seconds") or 0.0) > TIMEOUT for row in p1_rows)
     p2_over_tl = sum(float(historical[key].get("solver_seconds") or 0.0) > TIMEOUT for key in p2_expected)
     s2_over_tl = sum(float(row.get("solver_seconds") or 0.0) > TIMEOUT for row in raw_s2_g15)
@@ -318,6 +339,7 @@ def validate_identity(cases: list[Any], queries: dict[str, list[Any]]) -> dict[s
         "p1": {"status": "reused", "records": len(p1_rows), "over_formal_timeout": p1_over_tl, "sources": [str(path.relative_to(ROOT)) for path in (*P1_OURS_DIRS, P1_PRUNED_DIR)], "audit": str(P1_AUDIT.relative_to(ROOT))},
         "p2_enhanced": {"status": "reused", "records": len(p2_expected), "over_formal_timeout": p2_over_tl, "sources": [str(path.relative_to(ROOT)) for path in P2_ENHANCED_DIRS], "orkut_audit": str(ORKUT_AUDIT.relative_to(ROOT))},
         "s2_g15_enhanced": {"status": "reused_raw_no_tl", "records": len(s2_g15_expected), "over_formal_timeout": s2_over_tl, "sources": [str(path.relative_to(ROOT)) for path in S2_G15_ENHANCED_DIRS]},
+        "formal_backfill": {"status": "reused_real_outcomes", "records": len(formal_backfill), "source": str(FORMAL_BACKFILL_DIR.relative_to(ROOT))},
     }
 
 
@@ -394,19 +416,20 @@ def prepare(run_dir: Path) -> dict[str, Any]:
     plan = {
         "schema_version": 1,
         "prepared_at": utc_now(),
-        "static_plan": str(PLAN.relative_to(ROOT)),
+        "historical_plan": str(HISTORICAL_PLAN.relative_to(ROOT)),
         "run_dir": str(run_dir.relative_to(ROOT)),
         "cpus": list(CPUS),
         "timeout_seconds_per_query": TIMEOUT,
-        "phase_order": ["reuse_and_formal_censor", "enhanced_main_ascending_g_then_estimated_fast_to_slow", "p2_base_pruned_adaptive_frontier", "s2_base_pruned_adaptive_frontier", "minimal_ablations"],
+        "phase_order": ["reuse_and_formal_censor", "enhanced_main_ascending_g_then_estimated_fast_to_slow", "p2_base_pruned_all_real_outcomes", "s2_base_pruned_all_real_outcomes", "minimal_ablations"],
         "enhanced_jobs": [asdict(job) | {"job_id": job.job_id} for job in jobs],
         "enhanced_new_tasks": sum(len(job.query_indices) for job in jobs),
         "enhanced_reused_p2_tasks": 660,
         "enhanced_reused_s2_g15_tasks": 100,
         "p1_reused_tasks": 24_954,
+        "formal_backfill_reused_tasks": 75,
         "historical_formal": historical_formal,
-        "p2_competitor_tasks_before_likely_timeout_stops": 1_320,
-        "s2_competitor_tasks_before_likely_timeout_stops": 1_000,
+        "p2_competitor_real_tasks": 1_320,
+        "s2_competitor_real_tasks": 1_000,
         "ablation_new_tasks": 135,
     }
     write_json(run_dir / "reuse_manifest.json", reuse | {"historical_formal": historical_formal})
@@ -463,11 +486,12 @@ def terminate_active(active: dict[int, ActiveJob]) -> None:
         running.log.close()
 
 
-def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_name: str, config: Path = CONFIG) -> None:
+def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_name: str, config: Path = CONFIG, reusable_records: dict[str, dict[str, Any]] | None = None) -> None:
     worker_root = run_dir / worker_name
     logs = run_dir / "scheduler_logs"
     logs.mkdir(parents=True, exist_ok=True)
     pending = list(jobs)
+    reusable = reusable_records or {}
     active: dict[int, ActiveJob] = {}
     previous_handlers = {kind: signal.getsignal(kind) for kind in (signal.SIGINT, signal.SIGTERM)}
 
@@ -478,7 +502,8 @@ def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_
         signal.signal(kind, Interrupt)
     try:
         while pending or active:
-            records = record_map_under(worker_root)
+            records = dict(reusable)
+            records.update(record_map_under(worker_root))
             while pending and len(active) < len(CPUS):
                 job = pending.pop(0)
                 keys = job_keys(job, case_by_id)
@@ -506,7 +531,8 @@ def run_jobs(run_dir: Path, jobs: list[Job], case_by_id: dict[str, Any], worker_
                     continue
                 running.log.close()
                 del active[cpu]
-                records = record_map_under(worker_root)
+                records = dict(reusable)
+                records.update(record_map_under(worker_root))
                 rows = [records[key] for key in running.expected_keys if key in records]
                 statuses = Counter(row.get("status") for row in rows)
                 if code not in (0, 4):
@@ -538,21 +564,9 @@ def validate_enhanced_complete(run_dir: Path, cases: list[Any], queries: dict[st
         raise CampaignStop(f"Enhanced has abnormal records: {Counter(row.get('status') for row in bad)}")
 
 
-def write_predicted_stops(path: Path, rows: list[dict[str, Any]]) -> None:
-    current = {}
-    if path.exists():
-        current = {row["task_key"]: row for row in (json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line)}
-    for row in rows:
-        current.setdefault(row["task_key"], row)
-    temporary = path.with_suffix(".tmp")
-    with temporary.open("w", encoding="utf-8", newline="\n") as output:
-        for key in sorted(current):
-            output.write(json.dumps(current[key], sort_keys=True) + "\n")
-    temporary.replace(path)
-
 
 def validate_completed_quality(run_dir: Path, suites: set[str]) -> None:
-    all_rows = list(historical_enhanced_map().values()) + list(record_map_under(run_dir / "workers").values())
+    all_rows = list(historical_enhanced_map().values()) + list(formal_backfill_map().values()) + list(record_map_under(run_dir / "workers").values())
     grouped: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for row in all_rows:
         if row.get("suite") in suites and row.get("method") in ("abhss_base", "abhss_enhanced", "pruneddp_safe") and row.get("status") == "ok":
@@ -572,114 +586,50 @@ def validate_completed_quality(run_dir: Path, suites: set[str]) -> None:
 
 def run_p2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]], case_by_id: dict[str, Any]) -> None:
     estimate, sources = estimate_tables()
-    p2 = {(case.dataset, int(case.attributes["g"])): case for case in cases if case.suite == P2_SUITE}
-    datasets = sorted({dataset for dataset, _ in p2})
-    stopped: set[tuple[str, str]] = set()
-    predicted_path = run_dir / "p2_likely_timeout_not_run.jsonl"
-    if predicted_path.exists():
-        for line in predicted_path.read_text(encoding="utf-8").splitlines():
-            row = json.loads(line)
-            stopped.add((row["method"], row["dataset"]))
-    for g in range(5, 16):
-        tranche1 = []
+    jobs = []
+    for case in cases:
+        if case.suite != P2_SUITE:
+            continue
+        indices = tuple(query.index for query in queries[case.case_id])
         for method in ("abhss_base", "pruneddp_safe"):
-            for dataset in datasets:
-                if (method, dataset) in stopped:
-                    continue
-                case = p2[(dataset, g)]
-                cost, source = estimate_job(case, estimate, sources, 5)
-                tranche1.append(Job("p2_competitors_tranche1", P2_SUITE, case.case_id, dataset, method, (1, 2, 3, 4, 5), cost, source))
-        tranche1.sort(key=lambda job: (job.estimate_seconds, job.method, job.dataset))
-        run_jobs(run_dir, tranche1, case_by_id, "workers")
-        validate_completed_quality(run_dir, {P2_SUITE})
-        main_records = record_map_under(run_dir / "workers")
-        enhanced_records = historical_enhanced_map() | main_records
-        tranche2 = []
-        predicted = []
-        for job in tranche1:
-            case = case_by_id[job.case_id]
-            rows = [main_records.get(experiment_runner.task_key(case, job.method, index)) for index in job.query_indices]
-            if any(row is None for row in rows):
-                raise CampaignStop(f"missing completed tranche-1 records for {job.job_id}")
-            enhanced_keys = [experiment_runner.task_key(case, "abhss_enhanced", index) for index in job.query_indices]
-            five_real_timeouts = all(row.get("status") == "timeout" for row in rows)
-            enhanced_five_within_tl = all(completed_within_formal_timeout(enhanced_records.get(key)) for key in enhanced_keys)
-            if five_real_timeouts and enhanced_five_within_tl:
-                evidence = [row["task_key"] for row in rows]
-                for later_g in range(g, 16):
-                    later = p2[(job.dataset, later_g)]
-                    begin = 6 if later_g == g else 1
-                    for query in queries[later.case_id]:
-                        if query.index < begin:
-                            continue
-                        key = experiment_runner.task_key(later, job.method, query.index)
-                        if key in main_records:
-                            continue
-                        predicted.append({"schema_version": 2, "task_key": key, "suite": P2_SUITE, "case_id": later.case_id, "dataset": job.dataset, "g": later_g, "method": job.method, "query_index": query.index, "status": "not_run_likely_timeout", "not_a_formal_timeout": True, "timeout_seconds": TIMEOUT, "scope": "same graph/method at current remaining tranche and larger g", "criterion": "all five fixed input-size-stratum tranche-1 queries reached the real 3600-second limit while Enhanced completed those five within the same limit", "evidence_timeout_task_keys": evidence, "evidence_enhanced_task_keys": enhanced_keys, "recorded_at": utc_now()})
-                stopped.add((job.method, job.dataset))
-            else:
-                cost, source = estimate_job(case, estimate, sources, 5)
-                tranche2.append(Job("p2_competitors_tranche2", P2_SUITE, case.case_id, job.dataset, job.method, (6, 7, 8, 9, 10), cost, source))
-        if predicted:
-            write_predicted_stops(predicted_path, predicted)
-        tranche2.sort(key=lambda job: (job.estimate_seconds, job.method, job.dataset))
-        run_jobs(run_dir, tranche2, case_by_id, "workers")
-        validate_completed_quality(run_dir, {P2_SUITE})
-    set_state(run_dir, phase="p2_competitors_complete", p2_likely_timeout_stopped_lanes=[{"method": method, "dataset": dataset} for method, dataset in sorted(stopped)])
+            cost, source = estimate_job(case, estimate, sources, len(indices))
+            jobs.append(Job("p2_competitors_real_outcomes", P2_SUITE, case.case_id, case.dataset, method, indices, cost, source))
+    jobs.sort(key=lambda job: (int(case_by_id[job.case_id].attributes["g"]), job.estimate_seconds, job.method, job.dataset))
+    backfill = formal_backfill_map()
+    run_jobs(run_dir, jobs, case_by_id, "workers", reusable_records=backfill)
+    validate_completed_quality(run_dir, {P2_SUITE})
+    records = dict(backfill)
+    records.update(record_map_under(run_dir / "workers"))
+    expected = expected_keys(cases, queries, {P2_SUITE}, ("abhss_base", "pruneddp_safe"))
+    missing = expected - set(records)
+    abnormal = [records[key] for key in expected & set(records) if records[key].get("status") not in {"ok", "timeout"}]
+    if missing or abnormal:
+        raise CampaignStop(f"P2 real-outcome coverage failed: missing={len(missing)} abnormal={len(abnormal)}")
+    set_state(run_dir, phase="p2_competitors_complete", p2_competitor_real_records=len(expected))
 
 
 def run_s2_competitors(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]], case_by_id: dict[str, Any]) -> None:
     estimate, sources = estimate_tables()
-    s2 = {(case.dataset, int(case.attributes["g"]), int(case.attributes["f_target"])): case for case in cases if case.suite == S2_SUITE}
-    datasets = sorted({dataset for dataset, _, _ in s2})
-    g_values = sorted({g for _, g, _ in s2})
-    f_values = sorted({f for _, _, f in s2})
-    stopped: set[tuple[str, str, int]] = set()
-    predicted_path = run_dir / "s2_likely_timeout_not_run.jsonl"
-    if predicted_path.exists():
-        for line in predicted_path.read_text(encoding="utf-8").splitlines():
-            row = json.loads(line)
-            stopped.add((row["method"], row["dataset"], int(row["f_target"])))
-    for g in g_values:
-        jobs = []
+    jobs = []
+    for case in cases:
+        if case.suite != S2_SUITE:
+            continue
+        indices = tuple(query.index for query in queries[case.case_id])
         for method in ("abhss_base", "pruneddp_safe"):
-            for dataset in datasets:
-                for f_target in f_values:
-                    if (method, dataset, f_target) in stopped:
-                        continue
-                    case = s2[(dataset, g, f_target)]
-                    indices = tuple(query.index for query in queries[case.case_id])
-                    cost, source = estimate_job(case, estimate, sources, len(indices))
-                    jobs.append(Job("s2_competitors", S2_SUITE, case.case_id, dataset, method, indices, cost, source))
-        jobs.sort(key=lambda job: (job.estimate_seconds, job.method, job.case_id))
-        run_jobs(run_dir, jobs, case_by_id, "workers")
-        validate_completed_quality(run_dir, {S2_SUITE})
-        main_records = record_map_under(run_dir / "workers")
-        enhanced_records = historical_enhanced_map() | main_records
-        predicted = []
-        for job in jobs:
-            case = case_by_id[job.case_id]
-            f_target = int(case.attributes["f_target"])
-            rows = [main_records.get(experiment_runner.task_key(case, job.method, index)) for index in job.query_indices]
-            if any(row is None for row in rows):
-                raise CampaignStop(f"missing completed S2 cell records for {job.job_id}")
-            enhanced_keys = [experiment_runner.task_key(case, "abhss_enhanced", index) for index in job.query_indices]
-            ten_real_timeouts = all(row.get("status") == "timeout" for row in rows)
-            enhanced_ten_within_tl = all(completed_within_formal_timeout(enhanced_records.get(key)) for key in enhanced_keys)
-            if not (ten_real_timeouts and enhanced_ten_within_tl):
-                continue
-            evidence = [row["task_key"] for row in rows]
-            for later_g in (value for value in g_values if value > g):
-                later = s2[(job.dataset, later_g, f_target)]
-                for query in queries[later.case_id]:
-                    key = experiment_runner.task_key(later, job.method, query.index)
-                    if key in main_records:
-                        continue
-                    predicted.append({"schema_version": 2, "task_key": key, "suite": S2_SUITE, "case_id": later.case_id, "dataset": job.dataset, "g": later_g, "f_target": f_target, "method": job.method, "query_index": query.index, "status": "not_run_likely_timeout", "not_a_formal_timeout": True, "timeout_seconds": TIMEOUT, "scope": "same graph/method/f at larger g only", "criterion": "all ten queries at the current fixed graph/method/f/g reached the real 3600-second limit while Enhanced completed those ten within the same limit", "evidence_timeout_task_keys": evidence, "evidence_enhanced_task_keys": enhanced_keys, "recorded_at": utc_now()})
-            stopped.add((job.method, job.dataset, f_target))
-        if predicted:
-            write_predicted_stops(predicted_path, predicted)
-    set_state(run_dir, phase="s2_competitors_complete", s2_likely_timeout_stopped_lanes=[{"method": method, "dataset": dataset, "f_target": f_target} for method, dataset, f_target in sorted(stopped)])
+            cost, source = estimate_job(case, estimate, sources, len(indices))
+            jobs.append(Job("s2_competitors_real_outcomes", S2_SUITE, case.case_id, case.dataset, method, indices, cost, source))
+    jobs.sort(key=lambda job: (int(case_by_id[job.case_id].attributes["g"]), job.estimate_seconds, job.method, job.case_id))
+    backfill = formal_backfill_map()
+    run_jobs(run_dir, jobs, case_by_id, "workers", reusable_records=backfill)
+    validate_completed_quality(run_dir, {S2_SUITE})
+    records = dict(backfill)
+    records.update(record_map_under(run_dir / "workers"))
+    expected = expected_keys(cases, queries, {S2_SUITE}, ("abhss_base", "pruneddp_safe"))
+    missing = expected - set(records)
+    abnormal = [records[key] for key in expected & set(records) if records[key].get("status") not in {"ok", "timeout"}]
+    if missing or abnormal:
+        raise CampaignStop(f"S2 real-outcome coverage failed: missing={len(missing)} abnormal={len(abnormal)}")
+    set_state(run_dir, phase="s2_competitors_complete", s2_competitor_real_records=len(expected))
 
 
 def prepare_ablation_config(run_dir: Path) -> Path:
@@ -730,15 +680,28 @@ def run_ablations(run_dir: Path, cases: list[Any], queries: dict[str, list[Any]]
 
 
 def status(run_dir: Path) -> int:
-    state = read_json(run_dir / "campaign_state.json") if (run_dir / "campaign_state.json").exists() else {"status": "not prepared"}
-    main = record_map_under(run_dir / "workers")
+    historical_source_state = read_json(run_dir / "campaign_state.json") if (run_dir / "campaign_state.json").exists() else {"status": "not prepared"}
+    source_records = record_map_under(run_dir / "workers")
+    backfill_records = formal_backfill_map()
+    current_records = dict(backfill_records)
+    current_records.update(source_records)
     ablation = record_map_under(run_dir / "ablation_workers")
-    predicted_counts = {}
+    historical_predictions = {}
     for suite, name in ((P2_SUITE, "p2_likely_timeout_not_run.jsonl"), (S2_SUITE, "s2_likely_timeout_not_run.jsonl")):
         path = run_dir / name
-        predicted_counts[suite] = len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
+        historical_predictions[suite] = len(path.read_text(encoding="utf-8").splitlines()) if path.exists() else 0
     historical = read_json(run_dir / "reuse_manifest.json").get("historical_formal", {}) if (run_dir / "reuse_manifest.json").exists() else {}
-    print(json.dumps({"state": state, "main_records": len(main), "main_statuses": {str(key): value for key, value in Counter((row.get("method"), row.get("status")) for row in main.values()).items()}, "ablation_records": len(ablation), "likely_timeout_not_run": predicted_counts, "historical_formal": historical}, indent=2, sort_keys=True))
+    canonical_manifest = read_json(CANONICAL_COMPLETE_DIR / "manifest.json") if (CANONICAL_COMPLETE_DIR / "manifest.json").exists() else None
+    current_formal = {
+        "status": "complete_real_outcomes_only" if canonical_manifest and canonical_manifest.get("records") == 28_434 else "canonical_ledger_missing_or_incomplete",
+        "canonical_manifest": str((CANONICAL_COMPLETE_DIR / "manifest.json").relative_to(ROOT)),
+        "canonical_records": canonical_manifest.get("records") if canonical_manifest else None,
+        "canonical_record_sha256": canonical_manifest.get("record_sha256") if canonical_manifest else None,
+        "source_campaign_records": len(source_records),
+        "formal_backfill_records_reused": len(backfill_records),
+        "current_source_and_backfill_statuses": {str(key): value for key, value in Counter((row.get("method"), row.get("status")) for row in current_records.values()).items()},
+    }
+    print(json.dumps({"current_formal": current_formal, "historical_source_campaign_state": historical_source_state, "ablation_records": len(ablation), "historical_not_run_artifacts_ignored": historical_predictions, "historical_formal": historical}, indent=2, sort_keys=True))
     return 0
 
 
@@ -763,10 +726,7 @@ def run_campaign(run_dir: Path) -> int:
             run_s2_competitors(run_dir, cases, queries, case_by_id)
             set_state(run_dir, phase="main_matrix_complete")
             run_ablations(run_dir, cases, queries)
-            predicted_paths = (run_dir / "p2_likely_timeout_not_run.jsonl", run_dir / "s2_likely_timeout_not_run.jsonl")
-            has_predicted = any(path.exists() and path.stat().st_size for path in predicted_paths)
-            final_status = "complete_with_likely_timeout_stops" if has_predicted else "complete"
-            set_state(run_dir, status=final_status, phase="complete", completed_at=utc_now())
+            set_state(run_dir, status="complete", phase="complete", completed_at=utc_now(), formal_outcomes="all expected task keys have real ok/timeout records")
             return 0
         except CampaignStop as error:
             set_state(run_dir, status="stopped", phase="stopped", stop_reason=str(error), stopped_at=utc_now(), active={})

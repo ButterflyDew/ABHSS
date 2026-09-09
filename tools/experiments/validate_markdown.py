@@ -41,6 +41,10 @@ FORBIDDEN_GITHUB_CASES = re.compile(r"\\(?:begin|end)\s*\{cases\}")
 FORBIDDEN_TEXT_MACRO_UNDERSCORE = re.compile(
     r"\\(?:text|texttt|mathtt)\{[^}\n]*[\\]?_[^}\n]*\}"
 )
+# 2026-09-09 的真实 GitHub 页面复核中，同一文件的第 737 个及后续
+# math-renderer 稳定返回错误，即使表达式只是单个变量。留出安全余量，防止
+# 后续文档增长再次越过客户端的单页公式处理边界。
+MAX_GITHUB_MATH_EXPRESSIONS_PER_FILE = 700
 
 
 def markdown_files() -> list[Path]:
@@ -117,6 +121,7 @@ def main() -> int:
         fence_width = 0
         fence_info = ""
         math_has_content = False
+        math_blocks = 0
         inline_dollars = 0
         prose_lines: list[str] = []
 
@@ -155,6 +160,8 @@ def main() -> int:
                 fence_width = len(marker)
                 fence_info = match.group(2).strip()
                 math_has_content = False
+                if fence_info == "math":
+                    math_blocks += 1
                 continue
 
             prose = INLINE_CODE.sub("", line)
@@ -197,6 +204,14 @@ def main() -> int:
             failures.append(f"{relative}: unclosed {fence_info or 'code'} fence")
         if inline_dollars % 2:
             failures.append(f"{relative}: unbalanced inline $ delimiters")
+        math_expressions = math_blocks + inline_dollars // 2
+        if math_expressions > MAX_GITHUB_MATH_EXPRESSIONS_PER_FILE:
+            failures.append(
+                f"{relative}: {math_expressions} math expressions exceed the "
+                f"repository GitHub rendering budget of "
+                f"{MAX_GITHUB_MATH_EXPRESSIONS_PER_FILE}; render identifier-only "
+                "tokens as code or split non-core material before publishing"
+            )
 
         prose_text = "\n".join(prose_lines)
         for match in LOCAL_LINK.finditer(prose_text):
@@ -237,8 +252,8 @@ def main() -> int:
 
     print(
         f"Validated {len(files)} GitHub Markdown files: strict UTF-8, "
-        "balanced fences/math, safe inline boundaries/macros, and exact-case "
-        "tracked links"
+        "balanced fences/math, safe inline boundaries/macros and expression "
+        "budgets, and exact-case tracked links"
     )
     return 0
 

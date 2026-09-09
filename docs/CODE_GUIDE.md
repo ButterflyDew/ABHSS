@@ -63,7 +63,7 @@ u_m v_m w_m
 
 每条结果是 `seconds weight query_peak_rss_overhead_mib mask_vertex_states`。无解时 `weight=-1`，有解时为最优权值。当前 ABHSS 公开返回结构包含 `best_weight`、`feasible` 和实际发现的主状态项数；其实际键包含状态族，因此 D/A/H 中数值相同的 `(mask,v)` 分别计数。它在内部构造可行 witness 来证明上界，但没有序列化最终最优树边集。
 
-`graph_load_seconds` 和 `query_load_seconds` 写在结果 header 与 `[Ready]` marker 中，不进入算法时间。`[Ready]` 之后，每条查询的 timer 包含可行性检查、查询预处理和搜索。1 ms RSS 采样线程只读内存统计，不参与搜索。
+`graph_load_seconds` 和 `query_load_seconds` 写在结果 header 与 `[Ready]` marker 中，不进入算法时间。`[Ready]` 之后，每条查询的 timer 包含可行性检查、查询预处理和搜索。未来新记录的 `started_at` 在该查询 timer 启动时捕获；冻结历史记录中的同名字段曾在结果组装时填写，因此历史分析只使用 `solver_seconds` 与单调时钟的 `watchdog_wall_seconds`。1 ms RSS 采样线程只读内存统计，不参与搜索。
 
 ## 4. 一条 ABHSS 查询的调用主线
 
@@ -84,7 +84,7 @@ main
             -> BuildTripleSeededPathGrowthUpper [same real-edge upper bound for all profiles]
        -> DescribeConfiguration          [fixed add-or-replace profile]
        -> MakeAnchoredCompletionSchedule [derive logical A/H layer boundary]
-       -> WitnessUpperScheduler          [both profiles start with rent = 0]
+       -> WitnessUpperScheduler          [all profiles start with rent = 0]
             buy = the same formula applied to this profile's witness size
             after a DirectedCut support refresh: persist support metric/subset DP
        -> common A1 row                  [only when the logical grid contains A1]
@@ -109,9 +109,9 @@ main
 
 `PrepareProblem` 依次构建零权分量下界、距离—根初始化，再决定是否需要真实路径并集、锚组、tour 下界和当前配置自己的 witness。正权图的 `ComputeComponentCover` 直接使用加载期最小边权，只聚合查询触及的至多 $F$ 个单点分量；确实含零权边的图才扫描原边并建立并查集。对没有被零代价分量条件提前闭合的可行查询，外层始终只调用一次 `BuildDistanceRootInitialization`，并统一消费 `DistanceRootInitialization{group_distance, root, upper}`。 $g\le3$ 时全部配置统一选择 BootstrappedBounded root-star 基例并立即返回； $g>3$ 时才由冻结 profile 在 BootstrappedBounded 与 CompletePotential 之间实现同职责替换。前者在 realization 内用规范 SPT 边并集尝试启动 cutoff，再构造 bounded `GroupRow`；若非连通图的规范终端没有共同分量，bootstrap 可暂时为无穷，此时多源距离不截断，随后的共同 root-star 扫描仍会在已验证存在的公共分量中取得有限上界。后者构造完整距离势。两者都返回同一三元合同。最远组 oracle 只保存一个 byte/vertex 的全局 argmax：构造时用局部最大值做一次线性扫描，命中时 $O(1)$ 返回，未命中时严格扫描剩余 mask；完整势直接读取 dense payload，bounded 势仍走 `GroupRow` 合同。没有固定深度 top-k、查询统计或配置专属数学值。
 
-当 $g\le3$ 时，任意三终端树在分叉点处分解可证明最优值恰为 $\min_v\sum_i d_i(v)$。BootstrappedBounded 的 cutoff 若严格大于最优值，则最优根的所有组距离都已精确保留；若等于最优值，则真实 cutoff 本身已经闭合。因此三个合法配置在进入任何 enhancement realization 前逐项执行同一个 bounded root-star 包并直接返回，不构造 complete potential、witness、dual、tour 或主状态。这是共同数学基例，不是按组数选择 Base/Enhanced。仅当 $g>3$ 仍未闭合时，公共外层才构造 root-path-union。规范 SPT 是 bounded 物理表示的内部 bootstrap，不是 Base-only 的外层调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。随后所有配置调用同一个 `BuildTripleSeededPathGrowthUpper`：前两组建立种子路径，显式枚举第三组后再以真实 tight shortest paths 保持连通地接入最近未覆盖组，按 edge ID 去重计费，并用非负边权下费用单调不减的性质在不能严格改善 incumbent 时安全停止。实现对每个有序前两组只恢复一次种子路径，再把完全相同的真实种子边重放给各个第三组；`membership[v]` 同时承担路径终点组判断，避免每次恢复重复写入和清除一张全图 terminal 数组。恢复下一条路径前还用“已付真实树费用 + 当前树到目标组的最短距离”检查严格改善的必要条件；失败时跳过的 DFS 不可能产生更优候选。这些操作只消除重复恢复、组扫描与工作区，不改变任何可能严格改善 incumbent 的有序组三元组候选。当前 witness 已与公共 component-cover 下界闭合时，两种配置还会以同一精确条件在调用三元上界前返回；未闭合查询的图规模工作区在主状态搜索前释放。预处理到此为止：两边都不在这里无条件调用 `EvaluateWitnessTree`。
+当 $g\le3$ 时，任意三终端树在分叉点处分解可证明最优值恰为 $\min_v\sum_i d_i(v)$。BootstrappedBounded 的 cutoff 若严格大于最优值，则最优根的所有组距离都已精确保留；若等于最优值，则真实 cutoff 本身已经闭合。因此三个合法配置在进入任何 enhancement realization 前逐项执行同一个 bounded root-star 包并直接返回，不构造 complete potential、witness、dual、tour 或主状态。这是共同数学基例，不是按组数选择 Base/Enhanced。仅当 $g>3$ 仍未闭合时，公共外层才构造 root-path-union。规范 SPT 是 bounded 物理表示的内部 bootstrap，不是 Base-only 的外层调用阶段。Base 把共同边并集整理为 root-path witness；开启 `DirectedCut` 时，以 primal upper 与 dual-primal witness 实现相同的真实 witness 职责，facility 上界另作安全新增。随后所有配置调用同一个 `BuildTripleSeededPathGrowthUpper`：前两组建立种子路径，显式枚举第三组后再以真实 tight shortest paths 保持连通地接入最近未覆盖组，按 edge ID 去重计费，并用非负边权下费用单调不减的性质在不能严格改善 incumbent 时安全停止。实现对每个有序前两组只恢复一次种子路径，再把完全相同的真实种子边重放给各个第三组；`membership[v]` 同时承担路径终点组判断，避免每次恢复重复写入和清除一张全图 terminal 数组。恢复下一条路径前还用“已付真实树费用 + 当前树到目标组的最短距离”检查严格改善的必要条件；失败时跳过的 DFS 不可能产生更优候选。这些操作只消除重复恢复、组扫描与工作区，不改变任何可能严格改善 incumbent 的有序组三元组候选。当前 witness 已与公共 component-cover 下界闭合时，所有配置还会以同一精确条件在调用三元上界前返回；未闭合查询的图规模工作区在主状态搜索前释放。预处理到此为止：所有配置都不在这里无条件调用 `EvaluateWitnessTree`。
 
-预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。初始阶段只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且树 DP 有新输入时调用同一个 `EvaluateWitnessTree`。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。只有开启 DirectedCut 的配置可能在 ordinary 中另行购买 residual closure；购买后完成 residual 势并恢复真实 primal/facility 上界，若四元真实路径生长继续严格收紧上界，则把路径边与 primal 边合成 certificate support，调用 `RefreshCertificate` 按 support 顶点数切换确定性 buy，并把后续消费函数切换为 `CertificateSupportDpCache::Evaluate`。路径上界已经直接写入 `best`，不再重建一棵后续无人消费的 witness 树。完整势和真实上界随后共同重滤已经物化的 D；删除条件仍是“精确 rooted 值 + 可采纳 future 不小于现有真实上界”。这是 closure 购买后的单调证书刷新，不改变初始 witness 的共同调度规则。
+预处理返回后，`SolveOneQuery` 才构造唯一的 `WitnessUpperScheduler`，所以 Base、DirectedCutOnly 与 Enhanced 的 `rent` 都严格从 0 开始。初始阶段只把各自 witness 的真实顶点数代入同一个 `buy` 公式；公共 A1 与 ordinary $D$ 的 queue-pop/edge-relax 工作连续支付 rent，达到阈值且存在尚未购买的当前 DP 输入时调用同一个 `EvaluateWitnessTree`。首次可用的 singleton 基例视为初始修订，之后每张新 ordinary row 才推进修订号。若 A1 中的购买真正收紧上界，A1 会以新的固定 cutoff 整轮重启；未收紧时继续当前轮。只有开启 DirectedCut 的配置可能在 ordinary 中另行购买 residual closure；购买后完成 residual 势并恢复真实 primal/facility 上界，若四元真实路径生长继续严格收紧上界，则把路径边与 primal 边合成 certificate support，调用 `RefreshCertificate` 按 support 顶点数切换确定性 buy，并把后续消费函数切换为 `CertificateSupportDpCache::Evaluate`。路径上界已经直接写入 `best`，不再重建一棵后续无人消费的 witness 树。完整势和真实上界随后共同重滤已经物化的 D；删除条件仍是“精确 rooted 值 + 可采纳 future 不小于现有真实上界”。这是 closure 购买后的单调证书刷新，不改变初始 witness 的共同调度规则。
 
 `CertificateSupportDpCache` 只属于上述 DirectedCut 新增证书：Base 的 `BuildOrdinaryRowsImpl<false>` 在编译期不调用 `PublishOrdinaryMask`，也不包含每行的空指针判断。缓存第一次购买时执行与独立 `EvaluateCertificateSupport` 相同的 Floyd 与全 mask subset DP；support 边集不变时保留 metric 和 DP。新发布一张 $D(M)$ 后，`PublishOrdinaryMask` 只登记 $M$，下一次购买仅重算所有 $X\supseteq M$ 的 mask，并继续按基数递增、数值 submask 次序运行原递推。若购买收紧上界并 destructive-refilter 已有 D，`Reset` 令下一次购买保守地全表重建；若 residual closure 刷新 support，`RefreshCertificate` 直接建立新缓存。因此缓存不修改 `rent`、`buy`、购买位置、候选次序、状态数或浮点运算，只消除同一 support 上重复求值的被支配工作。
 
@@ -138,7 +138,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 | A1 与 ordinary A1 future | ordinary 前生成标准 A1，使用 farthest + endpoint-floor cone 与非负 fallback；先按结构购买 top-two，并用精确子集递推因子化 tail rent，再按已付 tail 查找工作购买完整 byte 排名 | 逐项执行同一 seed、cone、fallback、两级购买、精确租金表与移交；A1 内不读取 dual | 严格共同操作；完整排名不是固定 top-k，不改变原 double；购买式不读取配置、图名、计时或经验组数阈值 |
 | $g>3$ 的距离—根初始化 | realization 内以真实 SPT 边并集启动 cutoff，构造 bounded `GroupRow`，再做共同根扫描 | 构造完整距离势 `GroupRow`，再做同一共同根扫描 | 外层只调用同一函数并接收 `{group_distance, root, upper}`；SPT/全距离扩展分别是两种表示的内部成本，不是 Base-only 阶段；低组基例在此之前共同闭包 |
 | ordinary 的其他 future | flat realization：farthest、公共 A1、tour 的完整值首次存活后缓存 | staged realization：先增加 directed-cut，再依次复用 farthest、公共 A1、tour 的已算前缀 | 证书集合是安全新增；求值 realization 的共同输入、输出和严格拒绝职责相同，选择只由 DirectedCut 位决定 |
-| witness realization 与条件式树 DP | root-path tree | primal upper + dual-primal tree | 对未被共同闭包的查询，树来源是同一真实 witness 职责的替换；两边预处理都只构造各自 witness，随后从 `rent=0` 进入同一调度器、同一 `buy` 公式和同一树 DP；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
+| witness realization 与条件式上界 DP | root-path tree | primal upper + dual-primal tree；购买 residual closure 后可替换为 certificate support | 对未被共同闭包的查询，两边预处理都只构造各自 witness；初始证书阶段从 `rent=0` 进入同一调度器、 $B_{\mathrm{wit}}$ 和 `EvaluateWitnessTree`。只有 DirectedCut 后续实际购买 residual closure，才以 $B_{\mathrm{sup}}$ 和 support evaluator 替换同一上界求值职责；共同的 root-star/root-path-union 仍由两边执行，facility 是额外安全上界 |
 | A1 之后的高层锚定完成 | 完整 ordinary 半格 $D(h)$ 加前向高层 $A$ | 完整物化到最高逻辑层 $q$；以必要的单/双 ordinary 终端、全值 successor 和互补半格完成精确构造 $H(h),\ldots,H(2)$，再与共同 A1 结算 | $H(h)$ 与 $D(h)$ 是同一 rooted 递推职责的正反 realization；逻辑 $H(2),\ldots,H(q)$ 替换 A1 之后的前向层。A1 与 $D(1..q)$ 都是共同操作；只减去被完整 D 逐值支配的同目标 pair |
 | 无 Base 对应物的工作 | 无 | directed-cut 可行证书、额外 facility 收紧、延迟 residual 证书刷新与单调 D 重滤 | 安全新增；只加强下界、真实上界或删去已不能严格改善的状态 |
 
@@ -197,13 +197,15 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 |---|---|
 | `tools/data/build_published_workloads.py` | 从 MonoGST+/GPU4GST 作者输入生成 P1 接口与身份 manifest |
 | `tools/data/build_gpu_query_panels.py` | 对已生成的 300 条 P2 候选按输入组大小分为五层；保留原 q1--q5，并从各层追加 q6--q10，共固定 10 条 |
-| `tools/data/generate_controlled_queries.py` | 生成 DBLP/IMDb 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
+| `tools/data/generate_controlled_queries.py` | 生成 DBLP/Toronto 的 $\langle g,f\rangle$ panel 并写实现后组大小 |
 | `tools/data/build_query_feasibility_audit.py` | 重用图分量扫描并将每个矩阵 case 的可行性与当前矩阵哈希绑定 |
 | `tools/experiments/validate_environment.py` | 在运行前检查矩阵总数、方法配置、路径、哈希和可行性审计 |
-| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，拒绝与中文标点或词内连字号相贴的行内公式开界，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
+| `tools/experiments/validate_markdown.py` | 覆盖全部被 Git 跟踪的 Markdown，检查严格 UTF-8、围栏闭合，强制块公式使用 GitHub 官方 `math` 围栏，拒绝与中文标点或词内连字号相贴的行内公式开界，限制单文件公式组件数量，并拒绝未被 Git 跟踪或大小写不精确的本地链接目标 |
 | `tools/experiments/run_experiments.py` | 稳定分片、断点续跑、逐查询 timeout、图加载 watchdog、一任务一 JSON 记录，并解析行末状态数 |
-| `tools/experiments/run_parallel_campaign.py` | 在已验证不会显著扰动单进程时空结果的两枚固定 CPU 上，恢复 P1/P2 与受控探针；P2 先跑完整 Enhanced，再按冻结 frontier 规则运行较慢配置 |
+| `tools/experiments/run_parallel_campaign.py` | 在已验证不会显著扰动单进程时空结果的两枚固定 CPU 上复用已验证结果，并将 P2/S2 每个缺失 task key 运行到真实完成或逐查询 timeout；旧预测清单只作历史证据，不参与调度与汇总 |
+| `tools/experiments/materialize_formal_results.py` | 以矩阵、二进制和三类 source 的哈希/计数合同重建唯一规范账本；逐键拒绝重复、缺失、错误状态及与冻结查询不一致的 `g/min_f/max_f/mean_f` |
 | `tools/experiments/summarize_results.py` | 数据集/cell 汇总、PAR-2、共同完成时间/状态倍率、timeout 方向、目标值和可行性不一致 |
+| `tools/experiments/report_ablation.py` | 把完整规范账本中的 Base/Enhanced 与 135 条隔离变体按预登记查询联结；核对正式 manifest、消融 worker 元数据、五配置查询身份和目标值后生成表图 |
 | `tools/experiments/plot_results.py` | 从冻结 supervisor JSON records 绘制 P2/S2 曲线，不重新挑选查询 |
 
 一次正式运行不直接循环调用二进制，而是由 `run_experiments.py` 展开机器矩阵。runner 用 case/method/query 的稳定 key 分片，为每个任务写独立 JSON；同一 `run-dir` 下已完成 key 不会重跑。Linux 上保留 `PATH` 的大小写并为外部 solver 同步添加 `LD_LIBRARY_PATH`；Windows 上会合并大小写重复的 Path 环境项。
@@ -225,7 +227,7 @@ Base 和 DirectedCutOnly 经 `RunForwardAnchoredStage` 调用 `BuildForwardAncho
 make validate-markdown
 ```
 
-验证器检查 UTF-8、围栏、公式边界、禁用宏和精确大小写链接。推送后还需人工查看 GitHub 页面，确认公式生成实际 MathML 而非错误框或灰色源码。已知故障模式和网页检查细节见[归档说明](archive/README.md#history-github-rendering-maintenance-20260820)。
+验证器检查 UTF-8、围栏、公式边界、禁用宏、单文件公式预算和精确大小写链接。2026-09-09 的真实 GitHub 页面复核发现：一份含 776 个公式组件的 `METHOD.md` 只为前 736 个生成 MathML，余下 40 个连单变量表达式也显示错误；这不是后 40 个公式的 LaTeX 语法问题。当前因此把每文件预算保守固定为 700。后续 LLM 不得在没有真实浏览器证据时提高或删除该上限；优先把只承担变量名作用的行内公式（例如状态名 `D`、参数名 `g`）写成代码体，正式方程仍保留数学格式。推送后还需查看 GitHub 页面，确认每个公式组件都生成实际 MathML，而不是错误框或灰色源码。已知故障模式和网页检查细节见[归档说明](archive/README.md#history-github-rendering-maintenance-20260820)。
 
 ## 11. 当前明确边界
 

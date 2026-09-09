@@ -802,7 +802,7 @@ int main()
     CheckIncrementalCertificateSupportDp();
 
     // rent-or-buy 的 buy 只能由 witness 大小与非锚组数决定。这里直接锁定
-    // 共同公式，防止以后又在 Base/Enhanced 分支中各写一份近似估计。
+    // 共同公式，防止以后又在不同 profile 分支中各写一份近似估计。
     using gst::methods::abhss::internal::EstimateWitnessTreeDpWork;
     if (EstimateWitnessTreeDpWork(0, 5) != 0 ||
         EstimateWitnessTreeDpWork(7, 0) != 7 ||

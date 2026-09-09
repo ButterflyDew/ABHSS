@@ -323,7 +323,7 @@ int main(int argc, char** argv)
 #endif
         output.BeginResultRun("weights.txt", header.str());
 
-        // supervisor 只在图/查询加载完成后启动每实例 10,000 秒 deadline。
+        // supervisor 只在图/查询加载完成后启动由实验参数指定的逐实例 deadline。
         // 此处故意使用 std::endl，保证开始求解前 marker 已刷新到管道。
         std::cout << "[Ready] graph=" << graph_name
                   << " query_begin=" << query_begin

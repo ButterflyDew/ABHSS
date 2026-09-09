@@ -2,6 +2,8 @@
 
 本卷保存数据来源、格式转换、作者 workload、baseline 复现与第三方依赖的历史细节。当前实验选择、任务数和报告口径以 [`../EXPERIMENT_PLAN.md`](../EXPERIMENT_PLAN.md) 为准；本卷负责可追溯性与恢复说明。
 
+> 归档时态约定：下方机械合并的旧正文中，“当前”“本文”“正式”等词只表示原文件写成时的方案，不具有现行规范效力。尤其其中的 P2 `g=5..16` 和 S2 DBLP/IMDb 设计均已退出；现行范围是 P2 `g=5..15` 与 S2 DBLP/Toronto，且只以实验计划和机器矩阵为准。
+
 ## 卷内目录
 
 - [[归档] PrunedDP++ baseline 复现说明](#history-baseline) — 原文件 `BASELINE.md`
@@ -19,7 +21,7 @@
 
 默认配置现按“主 baseline 必须精确”的口径设置为：**Hash 状态、启用逐状态 MST 上界、关闭 pathmax 并允许更小 `g` 的状态 reopen**。Algorithm 4 第 31 行的 paper-pathmax 行为仍可显式开启以复现论文口径，但它已在三个 SteinLib 已知最优值实例上返回非最优值，不能再作为主精确 baseline。
 
-> 范围说明：随机小图、旧 MovieLens q1 和外部算法 artifact 数字只用于复现/正确性审计。当前投稿性能矩阵使用 MonoGST+ 与 GPU4GST 的作者 workload、GPU4GST 图上的跨 `g` 扩展，以及 DBLP/IMDb 受控副实验；以 [`EXPERIMENT_PLAN.md`](../EXPERIMENT_PLAN.md) 和 `experiments/paper_matrix.json` 为准。
+> 历史范围说明（已由现行方案取代）：随机小图、旧 MovieLens q1 和外部算法 artifact 数字只用于复现/正确性审计；当时的投稿矩阵曾计划使用 DBLP/IMDb 受控副实验。现行范围以 [`EXPERIMENT_PLAN.md`](../EXPERIMENT_PLAN.md) 和 [`experiments/paper_matrix.json`](../../experiments/paper_matrix.json) 为准。
 
 ### 1. 论文中的 PrunedDP++ 主线
 

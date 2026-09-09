@@ -62,7 +62,7 @@ Windows 可用 Visual Studio 或 MinGW 的 CMake generator，完整命令、数�
 | `src/pruneddp` | PrunedDP++-Safe 及 strict-pathmax 复现开关 | 主精确 baseline；必须标注为 corrected reconstruction |
 | `src/dpbf` | 透明的稠密全子集 DPBF | correctness-only baseline |
 | `src/baselines` | Basic+ 和 GPU4GST CPU PrunedDP++ 作者代码的可选 adapter | 只在恢复 `third_party` 后构建，不在冻结大图性能矩阵 |
-| `tests` | 图/查询 I/O、零权 witness、低组闭包、逐弧 residual、144 随机精确对照和双方实际状态计数 | 每次构建的快速 correctness gate |
+| `tests` | 图/查询 I/O、零权 witness、低组闭包、逐弧 residual、5,000 个随机精确对照、500 个正权压力实例、160 个高组数实例和双方实际状态计数 | 每次构建的快速 correctness gate |
 | `tools` | 数据转换、实验执行与第三方恢复构建脚本的总入口 | 工具代码真值 |
 | `tools/data` | P1/P2/S2/SteinLib 构建、历史 IMDb 转换、哈希和可行性审计 | 输入生成与审计链 |
 | `tools/experiments` | 环境校验、稳定分片运行、timeout/断点续跑、汇总和绘图 | 执行与报告链 |

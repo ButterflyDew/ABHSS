@@ -260,14 +260,26 @@ def main() -> int:
 
     campaign = load_json("experiments/final_campaign_plan.json")
     production = campaign.get("production_identity", {})
-    likely_stop = campaign.get("likely_timeout_stop", {})
-    shared_stop = likely_stop.get("shared", {})
-    p2_stop = likely_stop.get("P2_cross_g", {})
-    s2_stop = likely_stop.get("S2_controlled_gf", {})
     enhanced_timeout = campaign.get("enhanced_timeout_policy", {})
+    current_policy = campaign.get("current_formal_policy", {})
+    active_runner = ROOT / "tools" / "experiments" / "run_parallel_campaign.py"
+    runner_source = active_runner.read_text(encoding="utf-8") if active_runner.is_file() else ""
+    forbidden_active_fragments = (
+        "five_real_timeouts",
+        "ten_real_timeouts",
+        "write_predicted_stops(",
+        "complete_with_likely_timeout_stops",
+        "p2_base_pruned_adaptive_frontier",
+        "s2_base_pruned_adaptive_frontier",
+    )
     if (
-        campaign.get("schema_version") != 1
-        or campaign.get("status") != "frozen-before-3600s-campaign-results"
+        campaign.get("schema_version") != 2
+        or campaign.get("status") != "historical-plan-superseded-by-complete-formal-ledger"
+        or current_policy.get("status") != "complete-real-outcomes-only"
+        or int(current_policy.get("canonical_records", -1)) != 28_434
+        or current_policy.get("canonical_records_sha256") != "3f6986255acbf49ced6cab79f861364cd122df1d58fdd02b553f80eb084b7b18"
+        or current_policy.get("canonical_manifest_sha256") != "3bb200f032aecf886998eba854d29135c98d3f49fdea771fc293e52f18c1ced1"
+        or any(key in campaign for key in ("likely_timeout_stop", "ordering", "phase_order", "runner", "result_root"))
         or production.get("physical_cpus") != [4, 5]
         or production.get("paper_matrix_sha256") != sha256(ROOT / "experiments" / "paper_matrix.json")
         or production.get("query_feasibility_audit_sha256") != sha256(ROOT / "experiments" / "query_feasibility_audit.json")
@@ -276,17 +288,15 @@ def main() -> int:
         or int(production.get("timeout_seconds_per_query", -1)) != 3_600
         or production.get("same_abhss_binary_for_base_and_enhanced") is not True
         or "continue after timeout" not in enhanced_timeout.get("rule", "")
-        or shared_stop.get("applies_equally_to") != ["abhss_base", "pruneddp_safe"]
-        or int(shared_stop.get("timeout_seconds", -1)) != 3_600
-        or shared_stop.get("record_status") != "not_run_likely_timeout"
-        or "never count" not in shared_stop.get("reporting", "")
-        or "q1--q5" not in p2_stop.get("evidence", "")
-        or "larger g" not in p2_stop.get("scope", "")
-        or "all ten queries" not in s2_stop.get("evidence", "")
-        or "never extrapolate across f" not in s2_stop.get("scope", "")
-        or not (ROOT / campaign.get("runner", "missing")).is_file()
+        or "p2_competitors_real_outcomes" not in runner_source
+        or "s2_competitors_real_outcomes" not in runner_source
+        or "FORMAL_BACKFILL_DIR" not in runner_source
+        or "reusable_records=backfill" not in runner_source
+        or "formal_backfill_records_reused" not in runner_source
+        or "formal_outcomes=\"all expected task keys have real ok/timeout records\"" not in runner_source
+        or any(fragment in runner_source for fragment in forbidden_active_fragments)
     ):
-        failures.append("final dual-core campaign identity or stop/reporting contract changed")
+        failures.append("completed dual-core identity or active all-real-outcome runner contract changed")
 
     s2 = load_json("experiment_data/s1_controlled_gf/cells.json")
     expected_s2_grid = {

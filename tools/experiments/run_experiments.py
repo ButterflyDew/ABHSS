@@ -347,6 +347,7 @@ def make_base_record(
     method_name: str,
     query: QueryMeta,
     timeout: float,
+    started_at: str | None = None,
 ) -> dict[str, Any]:
     key = task_key(case, method_name, query.index)
     record: dict[str, Any] = {
@@ -365,7 +366,7 @@ def make_base_record(
         "max_f": query.max_f,
         "method": method_name,
         "timeout_seconds": timeout,
-        "started_at": utc_now(),
+        "started_at": started_at or utc_now(),
     }
     if case.expected_weight is not None:
         record["expected_weight"] = case.expected_weight
@@ -482,6 +483,7 @@ def run_native_range(
             log.write("COMMAND " + render_command(command) + "\n")
             log.flush()
             attempt_started = time.monotonic()
+            attempt_started_at = utc_now()
             process = subprocess.Popen(
                 command,
                 cwd=ROOT,
@@ -511,6 +513,7 @@ def run_native_range(
                 else "graph_load_timeout"
             )
             query_started = 0.0
+            query_started_at: str | None = None
             last_completed = next_index - 1
             failure: str | None = None
             diagnostic_events: list[dict[str, Any]] = []
@@ -546,6 +549,7 @@ def run_native_range(
                 if stripped.startswith("[Ready]"):
                     ready = True
                     query_started = time.monotonic()
+                    query_started_at = utc_now()
                     ready_rss_bytes = (
                         process_rss_bytes(process) if probe_diagnostics else None
                     )
@@ -572,9 +576,7 @@ def run_native_range(
                 query_index = int(match.group(1))
                 if query_index < next_index or query_index > end:
                     continue
-                record = make_base_record(
-                    run_id, case, method_name, query_by_index[query_index], timeout
-                )
+                record = make_base_record(run_id, case, method_name, query_by_index[query_index], timeout, query_started_at)
                 record["exact_claim"] = bool(method.get("exact_claim", True))
                 if diagnostic_events:
                     record["probe_diagnostics"] = diagnostic_events
@@ -609,6 +611,7 @@ def run_native_range(
                 write_record(records_dir, record)
                 last_completed = query_index
                 query_started = time.monotonic()
+                query_started_at = utc_now()
                 natural_deadline = query_started + timeout
                 deadline = (
                     min(natural_deadline, wall_deadline)
@@ -630,7 +633,7 @@ def run_native_range(
             reader.join(timeout=2)
             current = last_completed + 1
             if failure and current <= end:
-                record = make_base_record(run_id, case, method_name, query_by_index[current], timeout)
+                record = make_base_record(run_id, case, method_name, query_by_index[current], timeout, query_started_at or attempt_started_at)
                 record["exact_claim"] = bool(method.get("exact_claim", True))
                 if diagnostic_events:
                     record["probe_diagnostics"] = diagnostic_events
@@ -666,7 +669,7 @@ def run_native_range(
                 continue
 
             if current <= end:
-                record = make_base_record(run_id, case, method_name, query_by_index[current], timeout)
+                record = make_base_record(run_id, case, method_name, query_by_index[current], timeout, query_started_at or attempt_started_at)
                 record["exact_claim"] = bool(method.get("exact_claim", True))
                 if diagnostic_events:
                     record["probe_diagnostics"] = diagnostic_events

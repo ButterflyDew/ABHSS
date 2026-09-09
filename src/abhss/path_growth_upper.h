@@ -15,7 +15,7 @@ struct PathGrowthUpper
 /**
  * @brief 枚举有序组三元组，以一步前瞻后的真实最短路生长构造公共可行上界。
  *
- * Base 与 Enhanced 调用同一实现；cutoff 仅用于非负累计费用的单调安全终止。
+ * 所有合法配置调用同一实现；cutoff 仅用于非负累计费用的单调安全终止。
  * 返回的有限值及 edge_ids 始终描述同一真实连通子图；无改进时 upper 为无穷。
  */
 PathGrowthUpper BuildTripleSeededPathGrowthUpper(const Graph& graph, const Query& query, const GroupTable& distance, double cutoff);

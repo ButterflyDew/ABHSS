@@ -4,6 +4,47 @@
     "endpoint_floor": "build in an isolated git archive with exactly one registered expression changed from max(farthest, endpoint-floor) to farthest, pass all CTest, then run Base and Enhanced on the fixed 45-query panel",
     "stop_on": "any completed objective/feasibility mismatch or any build diff outside the registered expression"
   },
+  "current_formal_policy": {
+    "status": "complete-real-outcomes-only",
+    "supersedes": "the historical likely_timeout_stop, ordering, and phase_order fields retained below",
+    "rule": "every independent P1/P2/S2 task key has a real ok or real 3600-second timeout outcome; no sibling-query or cross-g prediction is executable",
+    "canonical_ledger": "results/paper_runs/final_3600s_complete_793d4e/records.jsonl",
+    "canonical_records": 28434,
+    "canonical_status_counts": {
+      "ok": 28147,
+      "timeout": 287
+    },
+    "canonical_records_sha256": "3f6986255acbf49ced6cab79f861364cd122df1d58fdd02b553f80eb084b7b18",
+    "canonical_manifest_sha256": "3bb200f032aecf886998eba854d29135c98d3f49fdea771fc293e52f18c1ced1",
+    "source_counts": {
+      "historical_formal": 25714,
+      "source_campaign_workers": 2645,
+      "backfill_workers": 75
+    },
+    "diagnostic_policy": "RSS and native-state candidates remain shadow-only and never alter the formal ledger",
+    "diagnostic_evidence": {
+      "rss": {
+        "exposures": 66,
+        "true_timeout": 34,
+        "missed_timeout": 30,
+        "false_stop": 0,
+        "timeout_coverage": 0.53125,
+        "potential_seconds_saved": 51841.80786698808,
+        "conditional_false_stop_upper_95_if_independent": 0.08433964335062538
+      },
+      "native_state": {
+        "probe_records": 20,
+        "true_timeout": 11,
+        "no_trigger_timeout": 5,
+        "no_trigger_success": 4,
+        "false_stop": 0,
+        "timeout_coverage": 0.6875,
+        "potential_seconds_saved": 19199.581638857722,
+        "conditional_false_stop_upper_95_over_11_triggers_if_independent": 0.2384041903808526
+      },
+      "decision": "not activated: zero observed false stops is insufficient to establish an extreme future probability, and graph/cell dependence makes the descriptive binomial bounds optimistic"
+    }
+  },
   "enhanced_timeout_policy": {
     "historical_formal_timeouts": {
       "P1_pruneddp_safe": 2,
@@ -69,7 +110,8 @@
       "tasks": 100
     }
   },
-  "likely_timeout_stop": {
+  "superseded_likely_timeout_stop": {
+    "status": "historical-only; disproved as an extreme-probability rule by real backfill successes and never executable in the current policy",
     "P2_cross_g": {
       "action": "do not start q6--q10 at that g or any query at larger g for that graph/method",
       "evidence": "for one fixed graph, g and method, all preregistered tranche-1 q1--q5 (one per input-size stratum) reach the real 3600-second limit and Enhanced completes those five within 3600 seconds",
@@ -91,7 +133,7 @@
       "timeout_seconds": 3600
     }
   },
-  "ordering": {
+  "historical_ordering": {
     "P2_Enhanced_estimate": "not used: all 660 current-binary P2 Enhanced tasks are already complete and identity-audited",
     "S2_Enhanced_estimate": "schedule g={3,6,9,12} in ascending g; within one g use a same-graph/g/f historical probe when available, otherwise deterministic graph-size times subset-count work; retained g=15 is not rescheduled",
     "S2_competitors": "ascending g frontier; deterministic estimated fast-to-slow order within each g so the same-f 10/10 timeout rule can be updated online",
@@ -99,7 +141,7 @@
     "scientific_effect": "none; ordering changes neither solver, timeout nor reporting"
   },
   "paper_scope": "P1/P2/S2 main matrix plus the separately preregistered minimal ablations",
-  "phase_order": [
+  "historical_phase_order": [
     "validate binary/matrix/input identities; materialize non-destructive 3600-second views of historical P1/P2/S2-g15 records",
     "run the 40 new S2 g={3,6,9,12} cells (400 queries) for Enhanced from estimated fast to slow and continue after timeout",
     "run P2 Base and PrunedDP++ in ascending g frontiers, applying the symmetric five-timeout likely-stop rule online",
@@ -119,8 +161,8 @@
     "same_abhss_binary_for_base_and_enhanced": true,
     "timeout_seconds_per_query": 3600
   },
-  "result_root": "results/paper_runs/final_3600s_campaign_793d4e_20260828",
-  "runner": "tools/experiments/run_parallel_campaign.py",
-  "schema_version": 1,
-  "status": "frozen-before-3600s-campaign-results"
+  "historical_result_root": "results/paper_runs/final_3600s_campaign_793d4e_20260828",
+  "historical_runner": "tools/experiments/run_parallel_campaign.py",
+  "schema_version": 2,
+  "status": "historical-plan-superseded-by-complete-formal-ledger"
 }

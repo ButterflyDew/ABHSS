@@ -57,7 +57,7 @@ q=\max\{0,h-1\}.
 
 $q$ 是平衡完成式要求的最高逻辑锚定层，不是经验参数。所有配置先执行共同可行性、真实上界和低组基例。距离初始化虽然可由 bounded 或 complete 两种物理表示实现，但都只返回同一合同：组距离视图、共同根和真实上界；bounded 中未保存的位置只能作 cutoff 拒绝证书，任何需要真实子树值的消费者必须读取精确项或无穷。当 $g\le3$ 时，任一最优树在分叉点分为至多三条组路径，反向又可合并共同根到各组的最短路，所以最优值等于该距离和的最小值，算法精确返回而不进入指数搜索。
 
-对其余查询，Base 与 Enhanced 都构造共同 A1 和所有 $\lvert S\rvert\le q$ 的 ordinary row。Base 还以 ordinary 半格和完整前向 $A$ 完成；Enhanced 增加 DirectedCut 证书，并以辅助半格 $H(h)$ 与递减 $H$ 替换 Base 的 $D(h)$ 及 A1 之后的高层前向职责。
+对其余查询，Base 与 Enhanced 都构造共同 A1 和所有 $\lvert S\rvert\le q$ 的 ordinary row；Enhanced 始终增加 DirectedCut 证书。Base 还以 ordinary 半格和完整前向 $A$ 完成；当递推域含非空 H 后缀时，Enhanced 再以辅助半格 $H(h)$ 与递减 $H$ 替换 Base 的 $D(h)$ 及 A1 之后的高层前向职责。若 H 后缀为空，两种配置都退化到同一个完整前向完成入口，不为形式上的 Adjoint 开关构造空转置工作区。
 
 ```text
 Algorithm 1  ABHSS(G, K, profile)
@@ -65,19 +65,18 @@ Algorithm 1  ABHSS(G, K, profile)
 2:  计算零权 component-cover 下界和距离—根初始化合同
 3:  若 g <= 3，则用共同 root-star 恒等式精确返回
 4:  构造真实初始上界、锚组、tour 表和当前 profile 的 witness；若开启 DirectedCut，同时构造初始势与 primal
-5:  两种 profile 都令 witness scheduler 的 rent <- 0
+5:  所有 profile 都令 witness scheduler 的 rent <- 0
 6:  若逻辑层 1 存在，则用同一 cone/fallback 构造公共 A1
-7:  按 mask 大小构造共同 ordinary row D(S)，直至 q
-8:  若 DirectedCut 的确定性 rent 达到购买价，则补全 residual，并刷新真实上界证书
-9:  若 profile 不含 AdjointCompletion：
-10:     构造 ordinary 半格 D(h)，并运行完整前向 A
-11: 否则：
-12:     从已有 D 构造辅助 H(h)，再令 H 从 h 递减到 2
-13:     用公共低层 A、ordinary D 与 H 的边界式完成
-14: 返回当前真实上界 U
+7:  若完成域含非空 H 后缀则令 r_D <- q，否则令 r_D <- h
+8:  调用同一 ordinary builder，按 mask 大小构造 D(S) 直至 r_D；其中 D(1..q) 始终共同
+9:  在初始证书阶段，若 A1/D rent 达到由 witness 大小决定的公共购买价且输入已修订，则调用同一 witness-tree DP 更新 U
+10: A1 完成后把已付工作交给 residual scheduler，D 继续计费；若 DirectedCut 达到购买价且有足够 payload，则补全 residual、刷新真实上界，并以 support evaluator 替换后续同职责购买
+11: 若完成域不含非空 H 后缀，则用已经构造的 D(h) 运行完整前向 A
+12: 否则，从已有 D 构造辅助 H(h)，再令 H 从 h 递减到 2
+13: 用所选高层 realization 的边界式完成，并返回当前真实上界 U
 ```
 
-算法 1 的 `profile` 在查询批次开始前冻结。Enhanced 不按图名、组数区间、状态量或运行时间选择另一条路径。配置差异仅有两类：DirectedCut/facility 是安全新增证书；bounded/complete 距离表示、root-path/dual-primal witness、完整前向/Adjoint 是共享输入输出职责的 realization 替换。A1 和 $D(1),\ldots,D(q)$ 始终共同。
+算法 1 的 `profile` 在查询批次开始前冻结。是否存在非空 H 后缀只由平衡递推的层域推出，不按图名、经验组数区间、状态量或运行时间分派。实现只调用一次 `BuildOrdinaryWithProbe`：冻结的层计划令完整前向 realization 取 $r_D=h$，令具有非空 H 后缀的 adjoint realization 取 $r_D=q$。配置差异仅有两类：DirectedCut/facility 是安全新增证书；bounded/complete 距离表示、root-path/dual-primal witness、完整前向/Adjoint 是共享输入输出职责的 realization 替换。A1 和 $D(1),\ldots,D(q)$ 始终共同。
 
 建议正文配一张层格图：横轴为 mask 大小，底部画共同 ordinary $D(1..q)$，左上画共同 A1；Base 继续到 $D(h)$ 和高层 $A$，Enhanced 从 $H(h)$ 反向递减并在 A/H 边界汇合。图中用实线表示共同层、虚线表示安全新增证书、双箭头表示同职责替换。
 
@@ -89,7 +88,7 @@ Algorithm 1  ABHSS(G, K, profile)
 D(S,v)+L(S,v)\ge U,
 ```
 
-则任何经该状态完成的树都不优于已知真实可行解，可安全拒绝。保留 seed 后，使用 key `value + future` 做非负边 Dijkstra 闭包。这样每个有限输出值都仍是完整 rooted DP 的精确值，而 row 外位置由拒绝式解释。
+则任何经该状态完成的树都不优于已知真实可行解，可安全拒绝。保留 seed 后，以 `value + future` 为 key 做 A* 顺序的非负边标签闭包；距离改善后允许重新入队，并忽略过期标签。这样每个有限输出值都仍是完整 rooted DP 的精确值，而 row 外位置由拒绝式解释。
 
 ```text
 Algorithm 2  BuildSparseRow(S, dependencies, U)
@@ -103,11 +102,11 @@ Algorithm 2  BuildSparseRow(S, dependencies, U)
 8:      对每条边 (v,u)：
 9:          y <- x + w(v,u)
 10:         若 y 改善 u 且 y + Future(S,u) < U，则松弛
-11: 把有限距离按顶点递增写为 row，并标记规范 branch
+11: 把有效弹出的 settled 顶点按编号递增写为 row，并标记规范 branch
 12: 返回 row
 ```
 
-Base 的 `Future` 由 component-cover、farthest、tour 和公共 A1 组成。Enhanced 在同一接口中再取 DirectedCut 势的最大值。实现可分阶段缓存已经计算的下界，但缓存只能保存可采纳前缀，不能把某个候选的一次拒绝永久解释成 row 值；候选变小时必须能继续计算尚未完成的证书链。
+`component-cover` 是查询级预处理下界，只用于初始化全局下界和与真实上界闭合时的提前结束，不进入逐状态 `Future`。Base 的逐状态 `Future` 取 farthest、tour 和公共 A1 的最大值；Enhanced 在同一接口中再取 DirectedCut 势的最大值。实现可分阶段缓存已经计算的下界，但缓存只能保存可采纳前缀，不能把某个候选的一次拒绝永久解释成 row 值；候选变小时必须能继续计算尚未完成的证书链。
 
 ### 3.4 公共 A1 与真实上界调度
 
@@ -141,7 +140,7 @@ B_{\mathrm{wit}}(t,k)
 t\left(\frac{3^k-1}{2}+3^k\right).
 ```
 
-达到阈值且 witness 输入修订发生变化时，两种配置调用同一个树 DP。若购买在 A1 中严格收紧 $U$，当前未发布的部分 A1 pass 必须丢弃，并在新的固定 $U$ 下整轮重建；否则一张 row 会混合两套 cone 解释。
+在初始 witness 证书阶段，达到阈值且当前 DP 输入相对上次购买有新修订时，所有配置调用同一个 `EvaluateWitnessTree`；首次可用的 singleton 基例视为初始修订，之后由新 ordinary row 推进修订号。若购买在 A1 中严格收紧 $U$，当前未发布的部分 A1 pass 必须丢弃，并在新的固定 $U$ 下整轮重建；否则一张 row 会混合两套 cone 解释。DirectedCut 后续若购买 residual closure 并产生 certificate support，则保留同一 scheduler、修订 gate 和租金清零规则，以 support 规模决定的新结构购买价和增量 support-DP 替换当前上界求值职责；正文不能把这一后续替换仍写成 witness-tree 调用。
 
 A1 future 的 lazy、top-two 和完整 ranked-tail 是同一精确最大值视图的三种物理表示。共同表示的是规则、代码路径和 row 合同；不同 profile 在进入 A1 前可能持有不同但合法的真实上界和距离 realization，因此不声称其最终 payload 或状态数逐项相同。正文只需说明分级 rent-or-buy 不改变 double 值或触发顺序；具体整数购买式和 byte/locator 布局放附录。
 
@@ -155,7 +154,7 @@ L_{\mathrm{cut}}(v,R)=\sum_{i\in R}\pi_i(v)
 
 不超过从 $v$ 完成 $R$ 的最小附加代价。changed-arc 修复和截断 potential cone 只省略势差严格为 0 的弧，不改变对偶值。
 
-对偶势只能作为下界。算法沿零 residual 支撑恢复 primal，并按原图真实边重新计价，得到可行上界和 dual-primal witness；facility DP 同样只组合可展开到真实边的路径。ordinary 搜索积累足够确定性工作后，可一次性购买 residual closure，补全势并恢复更强 primal/facility 上界。若新的真实路径证书继续改善 $U$，算法只删除满足以下条件的已物化状态：
+对偶势只能作为下界。算法沿零 residual 支撑恢复 primal，并按原图真实边重新计价，得到可行上界和 dual-primal witness；facility DP 同样只组合可展开到真实边的路径。公共 A1 已付工作与后续 ordinary 搜索共同积累足够确定性工作后，可一次性购买 residual closure，补全势并恢复更强 primal/facility 上界；A1 构造本身不含 DirectedCut 专属分支，只在结束后把共同工作总量交给 residual scheduler。若新的真实路径证书继续改善 $U$，算法只删除满足以下条件的已物化状态：
 
 ```math
 D(S,v)+L_{\mathrm{new}}(v,[k]\setminus S)\ge U_{\mathrm{new}}.
@@ -211,7 +210,7 @@ Adjoint 的真正收益来自状态职责替换：Base 显式持有 $D(h)$ 和�
 
 **引理 1（真实上界）。** 所有写入 $U$ 的值都由原图真实路径、真实 rooted 子树或它们在 witness/support 上的精确 DP 组成，因此 $U$ 始终不小于最优值。
 
-**引理 2（可采纳证书）。** component-cover、farthest、tour、公共 A1 缺项和 DirectedCut 势分别不超过其声明的剩余代价；取最大仍可采纳。
+**引理 2（可采纳证书）。** component-cover 不超过整棵最优树的代价，只用于查询级闭合；farthest、tour、公共 A1 缺项和 DirectedCut 势分别不超过其声明的逐状态剩余代价，后四者取最大仍可采纳。
 
 **引理 3（距离—根合同）。** bounded 与 complete realization 都返回真实上界和同语义的组距离接口。bounded 中未保存的位置至少达到构造 cutoff，只能作为拒绝证书；split、完成式和 witness 对这些位置一律读为无穷。若最优推导低于 cutoff，其所需距离必已精确保留；若等于 cutoff，已有真实上界已经闭合。
 
@@ -259,7 +258,7 @@ O\left(M+R\log(n+m)\right).
 - 算法 2：稀疏 row。它连接 exact DP、future 剪枝与实现复杂度。
 - 算法 3：Adjoint。它承载最难理解、也最可能被审稿人质疑的完备性。
 - 图 1：D/A/H 层格和共同/替换关系。
-- 主定理及 6 个压缩引理；其中 Adjoint 三分类要在正文给证明，不可全部推附录。
+- 主定理及 7 个压缩引理；其中 Adjoint 三分类要在正文给证明，不可全部推附录。
 
 ### 4.2 正文只写定义/引理，不单列伪代码
 
@@ -321,4 +320,8 @@ O\left(M+R\log(n+m)\right).
 
 ### 8.3 第三轮：篇幅、伪代码与渲染
 
-发现复杂度段把明确计划放附录的保守总界再次完整抄入正文，且 facility 记号在生成初稿时发生断行。现已修正记号，正文只保留主搜索时间/空间和输出敏感界，同时用一段话显式列出 tour、真实路径上界、DirectedCut 与 support 的附加阶数；完整总界留给附录。保留 3 段、共 38 行核心伪代码，不再为 DirectedCut、witness scheduler 或 A1 缓存增加算法框。最终正文草案含 3 个 text 伪代码块；显示公式数量由删除总界前的 16 个降为 13 个，仍可在英文排版时把定义相邻式合并以控制在约 5 页。Markdown 验证作为本轮独立验收。
+发现复杂度段把明确计划放附录的保守总界再次完整抄入正文，且 facility 记号在生成初稿时发生断行。现已修正记号，正文只保留主搜索时间/空间和输出敏感界，同时用一段话显式列出 tour、真实路径上界、DirectedCut 与 support 的附加阶数；完整总界留给附录。保留 3 段、共 37 行核心伪代码，不再为 DirectedCut、witness scheduler 或 A1 缓存增加算法框。最终正文草案含 3 个 text 伪代码块；显示公式数量由删除总界前的 16 个降为 13 个，仍可在英文排版时把定义相邻式合并以控制在约 5 页。Markdown 验证作为本轮独立验收。
+
+### 8.4 第四轮：代码粒度调度复核
+
+逐行对照 `SolveOneQuery`、`MakeAnchoredCompletionSchedule` 与 `BuildOrdinaryWithProbe` 后，发现旧算法 1 把 Base 的 $D(h)$ 画成共同 ordinary 结束后的第二次构造，也没有写出 H 后缀为空时 Enhanced 复用完整前向入口的退化。现改为先由精确层域得到 $r_D$，再只调用一次 ordinary builder； $D(1..q)$ 是共同前缀，Base/空 H 退化继续到 $D(h)$，非空 H 后缀则由 $H(h)$ 接替。该条件完全由递推定义域推出，不引入被禁止的经验 $g$ 分类。复核后，算法 1 的 ordinary 调用次数、witness/residual 在行内持续计费及 forward/adjoint 分派均与当前代码一致。

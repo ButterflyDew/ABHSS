@@ -6,7 +6,7 @@
 |---|---|
 | `paper_matrix.json` | 当前可执行矩阵：P1、P2、S2 与 correctness gates |
 | `ablation_plan.json` | 与主矩阵分离的最小消融面板、固定查询和唯一允许的 build-time 差异 |
-| `final_campaign_plan.json` | 最终双核执行顺序、历史结果复用、历史结果的 3,600 秒非破坏性截断，以及 P2/S2 对称的保守 likely-timeout 语义 |
+| `final_campaign_plan.json` | 2026-08-28 双核源 campaign 的冻结历史计划；其中旧 likely-timeout 规则只作时间线证据，当前 runner 已改为全部真实结果 |
 | `data_sources.json` | MonoGST+、GPU4GST 与当前查询生成的来源总表 |
 | `official_sources.json` | 已退出当前矩阵的 IMDb 2026-07-22 历史下载与转换定义 |
 | `query_feasibility_audit.json` | 当前矩阵每个图/查询对的共同分量审计 |
@@ -21,6 +21,8 @@
 - P2：六张 GPU4GST 作者图上的 `g=5..15`，每格 10 条，共 660 条；原 q1--q5 保留，q6--q10 从相同五分层各追加一条；
 - S2：逐字节复用 P1 的 DBLP-MonoGSTPlus 与 Toronto-MonoGSTPlus 图，`g={3,6,9,12,15}`、每格 10 条，共 500 条；
 - 计时项：同一 `abhss` 二进制的 Base、全增强配置，以及 PrunedDP++-Safe，均为单计算线程、每查询 3,600 秒。
+
+当前正式 runner 对每个缺失 task key 都取得真实 `ok` 或 3,600 秒 `timeout`；q1--q10 地位相同，不根据 sibling 或较小 $g$ 结果跳过。2026-08-28 历史计划留下的 `not_run_likely_timeout` 清单已由独立回填替代，只保留作来源时间线，不进入正式 ledger。
 
 两个正式二进制的每条完成查询还报告 `mask_vertex_states`：ABHSS 汇总首次进入 $D$、 $A$、 $H$ 行的状态，PrunedDP++ 统计实际 StateStore 项；辅助预处理、重复队列项和完整解候选不计入。runner 将该值保存在任务 JSON，timeout 不补造计数。
 

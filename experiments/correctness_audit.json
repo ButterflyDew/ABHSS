@@ -1,12 +1,79 @@
 {
-  "schema_version": 11,
-  "audited_at": "2026-08-28",
-  "weight_tolerance": 0.000001,
+  "schema_version": 12,
+  "audited_at": "2026-09-09",
+  "weight_tolerance": 1e-06,
+  "formal_campaign_completion": {
+    "status": "PASS",
+    "source_commit": "42a06a19bca51ef03a108b3ec932a83c11da9d98",
+    "timeout_seconds_per_query": 3600,
+    "physical_cpus": [
+      4,
+      5
+    ],
+    "canonical_ledger": "results/paper_runs/final_3600s_complete_793d4e/records.jsonl",
+    "canonical_records": 28434,
+    "canonical_records_sha256": "3f6986255acbf49ced6cab79f861364cd122df1d58fdd02b553f80eb084b7b18",
+    "canonical_manifest_sha256": "3bb200f032aecf886998eba854d29135c98d3f49fdea771fc293e52f18c1ced1",
+    "status_counts": {
+      "ok": 28147,
+      "timeout": 287
+    },
+    "source_counts": {
+      "historical_formal": 25714,
+      "source_campaign_workers": 2645,
+      "backfill_workers": 75
+    },
+    "suite_method_cardinality": "PASS: P1 has 8318 queries per method, P2 has 660 per method, and S2 has 500 per method",
+    "p2_s2_cell_method_count": 348,
+    "records_per_p2_s2_cell_method": 10,
+    "quality_mismatches": 0,
+    "feasibility_mismatches": 0,
+    "predicted_or_diagnostic_records_in_formal_ledger": 0,
+    "generic_materializer_byte_identical_to_frozen_finalizer": true,
+    "ablation": {
+      "variant_records": 135,
+      "ok": 131,
+      "timeout": 4,
+      "joined_records_with_production_references": 225,
+      "quality_mismatches": 0,
+      "feasibility_mismatches": 0
+    },
+    "diagnostic_timeout_predictors": {
+      "formal_effect": "none; both candidates remain shadow-only and no diagnostic record enters the canonical ledger",
+      "rss_candidate": {
+        "exposures": 66,
+        "true_timeout": 34,
+        "missed_timeout": 30,
+        "completed_without_trigger": 2,
+        "false_stop": 0,
+        "observed_timeout_coverage": 0.53125,
+        "potential_seconds_saved": 51841.80786698808,
+        "conditional_false_stop_upper_95_if_independent": 0.08433964335062538,
+        "decision": "not_activated_insufficient_evidence_for_extreme_probability"
+      },
+      "native_state_candidate": {
+        "probe_records": 20,
+        "ok": 4,
+        "timeout": 16,
+        "true_timeout": 11,
+        "no_trigger_timeout": 5,
+        "no_trigger_success": 4,
+        "false_stop": 0,
+        "observed_timeout_coverage": 0.6875,
+        "potential_seconds_saved": 19199.581638857722,
+        "conditional_false_stop_upper_95_over_11_triggers_if_independent": 0.2384041903808526,
+        "optimistic_upper_95_over_all_20_records_if_independent": 0.13910834066826516,
+        "decision": "not_activated_insufficient_evidence_for_extreme_probability"
+      },
+      "minimum_zero_error_independent_triggers_for_upper_95_below_3_percent": 99,
+      "limitation": "queries from the same graph and parameter cell are correlated, so binomial bounds are descriptive and do not prove a future error probability"
+    }
+  },
   "local_regression_gates": {
     "fast_graph_io_structure": "PASS: original edges, edge_id, bidirectional adjacency order, connected-component cache, self-loop degree semantics, zero/decimal/scientific weights, and rejection of trailing/bad tokens",
     "query_io_validation": "PASS: valid multi-query input plus rejection of negative query/group counts, empty groups, truncated payloads, and trailing tokens",
     "zero_weight_witness": "PASS: base, directed-cut-only and enhanced all return 1",
-    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 5000 deterministic random connected instances with g=2..10, 500 positive unique-terminal stress instances with g=6..10, and 160 omitted-half transpose instances with g=7..16; a fixed 12-vertex g=7 auxiliary-half fixture has independent optimum 5.75 and prevents the superseded q-start adjoint result 6.25; the same gate validates the common distance-root initialization triple, bounded/complete operator[]/ExactValueOrInf relation and disconnected canonical-terminal fallback, strict common A1 in every profile, the remaining add-or-replace ConfigurationProfile, exact values of the common witness buy formula, scheduler initialization at rent=0/evaluation_count=0, rejects unknown enhancement bits, and checks the logical A plus physical auxiliary-H schedule for group counts 0..16; cumulative discovered-state totals are base=103878, directed-cut-only=31982, enhanced=33869",
+    "configuration_exactness": "PASS: all three legal configurations match independent exact subset DP on 5000 deterministic random connected instances with g=2..10, 500 positive unique-terminal stress instances with g=6..10, and 160 omitted-half transpose instances with g=7..16; a fixed 12-vertex g=7 auxiliary-half fixture has independent optimum 5.75 and prevents the superseded q-start adjoint result 6.25; the same gate validates the common distance-root initialization triple, bounded/complete operator[]/ExactValueOrInf relation and disconnected canonical-terminal fallback, strict common A1 in every profile, the remaining add-or-replace ConfigurationProfile, exact values of the common witness buy formula, scheduler initialization at rent=0/evaluation_count=0, rejects unknown enhancement bits, and checks the logical A plus physical auxiliary-H schedule for group counts 0..16; cumulative discovered-state totals are base=103878, directed-cut-only=31982, enhanced=32727",
     "mask_vertex_state_accounting": "PASS: ABHSS Base/Enhanced counts are deterministic across repeated runs, PrunedDP++ Hash/Dense report the same present-entry count, and trivial queries report zero",
     "query_prelude_contracts": "PASS: empty, singleton, overlapping-zero, disconnected-infeasible, out-of-range vertex and g>16 cases have the declared behavior",
     "strict_bound_closure": "PASS: a 5e-10 positive upper/lower gap is not misclassified as exact closure",
@@ -24,15 +91,15 @@
   },
   "repository_consistency_audit": {
     "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
-    "github_markdown": "PASS: all 15 Markdown files in the repository document scope are inside the validator scope, strict UTF-8, use GitHub fenced math syntax for display equations, have balanced code/math fences and inline-dollar delimiters, contain no standalone $$ blocks, legacy LaTeX delimiters, raw math pipes inside tables, GitHub-rejected operatorname macros, repository-rejected cases environments or underscored identifiers inside math text macros, and have no broken, untracked or case-mismatched local links; post-push browser review must still require one MathML child per display and inline renderer plus zero visible renderer error/source-fallback nodes",
+    "github_markdown": "PASS: all 15 Markdown files are inside the validator scope, strict UTF-8, use fenced math for display equations, stay within the 700-expression per-file budget, reject known GitHub math hazards, and have exact-case tracked local links; a Playwright post-push review of all 15 GitHub pages for the Markdown blob set pushed in bb63f8f found one rendered article per page, exactly one MathML child per math-renderer, and zero flash-error or pre fallback nodes; METHOD was 685/685, CODE_GUIDE 93/93, EXPERIMENT_PLAN 31/31 and METHOD_SECTION_DRAFT 126/126; the final audit-only amendment does not modify those Markdown blobs",
     "machine_matrix": "PASS: validate_environment.py expanded 157 cases and exactly 28,434 performance tasks (P1=8,318, P2=660, S2=500 queries across three methods); the separate ablation plan adds 135 preregistered variant tasks without changing the main matrix",
     "machine_formats": "PASS: all tracked JSON parses, Python tools compile, git diff whitespace check passes, and no tracked file exceeds 1 MiB",
     "p2_panel_reproducibility": "PASS: build_gpu_query_panels.py regenerated 66 cells and 660 queries in a temporary directory; all 132 panel/group-ID files and selected-query JSON/CSV were byte-identical, and cells.json was identical after removing only the two output-location fields; retained g=5..15 panel files are unchanged from the prior matrix",
     "paper_method_contract": "PASS: the active documents describe the same common distance-root initialization, common A1, common zero-rent witness scheduler, safe-addition/replacement ConfigurationProfile, minimal forward boundary ell=min(1,q), exact auxiliary H(h) replacement for omitted D(h), complete necessary lower-H terminals, full-valued successor, complementary even-half completion, incremental certificate-support DP, staged future and monotone certificate rejection frontier, output fields, timeout, workload counts, preregistered minimal ablations and source limitations as the code and machine manifests",
     "current_paper_matrix_sha256": "12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab",
     "current_query_feasibility_audit_sha256": "ce56defb4024730c3b39bb21d37889e3b6d18c59c02de0668257c53fa67edae0",
-    "final_campaign_contract": "PASS: the 3600-second common TL is locked in paper_matrix, environment_lock, ablation_plan and final_campaign_plan; historical raw outcomes are materialized non-destructively with 11 exact censor events; Enhanced continues after timeout; P2 and S2 apply symmetric, evidence-recorded likely-timeout frontiers to Base and PrunedDP++ without method-progress thresholds or early query kills",
-    "final_campaign_preflight": "PASS: 40 new S2 Enhanced jobs contain exactly 400 g={3,6,9,12} tasks and exclude retained g=15; 25714 unique historical formal records contain exactly 2 P1 PrunedDP++, 3 P2 Enhanced and 6 S2 Enhanced censored completions; synthetic online-frontier tests skipped exactly 105 P2 and 40 S2 tasks only under their registered criteria and did not extrapolate S2 across f",
+    "final_campaign_contract": "PASS: the 3600-second common TL is locked in paper_matrix, environment_lock and ablation_plan; 11 historical long completions are non-destructively censored; the canonical ledger contains a real ok or real timeout for every independent task key; sibling-query and cross-g frontiers are disabled; all predictor evidence is shadow-only; the active runner validates and reuses all 75 real backfill outcomes so recovery has zero missing P2/S2 tasks",
+    "final_campaign_preflight": "SUPERSEDED historical preflight: 40 new S2 Enhanced jobs and 25714 historical formal records passed identity checks, but synthetic frontier behavior is not a final-result claim; the later same-binary backfill actually ran all 75 formerly predicted-stop task keys and exposed completed counterexamples",
     "current_query_feasibility_audit": "PASS: 25 graphs, 157 unique graph/query files, 9,490 query records, 9,435 feasible and the 55 published natural-query infeasible records retained; zero generated/gate infeasible records",
     "s2_data_freeze": "PASS: DBLP-MonoGSTPlus and Toronto-MonoGSTPlus exactly match P1 graph identities; 50 cells, 500 deterministic protocol-v2 queries over g={3,6,9,12,15}, seed 20260827 and the supplied generator RNG call order; all generated queries feasible; the ten g=15 query files are byte-identical to the pre-expansion files and their 100 raw no-TL Enhanced records remain unchanged",
     "matrix_metadata_updated_at": "2026-08-28"
@@ -781,7 +848,7 @@
     "current_release_binary_sha256": "793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced",
     "compile_policy": "Release GCC flags end in -O2 with LTO, warnings enabled and no fast-math or floating-point precision change",
     "local_ctest": "5/5 PASS",
-    "independent_exactness": "PASS: 5000 deterministic random connected cases g=2..10, 500 positive unique-terminal stress cases g=6..10, 160 omitted-half transpose cases g=7..16, and the fixed 12-vertex g=7 fixture with optimum 5.75; cumulative discovered states base=103878, directed-cut-only=31982, enhanced=33869",
+    "independent_exactness": "PASS: 5000 deterministic random connected cases g=2..10, 500 positive unique-terminal stress cases g=6..10, 160 omitted-half transpose cases g=7..16, and the fixed 12-vertex g=7 fixture with optimum 5.75; cumulative discovered states base=103878, directed-cut-only=31982, enhanced=32727",
     "known_production_counterexamples": {
       "count": 9,
       "livejournal_queries": [

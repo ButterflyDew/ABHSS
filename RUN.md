@@ -6,7 +6,7 @@
 
 ### 1.1 Linux 服务器（推荐）
 
-需要 CMake 3.16+、GNU Make、Python 3.10+、pthread 和支持 C++17 的 GCC/Clang。首次先跑完整仓库内门禁：
+需要 CMake 3.16+、GNU Make、Python 3.10+、pthread 和支持 C++17 的 GCC/Clang；生成 PDF/PNG 图还需要 Python Matplotlib，但求解、结果物化和 CSV 汇总不依赖它。首次先跑完整仓库内门禁：
 
 ```bash
 make release JOBS=16
@@ -219,21 +219,19 @@ python3 tools/experiments/run_experiments.py --run-id paper --run-dir results/pa
 
 分配只由稳定 case hash 决定。同一 `run-dir` 中每个 `(case,method,query)` 有独立 JSON 记录，已完成 key 会跳过，因此可直接重复原命令续跑。不得在同一物理机器上并发运行多个内存带宽重的正式 shard；不得将不同 CPU/编译器的 shard 直接合并为同一时间表。
 
-本轮最终 campaign 固定使用已校准的 CPU 4/5。先执行只读身份审计和队列展开；确认输出为 40 个 Enhanced cell job、400 个新 Enhanced 任务、24,954 个复用 P1 任务、660 个复用 P2 Enhanced 任务和 100 个复用 S2 `g=15` Enhanced 任务后，再启动后台会话：
+本轮正式结果固定使用已校准的 CPU 4/5。`prepare` 验证生产二进制哈希、两个物理核、当前 P1/P2/S2 task key、查询路径和历史记录全集；只有身份完全一致时才复用完整 P1、全部 660 条 P2 Enhanced 与原 100 条 S2 $g=15$ Enhanced。它生成 25,714 条只读历史正式视图，并按统一 3,600 秒口径非破坏性截断 11 条原始长完成。启动与查看状态的入口为：
 
 ```bash
 python3 tools/experiments/run_parallel_campaign.py prepare
-tmux new-session -d -s abhss-final -c "$PWD" 'python3 tools/experiments/run_parallel_campaign.py run > results/paper_runs/final_3600s_campaign_793d4e_20260828/scheduler.log 2>&1'
+tmux new-session -d -s abhss-final -c "$PWD" "python3 tools/experiments/run_parallel_campaign.py run"
 python3 tools/experiments/run_parallel_campaign.py status
 ```
 
-`prepare` 验证生产二进制哈希、CPU 物理核、当前 P1/P2/S2 task key、查询路径和历史记录全集，并只在身份完全相同时复用完整 P1、全部 660 条 P2 Enhanced 与原 100 条 S2 `g=15` Enhanced。它在新目录生成 25,714 条只读历史记录的正式视图：按统一 3,600 秒口径把 P1 PrunedDP++ 的 2 条、P2 Enhanced 的 3 条和 S2 `g=15` Enhanced 的 6 条原始长完成记为 timeout，但不覆盖原始精确结果。`run` 先按 `g` 递增、同一 `g` 内按确定性估计从快到慢调度新增 `g={3,6,9,12}` 的 400 条 Enhanced；真实 timeout 正常落盘并继续，不触发 campaign 级硬停止，也不据此更换查询。
+[`experiments/final_campaign_plan.json`](experiments/final_campaign_plan.json) 以 schema 2 保留 2026-08-28 源 campaign 的旧 frontier 内容并显式标记为 superseded；顶层 `current_formal_policy` 绑定完成账本，旧规则只作历史时间线。该次运行曾依据 q1--q5 或较小 $g$ 留下 75 个 `not_run_likely_timeout` 项；真实回填发现 Orkut/PrunedDP++ 同格 q6 timeout 后 q7 仅需 85.932 秒等反例。当前 runner 已删除这种可执行停止逻辑：Enhanced、Base 与 PrunedDP++ 的每个缺失 task key 都独立运行到 `ok` 或真实 3,600 秒 timeout，旧预测文件即使存在也只在 `status` 中显示为 ignored historical artifacts。2026-09-07 已完成的 75 条 backfill 由 `formal_backfill_map()` 逐项核对历史 task-key 集合、矩阵、三方法二进制、TL、非诊断模式和真实状态，并作为只读已完成记录参与恢复判断；重复 `run` 不会再次执行它们。`status` 将 `current_formal` 与 `historical_source_campaign_state` 分开显示，后者的旧停止字段不表示当前政策。
 
-Enhanced 全部得到完成或 timeout 记录后，P2 的 Base/PrunedDP++ 按 `g` 递增运行。每格先跑覆盖五个组大小层的 q1--q5；仅当 5/5 都真实达到 3,600 秒且 Enhanced 对应 5/5 均在 3,600 秒内完成，才把当前 q6--q10 与同图同方法更大 `g` 写为 `not_run_likely_timeout` 而不启动。S2 按同一思想但不跨 `f` 外推：固定图、方法、`f`、`g` 的 10/10 全部真实 timeout，且 Enhanced 同十条均在 TL 内完成时，才跳过同图同方法同 `f` 的更大 `g`。这些预测停止项不是正式 timeout，不进入完成数、PAR-2 或时间总和；清单保留全部 task key 与真实 timeout 证据，论文需要完整点时再补跑。最后执行冻结的最小消融；endpoint-floor 变体由隔离构建器创建并通过完整 CTest。精确协议见 `experiments/final_campaign_plan.json` 和 `docs/EXPERIMENT_PLAN.md` 第 8.5 节。
+调度器按 $g$ 递增，并在同一 $g$ 内用不读取当前结果的确定性估计从快到慢排队；两个 worker 动态占用 CPU 4/5。真实 timeout 正常落盘并继续，不触发 campaign 级停止，也不换查询。父进程持有排他锁，每个 task key 原子落盘；中断后重复同一 `run` 命令只恢复缺少真实记录的任务。预测器研究必须位于独立 probe 目录、完整运行查询且不进入正式 ledger；在没有足够证据前不得把 shadow 触发用于调度。
 
-调度器持有排他锁且每个 task key 独立落盘；后台会话中断后重复同一 `run` 命令即可恢复。换机器或换 CPU 前必须重新校准并修改机器计划，不能直接沿用 CPU 4/5 的正式时间口径。
-
-若某个纸面值需要重跑，必须重跑该预声明 cell 的全部三个计时项并保留旧记录，不得只替换不利的单个 method/query。
+最小消融最后运行；endpoint-floor 变体由隔离构建器创建并先通过完整 CTest。换机器或换 CPU 前必须重新校准，不能直接合并时间。若某个纸面值需要重跑，必须重跑该预声明 cell 的全部三个计时项并保留旧记录，不得只替换不利的单个 method/query。
 
 ## 7. 定向诊断
 
@@ -249,19 +247,60 @@ python3 tools/experiments/run_experiments.py --run-id diagnose --run-dir results
 
 ## 8. 汇总与出图
 
+完整回填结束时，本轮冻结 finalizer 已生成规范化 ledger 与 manifest 快照；manifest 包含当时的生成时间，后续复核不得重跑 finalizer 覆盖该审计锚点。仓库跟踪的通用 materializer 应在独立目录重建账本，并与冻结 `records.jsonl` 逐字节比较。下面命令中的三个 source 标签、记录数、回填 provenance 标记、矩阵哈希和三种方法的二进制哈希都是验收合同，不得省略：
+
 ```bash
-python3 tools/experiments/summarize_results.py --input results/paper_runs/final_3600s_campaign_793d4e_20260828/historical_formal_records.jsonl --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu4 --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu5 --output results/paper_runs/final_3600s_campaign_793d4e_20260828/summary
-python3 tools/experiments/plot_results.py --input results/paper_runs/final_3600s_campaign_793d4e_20260828/historical_formal_records.jsonl --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu4 --input results/paper_runs/final_3600s_campaign_793d4e_20260828/workers/cpu5 --suite P2_cross_g --suite S2_controlled_gf --output results/paper_runs/final_3600s_campaign_793d4e_20260828/figures
+python3 tools/experiments/materialize_formal_results.py \
+  --source historical_formal=results/paper_runs/final_3600s_campaign_793d4e_20260828/historical_formal_records.jsonl \
+  --source source_campaign_workers=results/paper_runs/final_3600s_campaign_793d4e_20260828/workers \
+  --source backfill_workers=results/paper_runs/final_3600s_backfill_793d4e_20260907/workers \
+  --expect-source-count historical_formal=25714 \
+  --expect-source-count source_campaign_workers=2645 \
+  --expect-source-count backfill_workers=75 \
+  --mark-source backfill_workers=formal_backfill_of_exploratory_prediction \
+  --expected-matrix-sha 12dbac04c42bd14619b11332623b64dba8c6db3356062058967bef91047142ab \
+  --expected-binary-sha abhss_base=793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced \
+  --expected-binary-sha abhss_enhanced=793d4e27dfdcf52252602e4b2b8e11c3d9e06caab0a2b5f142edc2a45dc89ced \
+  --expected-binary-sha pruneddp_safe=4c1d3599f03da6073d368a6a83fcbd31ea0a625f9ba90892b22b0b239eb42bf2 \
+  --expected-records 28434 \
+  --run-id final_3600s_complete_793d4e \
+  --output-dir results/paper_runs/final_3600s_complete_793d4e_generic_check
+cmp results/paper_runs/final_3600s_complete_793d4e/records.jsonl results/paper_runs/final_3600s_complete_793d4e_generic_check/records.jsonl
 ```
 
-`p2_likely_timeout_not_run.jsonl` 和 `s2_likely_timeout_not_run.jsonl` 不作为 `--input`；它们只登记未运行项，不能混入正式分母。消融结果位于独立的 `ablation_workers`，按消融面板另行汇总。
+通用 materializer 要求每个目录型 source 都带有 worker `run_metadata.json`，其中矩阵、逐查询 TL 和命令行声明的三方法二进制哈希必须逐项精确匹配；历史正式视图以单一 JSONL 输入，并由冻结 finalizer 的逐字节比较锁定。它还会从冻结查询文件逐条重算并核对 `g`、`min_f`、`max_f` 和 `mean_f`；查询编号、组数、最小/最大组大小及状态数必须是非布尔整数，均值必须是有限数。任一应为整数的字段被字符串或浮点数替换，或者任一结构值与查询文件不符时，必须在写出规范账本前失败。
+
+只有 `cmp` 成功后，正式汇总才读取规范化的 28,434 条 ledger：
+
+```bash
+python3 tools/experiments/summarize_results.py --input results/paper_runs/final_3600s_complete_793d4e/records.jsonl --output results/paper_runs/final_3600s_complete_793d4e/summary
+python3 tools/experiments/plot_results.py --input results/paper_runs/final_3600s_complete_793d4e/records.jsonl --suite P2_cross_g --suite S2_controlled_gf --output results/paper_runs/final_3600s_complete_793d4e/figures
+```
+
+消融报告必须把规范化正式账本中的 Base/Enhanced 与三个隔离变体按同一 45 条查询联结，不能只汇总 135 条新增记录：
+
+```bash
+python3 tools/experiments/report_ablation.py \
+  --formal-input results/paper_runs/final_3600s_complete_793d4e/records.jsonl \
+  --ablation-input results/paper_runs/final_3600s_campaign_793d4e_20260828/ablation_workers/cpu4 \
+  --ablation-input results/paper_runs/final_3600s_campaign_793d4e_20260828/ablation_workers/cpu5 \
+  --output results/paper_runs/final_3600s_complete_793d4e/ablation \
+  --figures
+```
+
+该入口默认要求唯一正式输入为 materializer 生成的 `records.jsonl`。相邻 `manifest.json` 中的记录数、账本 SHA-256、矩阵/二进制身份、三类来源计数、suite-method 计数和四项完整性计数必须全部闭合；脚本还逐条核对 3,600 秒时限及完成/真实 timeout 字段合同。仅有 28,434 行但没有清单不能进入论文报告。两个 `--ablation-input` 还必须各自带有 `run_metadata.json`；报告器会锁定消融 run id、矩阵 SHA-256、逐查询 TL、非诊断运行方式、生产 ABHSS 二进制和唯一无 endpoint-floor 二进制，任一身份不符即停止。脚本只选择预登记面板中的 90 条生产记录，再与 135 条变体记录组成 45 查询 × 5 配置的 225 条消融账本，并要求同一查询的五个配置具有相同的组大小元数据。输出同时包含逐 cell 资源表、四个有向机制比较、总体比较和 PDF/PNG；超时进入五条固定分母的 PAR-2，成对 speedup 只使用双方完成项并另列 timeout 方向。
+
+旧 `p2_likely_timeout_not_run.jsonl`、`s2_likely_timeout_not_run.jsonl`、RSS/state shadow 事件和诊断重放结果都不是 `--input`。规范化前必须证明 task key 恰好覆盖矩阵、无重复、状态仅为 `ok`/`timeout`，且 P2/S2 每个 cell 每方法恰好十条。消融结果位于独立 `ablation_workers`，按消融面板另行汇总。
 
 关键产物：
 
 - `summary_by_dataset.csv`：P1 每图每方法一行，在内部聚合所有 query blocks 和 `g`。
-- `summary_by_cell.csv`：P2/S2 逐参数 cell 表。
+- `summary_by_cell.csv`：P2/S2 逐参数 cell 表，包含完成查询的内存记录数与峰值，以及该 cell 实际 `mean_f` 的最小值和最大值。
 - `paired_speedups.csv`：双方共同完成的成对加速比与 timeout 方向。
+- `p2_summary_by_tranche.csv`：按 `(dataset,g)` 分开报告 q1--q5 与 q6--q10 两个五查询 tranche；`p2_tranche_audit.json` 核对固定 size strata、查询索引、方法全集和记录完整性。
 - `quality_mismatches.csv` 和 `feasibility_mismatches.csv`：使用任何性能 claim 前必须为空。
+
+绘图程序分别生成每个 suite 的 performance profile、六个 P2 数据集的 completion/PAR-2/共同完成加速比分面，以及两个 S2 数据集各五个 `g` 下随 `f` 变化的对应分面；每张图同时输出 PDF 和 PNG。分面不得跨数据集聚合。Performance profile 的横轴覆盖全部已完成查询的有限时间比，不作任意数值截断；timeout 视为无穷并保留在分母中，因此曲线最右端等于该方法的完成率。
 
 P1 只在全部查询完成时填写 `observed_total_seconds_if_all_solved`。若有 timeout/error，先报完成数，再报已完成查询时间与将每个未完成查询按 3,600 秒计的 `capped_total_seconds`；不得把部分 solved time 当作整图总时间。
 
@@ -270,3 +309,5 @@ P1 只在全部查询完成时填写 `observed_total_seconds_if_all_solved`。�
 ## 9. 首次 Linux 正式运行必留信息
 
 在 run directory 中保留 CPU 完整型号、物理核/逻辑核、RAM、Linux 发行版与 kernel、GCC/Clang 版本、CMake 版本、Release flags、IPO/LTO 检测结果、Git commit、`paper_matrix.json` SHA-256、可行性 audit SHA-256、开始时间与机器是否独占。三个计时项必须使用同一个仓库 commit、编译器、优化策略、计时边界和物理机器类型。
+
+当前 runner 对未来记录在 `[Ready]` 或上一条查询完成后立即捕获 `started_at`。提交 42a06a1 及其更早的历史 native 记录是在组装最终 JSON 时才填写该字段，几乎等于 `finished_at`；这些历史记录的算法时间仍由 `solver_seconds` 和 `watchdog_wall_seconds` 正确给出，任何分析都不得用旧 `started_at` 反推开始时间。

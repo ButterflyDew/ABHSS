@@ -103,7 +103,7 @@ long long EstimateWitnessTreeDpWork(size_t witness_vertices,
                                     int nonanchor_count);
 
 /**
- * @brief Base/Enhanced 共用的 witness-tree DP rent-or-buy 调度器。
+ * @brief 所有合法配置共用的 witness-tree DP rent-or-buy 调度器。
  *
  * 构造时 rent 严格为 0，buy 只由当前 `Problem` 的 witness 顶点数和非锚组
  * 数代入共同公式得到。公共 A1 与 ordinary D 都只上报真实 queue pop/edge

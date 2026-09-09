@@ -156,13 +156,17 @@ def summarize_cells(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "completion_at_1000_ci95_low": completion_1000_low,
                 "completion_at_1000_ci95_high": completion_1000_high,
                 "mean_f": statistics.fmean(float(record["mean_f"]) for record in group),
+                "min_realized_mean_f": min(float(record["mean_f"]) for record in group),
+                "max_realized_mean_f": max(float(record["mean_f"]) for record in group),
                 "mean_solved_seconds": statistics.fmean(times) if times else None,
                 "median_solved_seconds": percentile(times, 0.5),
                 "p90_solved_seconds": percentile(times, 0.9),
                 "geomean_solved_seconds": geomean(times),
                 "par2_seconds": statistics.fmean(penalized),
+                "query_memory_records": len(memories),
                 "median_peak_mib": percentile(memories, 0.5),
                 "p90_peak_mib": percentile(memories, 0.9),
+                "peak_query_memory_mib_on_completed": max(memories) if memories else None,
                 "state_count_records": len(state_counts),
                 "mean_mask_vertex_states": (
                     statistics.fmean(state_counts) if state_counts else None
@@ -194,6 +198,11 @@ def summarize_datasets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             int(record["mask_vertex_states"])
             for record in solved
             if record.get("mask_vertex_states") is not None
+        ]
+        solved_memories = [
+            float(record["query_memory_peak_mib"])
+            for record in solved
+            if record.get("query_memory_peak_mib") is not None
         ]
         timeout = float(group[0]["timeout_seconds"])
         unfinished = len(group) - len(solved)
@@ -234,6 +243,13 @@ def summarize_datasets(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     statistics.fmean(solved_times) if solved_times else None
                 ),
                 "geomean_solved_seconds": geomean(solved_times),
+                "query_memory_records": len(solved_memories),
+                "peak_query_memory_mib_on_completed": max(solved_memories) if solved_memories else None,
+                "observed_peak_query_memory_mib_if_all_solved": (
+                    max(solved_memories)
+                    if unfinished == 0 and len(solved_memories) == len(solved)
+                    else None
+                ),
                 "state_count_records": len(solved_state_counts),
                 "solved_query_mask_vertex_states": (
                     sum(solved_state_counts) if solved_state_counts else None
@@ -344,6 +360,138 @@ def paired_rows(
     return rows
 
 
+def summarize_p2_tranches(records: list[dict[str, Any]], manifest_path: Path, expected_methods: list[str]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Join P2 records to the frozen two-tranche selection without changing the ledger."""
+
+    path = manifest_path if manifest_path.is_absolute() else ROOT / manifest_path
+    selection_rows = json.loads(path.read_text(encoding="utf-8"))
+    selection: dict[tuple[str, int, int], dict[str, Any]] = {}
+    duplicate_selection_keys: list[tuple[str, int, int]] = []
+    for row in selection_rows:
+        key = (str(row["dataset"]), int(row["g"]), int(row["panel_query_index"]))
+        if key in selection:
+            duplicate_selection_keys.append(key)
+        selection[key] = row
+
+    selection_panels: dict[tuple[str, int, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in selection_rows:
+        selection_panels[(str(row["dataset"]), int(row["g"]), int(row["panel_tranche"]))].append(row)
+    invalid_selection_panels: list[dict[str, Any]] = []
+    for (dataset, g, tranche), group in sorted(selection_panels.items()):
+        query_indices = sorted(int(row["panel_query_index"]) for row in group)
+        size_strata = sorted(int(row["size_stratum"]) for row in group)
+        expected_query_indices = list(range(1, 6)) if tranche == 1 else (list(range(6, 11)) if tranche == 2 else [])
+        if len(group) != 5 or query_indices != expected_query_indices or size_strata != [1, 2, 3, 4, 5]:
+            invalid_selection_panels.append(
+                {
+                    "dataset": dataset,
+                    "g": g,
+                    "panel_tranche": tranche,
+                    "entries": len(group),
+                    "panel_query_indices": query_indices,
+                    "size_strata": size_strata,
+                }
+            )
+
+    p2 = [record for record in records if record["suite"] == "P2_cross_g"]
+    observed_methods = sorted({str(record["method"]) for record in p2})
+    methods = list(dict.fromkeys(expected_methods))
+    missing_methods = sorted(set(methods) - set(observed_methods))
+    unexpected_methods = sorted(set(observed_methods) - set(methods))
+    joined: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    unexpected_records: list[str] = []
+    duplicate_record_keys: list[tuple[str, int, int, str]] = []
+    mean_f_mismatches: list[dict[str, Any]] = []
+    seen_records: set[tuple[str, int, int, str]] = set()
+    for record in p2:
+        selection_key = (str(record["dataset"]), int(record["g"]), int(record["query_index"]))
+        panel = selection.get(selection_key)
+        record_key = (*selection_key, str(record["method"]))
+        if record_key in seen_records:
+            duplicate_record_keys.append(record_key)
+        seen_records.add(record_key)
+        if panel is None:
+            unexpected_records.append(str(record["task_key"]))
+            continue
+        difference = abs(float(record["mean_f"]) - float(panel["mean_f"]))
+        if difference > 1e-9 * max(1.0, abs(float(panel["mean_f"]))):
+            mean_f_mismatches.append(
+                {
+                    "task_key": record["task_key"],
+                    "record_mean_f": record["mean_f"],
+                    "selection_mean_f": panel["mean_f"],
+                }
+            )
+        joined.append((record, panel))
+
+    expected_record_keys = {
+        (dataset, g, query_index, method)
+        for dataset, g, query_index in selection
+        for method in methods
+    }
+    missing_record_keys = sorted(expected_record_keys - seen_records)
+    grouped: dict[tuple[str, int, int, str], list[tuple[dict[str, Any], dict[str, Any]]]] = defaultdict(list)
+    for record, panel in joined:
+        grouped[(str(record["dataset"]), int(record["g"]), int(panel["panel_tranche"]), str(record["method"]))].append((record, panel))
+
+    summary_rows: list[dict[str, Any]] = []
+    invalid_tranche_sizes: list[tuple[str, int, int, str, int]] = []
+    for (dataset, g, tranche, method), group in sorted(grouped.items()):
+        if len(group) != 5:
+            invalid_tranche_sizes.append((dataset, g, tranche, method, len(group)))
+        timeout = float(group[0][0]["timeout_seconds"])
+        solved = [record for record, _ in group if record["status"] == "ok"]
+        penalized = [float(record["solver_seconds"]) if record["status"] == "ok" else 2.0 * timeout for record, _ in group]
+        summary_rows.append(
+            {
+                "dataset": dataset,
+                "g": g,
+                "panel_tranche": tranche,
+                "method": method,
+                "panel_query_indices": ";".join(map(str, sorted(int(panel["panel_query_index"]) for _, panel in group))),
+                "size_strata": ";".join(map(str, sorted(int(panel["size_stratum"]) for _, panel in group))),
+                "instances": len(group),
+                "solved": len(solved),
+                "timeouts": sum(record["status"] == "timeout" for record, _ in group),
+                "completion_rate": len(solved) / len(group),
+                "mean_solved_seconds": statistics.fmean(float(record["solver_seconds"]) for record in solved) if solved else None,
+                "par2_seconds": statistics.fmean(penalized),
+            }
+        )
+
+    structural_errors = bool(duplicate_selection_keys or invalid_selection_panels or duplicate_record_keys or unexpected_records or mean_f_mismatches or unexpected_methods)
+    complete = not missing_record_keys and not missing_methods and not invalid_tranche_sizes and not structural_errors
+    audit = {
+        "schema_version": 1,
+        "status": "pass" if complete else ("fail" if structural_errors else "partial"),
+        "selection_manifest": str(path.relative_to(ROOT) if path.is_relative_to(ROOT) else path),
+        "selection_manifest_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "selection_entries": len(selection_rows),
+        "selection_unique_keys": len(selection),
+        "selection_duplicate_keys": [list(key) for key in duplicate_selection_keys],
+        "invalid_selection_panels": invalid_selection_panels,
+        "p2_records": len(p2),
+        "expected_methods": methods,
+        "observed_methods": observed_methods,
+        "missing_methods": missing_methods,
+        "unexpected_methods": unexpected_methods,
+        "expected_records": len(selection) * len(methods),
+        "joined_records": len(joined),
+        "missing_record_count": len(missing_record_keys),
+        "missing_record_examples": [list(key) for key in missing_record_keys[:20]],
+        "duplicate_record_keys": [list(key) for key in duplicate_record_keys],
+        "unexpected_record_task_keys": unexpected_records,
+        "mean_f_mismatches": mean_f_mismatches,
+        "tranche_summary_rows": len(summary_rows),
+        "invalid_tranche_sizes": [list(item) for item in invalid_tranche_sizes],
+        "full_panel_complete": complete,
+        "join_key": ["dataset", "g", "panel_query_index"],
+        "tranche_semantics": "panel_tranche 1 is query indices 1--5 and panel_tranche 2 is query indices 6--10; both use five frozen, independently selected queries per dataset/g cell",
+        "formal_ledger_mutation": "none; this is a reporting-only join",
+    }
+    return summary_rows, audit
+
+
 def quality_rows(
     records: list[dict[str, Any]], tolerance: float, include_audit_methods: bool
 ) -> list[dict[str, Any]]:
@@ -432,9 +580,14 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--baseline", default="pruneddp_safe")
     parser.add_argument(
-        "--contender", action="append", default=["abhss_base", "abhss_enhanced"]
-    )
+        "--contender", action="append", help="repeat to override the default Base/Enhanced contenders")
     parser.add_argument("--weight-tolerance", type=float, default=1e-6)
+    parser.add_argument(
+        "--p2-selection-manifest",
+        type=Path,
+        default=Path("experiment_data/p2_cross_g/selected_queries.json"),
+        help="frozen P2 panel manifest used for reporting-only tranche joins",
+    )
     parser.add_argument(
         "--include-audit-methods-in-quality",
         action="store_true",
@@ -450,17 +603,38 @@ def main() -> int:
     records = load_records(inputs)
     if not records:
         raise ValueError("No records found")
+    contenders = args.contender or ["abhss_base", "abhss_enhanced"]
 
     cell_rows = summarize_cells(records)
     dataset_rows = summarize_datasets(records)
-    paired = paired_rows(records, args.baseline, args.contender)
+    paired = paired_rows(records, args.baseline, contenders)
     mismatches = quality_rows(
         records, args.weight_tolerance, args.include_audit_methods_in_quality
     )
     feasibility_mismatches = feasibility_rows(records)
+    p2_tranches, p2_tranche_audit = summarize_p2_tranches(records, args.p2_selection_manifest, [args.baseline, *contenders])
     write_csv(output / "summary_by_cell.csv", cell_rows)
     write_csv(output / "summary_by_dataset.csv", dataset_rows)
     write_csv(output / "paired_speedups.csv", paired)
+    write_csv(
+        output / "p2_summary_by_tranche.csv",
+        p2_tranches,
+        [
+            "dataset",
+            "g",
+            "panel_tranche",
+            "method",
+            "panel_query_indices",
+            "size_strata",
+            "instances",
+            "solved",
+            "timeouts",
+            "completion_rate",
+            "mean_solved_seconds",
+            "par2_seconds",
+        ],
+    )
+    (output / "p2_tranche_audit.json").write_text(json.dumps(p2_tranche_audit, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_csv(
         output / "quality_mismatches.csv",
         mismatches,
@@ -494,10 +668,12 @@ def main() -> int:
                 "cells": len(cell_rows),
                 "dataset_rows": len(dataset_rows),
                 "paired_cells": len(paired),
+                "p2_tranche_rows": len(p2_tranches),
+                "p2_tranche_audit_status": p2_tranche_audit["status"],
                 "quality_mismatches": len(mismatches),
                 "feasibility_mismatches": len(feasibility_mismatches),
                 "baseline": args.baseline,
-                "contenders": args.contender,
+                "contenders": contenders,
                 "audit_methods_in_quality_check": args.include_audit_methods_in_quality,
                 "timeout_handling": "PAR-2; timeout/error contributes 2 * per-instance limit",
                 "dataset_total_handling": "observed total is reported only when all queries finish; capped total charges one per-instance limit to each unfinished query",
@@ -512,9 +688,10 @@ def main() -> int:
     )
     print(
         f"Summarized {len(records)} records; {len(mismatches)} weight mismatches, "
-        f"{len(feasibility_mismatches)} feasibility mismatches -> {output}"
+        f"{len(feasibility_mismatches)} feasibility mismatches, "
+        f"P2 tranche audit {p2_tranche_audit['status']} -> {output}"
     )
-    return 1 if mismatches or feasibility_mismatches else 0
+    return 1 if mismatches or feasibility_mismatches or p2_tranche_audit["status"] == "fail" else 0
 
 
 if __name__ == "__main__":

@@ -176,7 +176,7 @@ SolveResult SolveOneQuery(const Graph& graph,
         MakeAnchoredCompletionSchedule(problem.g, profile);
 
     // 预处理完成后才创建；构造函数只计算共同 buy，rent 严格从 0 开始。
-    // 同一个对象随后跨越公共 A1 与 ordinary D，防止两配置各自维护调度器。
+    // 同一个对象随后跨越公共 A1 与 ordinary D，防止不同配置各自维护调度器。
     WitnessUpperScheduler witness_scheduler(problem);
     AnchoredSingletonFuture singleton_future;
     AnchoredSingletonFuture* ordinary_singleton_future =

@@ -1495,7 +1495,7 @@ bool PrepareProblem(Problem& p)
     if (p.best <= p.component_cover.lower)
         return true;
 
-    // 两种配置在各自 witness 构造后共同执行同一真实路径生长上界。
+    // 所有配置在各自 witness 构造后共同执行同一真实路径生长上界。
     const PathGrowthUpper path_growth = BuildTripleSeededPathGrowthUpper(p.graph, p.query, p.group_distance, p.best);
     if (path_growth.upper < p.best)
         p.best = path_growth.upper;
